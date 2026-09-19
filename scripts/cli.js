@@ -32,11 +32,11 @@ function runScript(scriptName, args = []) {
 async function showMenu() {
     console.clear();
     console.log('================================================');
-    console.log('       🚀 Antigravity 中文汉化补丁 (Next-Gen)');
+    console.log('            Antigravity汉化补丁');
     console.log('================================================');
-    console.log('  1. ⚡ 一键安装/更新汉化补丁 (需要先退出软件)');
-    console.log('  2. 🔄 热更新词典 (修改 cockpit-zh.json 后刷新生效)');
-    console.log('  3. 🗑️  一键还原英文原版 (需要先退出软件)');
+    console.log('  1. 安装或更新汉化补丁 (需先完全退出软件)');
+    console.log('  2. 热更新词典 (修改 cockpit-zh.json 后刷新)');
+    console.log('  3. 还原英文原版 (需先完全退出软件)');
     console.log('  0. 退出');
     console.log('================================================');
 

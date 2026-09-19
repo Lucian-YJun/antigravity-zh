@@ -43,9 +43,7 @@ antigravity-zh/
 
 你可以根据自己的喜好，选择以下两种安装方式之一：
 
-### 方式一：使用传统批处理文件 (.bat) - 推荐开发者
-
-**前置要求**: 你的电脑必须已安装 [Node.js](https://nodejs.org/)。
+### 方式一：使用传统批处理文件 (.bat) (含Node.js)
 
 在 GitHub 页面点击 **Code -> Download ZIP** 下载解压后：
 1. **完全退出** Antigravity（请确保系统托盘右下角的图标也已退出）。
@@ -54,9 +52,7 @@ antigravity-zh/
 
 *(若需还原英文，双击 `一键还原.bat` 即可)*
 
-### 方式二：使用独立可执行程序 (.exe) - 推荐小白用户
-
-**无任何前置要求，无需安装 Node.js！**
+### 方式二：使用独立可执行程序 (.exe) (免Node.js)
 
 1. 前往 [Releases](../../releases) 页面，下载最新的 `Antigravity汉化补丁.exe`。
 2. **完全退出** Antigravity（确保系统托盘右下角的图标也已退出）。
