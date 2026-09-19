@@ -6,6 +6,7 @@
   "scripts": {
     "patch": "node scripts/patch.js",
     "unpatch": "node scripts/patch.js --revert",
+    "sync": "node scripts/sync-dict.js",
     "test:main": "node tests/test-main.js",
     "test:page": "node tests/test-page.js"
   },
