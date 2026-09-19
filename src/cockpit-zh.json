@@ -612,7 +612,13 @@
     "There are no customizations enabled.": "当前没有已启用的自定义项。",
     "Global Permissions": "全局权限",
     "Collapse All": "全部折叠",
-    "Install Antigravity IDE to run and edit your workspace scripts.": "安装 Antigravity IDE 以运行和编辑你的工作区脚本。"
+    "Install Antigravity IDE to run and edit your workspace scripts.": "安装 Antigravity IDE 以运行和编辑你的工作区脚本。",
+    "Undo to this point": "撤销到此位置",
+    "Quote": "引用",
+    "Quote Ctrl+L": "引用 Ctrl+L",
+    "Add Comment": "添加评论",
+    "Comment": "评论",
+    "Comment Ctrl+Alt+M": "评论 Ctrl+Alt+M"
   },
   "rules": [
     [
