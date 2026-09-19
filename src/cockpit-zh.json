@@ -611,7 +611,8 @@
     "Remote Control": "远程控制",
     "There are no customizations enabled.": "当前没有已启用的自定义项。",
     "Global Permissions": "全局权限",
-    "Collapse All": "全部折叠"
+    "Collapse All": "全部折叠",
+    "Install Antigravity IDE to run and edit your workspace scripts.": "安装 Antigravity IDE 以运行和编辑你的工作区脚本。"
   },
   "rules": [
     [
