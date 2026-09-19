@@ -32,6 +32,27 @@ antigravity-zh/
 └── tests/                         # 自动化测试套件
 ```
 
-## 🛠 开发与使用指南
+## 🛠 使用指南
 
-**(文档待补充：安装命令与使用步骤)**
+```bash
+npm install        # 首次使用，安装依赖
+npm run patch      # 打汉化补丁（自动检测安装路径，全程失败安全）
+npm run unpatch    # 还原英文原版
+node scripts/patch.js --dry-run   # 预览匹配情况，不改动任何文件
+```
+
+打补丁前请完全退出 Antigravity（含系统托盘图标），脚本会自行检测。
+
+## 🧪 测试
+
+```bash
+npm install        # 首次使用
+npm run test:main  # 主程序模块测试（7 项）
+npm run test:page  # 页面翻译器集成测试（11 项，需 jsdom）
+```
+
+## 📄 许可与致谢
+
+本项目基于 [oljh0/AntigravityChinese](https://github.com/oljh0/AntigravityChinese)（MIT 协议）修改增强，
+词典与原生替换表源自该项目，翻译引擎经本地 fork 改进（同帧翻译 + 词典热载）。
+详见 LICENSE。第三方非官方补丁，仅供学习交流，使用自担风险。

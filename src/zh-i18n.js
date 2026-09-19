@@ -83,12 +83,14 @@ function loadDictionary() {
 }
 // 注入到页面上下文的翻译器（字符串拼接，避免模板字面量冲突）
 const TRANSLATOR_BODY = [
-    'var D=__DATA__;var dict=D.dict,rules=D.rules;',
+    'var D=__DATA__;var dict=D.dict,res=null;',
+    'function compileRules(rules){var out=[];rules=rules||[];for(var i=0;i<rules.length;i++){try{out.push([new RegExp(rules[i][0],rules[i][2]||""),rules[i][1]]);}catch(e){}}return out;}',
+    'res=compileRules(D.rules);',
     'var SKIP={SCRIPT:1,STYLE:1,NOSCRIPT:1,CODE:1,PRE:1,TEXTAREA:1,SVG:1,MATH:1};',
     'function tr(s){var core=s.replace(/^\\s+|\\s+$/g,"");if(!core){return null;}',
     '  if(Object.prototype.hasOwnProperty.call(dict,core)){var v=dict[core];return s.replace(core,function(){return v;});}',
-    '  for(var i=0;i<rules.length;i++){var r=rules[i];var re=new RegExp(r[0],r[2]||"");',
-    '    if(re.test(core)){return s.replace(core,function(){return core.replace(re,r[1]);});}}',
+    '  for(var i=0;i<res.length;i++){var rr=res[i];',
+    '    if(rr[0].test(core)){return s.replace(core,function(){return core.replace(rr[0],rr[1]);});}}',
     '  return null;}',
     'function trNode(n){var v=tr(n.nodeValue);if(v!==null&&v!==n.nodeValue){n.nodeValue=v;}}',
     'var ATTRS=["placeholder","title","aria-label","aria-placeholder","data-tooltip","alt"];',
@@ -114,7 +116,7 @@ const TRANSLATOR_BODY = [
     'var rootEl=document.documentElement||document.body;',
     'mo.observe(rootEl,{childList:true,subtree:true,characterData:true});',
     'window.__antigravityZh={retranslate:function(){walk(document.body);var t=tr(document.title);if(t){document.title=t;}},',
-    '  setData:function(nd){if(!nd){return;}D=nd;dict=nd.dict||{};rules=nd.rules||[];try{walk(document.body);}catch(e){}}};',
+    '  setData:function(nd){if(!nd){return;}D=nd;dict=nd.dict||{};res=compileRules(nd.rules);try{walk(document.body);}catch(e){}}};',
     'walk(document.body);var t0=tr(document.title);if(t0){document.title=t0;}'
 ].join('\n');
 function buildScript(dic) {
