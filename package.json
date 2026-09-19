@@ -1,0 +1,29 @@
+{
+  "name": "antigravity-zh",
+  "version": "1.0.0",
+  "description": "Antigravity 中文汉化补丁 (Next-Gen) - 同帧无闪烁渲染版",
+  "main": "scripts/patch.js",
+  "scripts": {
+    "patch": "node scripts/patch.js",
+    "unpatch": "node scripts/patch.js --revert",
+    "test:main": "node tests/test-main.js",
+    "test:page": "node tests/test-page.js"
+  },
+  "keywords": [
+    "antigravity",
+    "localization",
+    "chinese"
+  ],
+  "author": "",
+  "license": "MIT",
+  "directories": {
+    "test": "tests"
+  },
+  "type": "commonjs",
+  "dependencies": {
+    "asar": "^3.2.0"
+  },
+  "devDependencies": {
+    "jsdom": "^30.1.0"
+  }
+}
