@@ -624,7 +624,12 @@
     "Undo": "撤销",
     "View archived conversations in history.": "在对话历史中查看已归档对话。",
     "View archived conversations in": "已归档对话可前往",
-    "history.": "历史记录"
+    "history.": "历史记录",
+    "Danger Zone": "危险区域",
+    "Delete Project": "删除项目",
+    "No conversations yet": "尚无对话",
+    "Manage folders, agents, and permissions.": "管理文件夹、代理和权限。",
+    "Folders": "文件夹"
   },
   "rules": [
     [
