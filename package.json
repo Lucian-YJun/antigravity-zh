@@ -1,6 +1,6 @@
 {
   "name": "antigravity-zh",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Antigravity 中文汉化补丁 (Next-Gen) - 同帧无闪烁渲染版",
   "main": "scripts/cli.js",
   "bin": "scripts/cli.js",
