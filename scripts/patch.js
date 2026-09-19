@@ -121,7 +121,15 @@ try {
     asar.extractAll(sourceAsar, staging);
 
     // 应用原生替换规则
-    const nativePatchesDir = path.join(__dirname, '../src/native');
+    const exeDir = path.dirname(process.execPath);
+    // 判断是否有外置的 src 目录（方便高级用户自行修改全部逻辑）
+    const externalSrcDir = path.join(exeDir, 'src');
+    const hasExternalSrc = fs.existsSync(externalSrcDir);
+    
+    const nativePatchesDir = hasExternalSrc 
+        ? path.join(externalSrcDir, 'native') 
+        : path.join(__dirname, '../src/native');
+
     const targets = {
         'utils': 'dist/utils.js',
         'menu': 'dist/menu.js',
@@ -173,8 +181,23 @@ try {
     }
 
     fs.mkdirSync(kitDir, { recursive: true });
-    fs.copyFileSync(path.join(__dirname, '../src/zh-i18n.js'), path.join(kitDir, 'zh-i18n.js'));
-    fs.copyFileSync(path.join(__dirname, '../src/cockpit-zh.json'), path.join(kitDir, 'cockpit-zh.json'));
+    
+    // 解析注入脚本和词典的路径（支持 exe 同级目录外置）
+    const sourceI18n = hasExternalSrc 
+        ? path.join(externalSrcDir, 'zh-i18n.js') 
+        : path.join(__dirname, '../src/zh-i18n.js');
+        
+    // 词典支持直接放在 exe 同级目录，或者放在 exe/src 目录下
+    let sourceDict = path.join(__dirname, '../src/cockpit-zh.json');
+    if (fs.existsSync(path.join(exeDir, 'cockpit-zh.json'))) {
+        sourceDict = path.join(exeDir, 'cockpit-zh.json');
+        console.log('💡 检测到外置词典 (exe同级目录)，将使用外置词典。');
+    } else if (hasExternalSrc && fs.existsSync(path.join(externalSrcDir, 'cockpit-zh.json'))) {
+        sourceDict = path.join(externalSrcDir, 'cockpit-zh.json');
+    }
+
+    fs.copyFileSync(sourceI18n, path.join(kitDir, 'zh-i18n.js'));
+    fs.copyFileSync(sourceDict, path.join(kitDir, 'cockpit-zh.json'));
     console.log(`✅ 翻译组件与词典已部署至 ${kitDir}`);
 
     cleanupJunction();

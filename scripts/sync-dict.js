@@ -20,8 +20,18 @@ if (!fs.existsSync(kitDir)) {
     process.exit(1);
 }
 
+const exeDir = path.dirname(process.execPath);
+let sourceDict = path.join(__dirname, '../src/cockpit-zh.json');
+
+if (fs.existsSync(path.join(exeDir, 'cockpit-zh.json'))) {
+    sourceDict = path.join(exeDir, 'cockpit-zh.json');
+    console.log('💡 检测到外置词典 (exe同级目录)，将使用外置词典同步。');
+} else if (fs.existsSync(path.join(exeDir, 'src', 'cockpit-zh.json'))) {
+    sourceDict = path.join(exeDir, 'src', 'cockpit-zh.json');
+}
+
 fs.copyFileSync(
-    path.join(__dirname, '../src/cockpit-zh.json'),
+    sourceDict,
     path.join(kitDir, 'cockpit-zh.json')
 );
 console.log('✅ 词典已同步，约 1-2 秒后自动生效。');

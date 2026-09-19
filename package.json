@@ -2,8 +2,15 @@
   "name": "antigravity-zh",
   "version": "1.0.0",
   "description": "Antigravity 中文汉化补丁 (Next-Gen) - 同帧无闪烁渲染版",
-  "main": "scripts/patch.js",
+  "main": "scripts/cli.js",
+  "bin": "scripts/cli.js",
+  "pkg": {
+    "assets": [
+      "src/**/*"
+    ]
+  },
   "scripts": {
+    "build": "pkg . -t node18-win-x64 -o dist/Antigravity汉化补丁.exe",
     "patch": "node scripts/patch.js",
     "unpatch": "node scripts/patch.js --revert",
     "sync": "node scripts/sync-dict.js",
@@ -25,6 +32,7 @@
     "asar": "^3.2.0"
   },
   "devDependencies": {
-    "jsdom": "^30.1.0"
+    "jsdom": "^30.1.0",
+    "pkg": "^5.8.1"
   }
 }
