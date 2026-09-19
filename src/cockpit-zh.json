@@ -595,7 +595,17 @@
     "Provides a comprehensive guide, quick reference, and sitemap for Google Antigravity (AGY), including the Antigravity CLI (agy), Antigravity 2.0, Antigravity IDE, Python SDK, slash commands, keybindings, and customizations (skills, rules, MCP, sidecars). Activate this skill when the user asks questions about how to use, configure, or customize Antigravity, AGY, the agy CLI, the Antigravity IDE, or Antigravity 2.0.": "提供 Google Antigravity（AGY）的综合指南、速查表和导览，涵盖 Antigravity CLI（agy）、Antigravity 2.0、Antigravity IDE、Python SDK、斜杠命令、快捷键和自定义配置（技能、规则、MCP、边车）。当用户询问如何使用、配置或定制 Antigravity 及其相关组件时启用此技能。",
     "How to render rich interactive HTML widgets inline in the chat or as standalone artifacts. Use this skill when you want to show the user diagrams, data visualizations, interactive controls, educational walkthroughs, or any rich visual content beyond plain text and markdown.": "如何在对话中内嵌渲染丰富的交互式 HTML 组件，或作为独立工件展示。当需要向用户展示图表、数据可视化、交互控件、教学演示，或任何超出纯文本和 Markdown 的丰富内容时使用此技能。",
     "Automatically migrate legacy workflows to modern skills across global and workspace configurations. Scans for existing workflows, creates target SKILL.md files, and safely archives old workflow files.": "自动将旧版工作流迁移为现代技能格式，覆盖全局和工作区配置。扫描现有工作流，生成目标 SKILL.md 文件，并安全归档旧工作流文件。",
-    "Guidelines for interacting with GitHub and request permissions from the user when commands fail due to restrictions in the agent environment.": "与 GitHub 交互的指南；当命令因代理环境限制而失败时，向用户请求相应权限。"
+    "Guidelines for interacting with GitHub and request permissions from the user when commands fail due to restrictions in the agent environment.": "与 GitHub 交互的指南；当命令因代理环境限制而失败时，向用户请求相应权限。",
+    "No MCP servers installed": "未安装 MCP 服务器",
+    "Use Add MCP to browse the store, or add a custom server via the MCP config.": "使用「添加 MCP」浏览商店，或通过 MCP 配置添加自定义服务器。",
+    "Open File": "打开文件",
+    "New Terminal": "新建终端",
+    "Install IDE": "安装 IDE",
+    "Overview": "概览",
+    "Hide Whitespace Changes": "隐藏空白字符变化",
+    "Collapse Unchanged": "折叠未更改部分",
+    "Review": "审查",
+    "Terminal": "终端"
   },
   "rules": [
     [
