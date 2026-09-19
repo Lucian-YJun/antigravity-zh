@@ -4,3 +4,4 @@ Thumbs.db
 *.log
 tests/zh-patch-sim*
 dist/
+dist2/
