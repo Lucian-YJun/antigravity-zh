@@ -618,7 +618,13 @@
     "Quote Ctrl+L": "引用 Ctrl+L",
     "Add Comment": "添加评论",
     "Comment": "评论",
-    "Comment Ctrl+Alt+M": "评论 Ctrl+Alt+M"
+    "Comment Ctrl+Alt+M": "评论 Ctrl+Alt+M",
+    "Archive Conversation": "归档对话",
+    "Conversation Archived": "对话已归档",
+    "Undo": "撤销",
+    "View archived conversations in history.": "在对话历史中查看已归档对话。",
+    "View archived conversations in": "已归档对话可前往",
+    "history.": "历史记录"
   },
   "rules": [
     [
