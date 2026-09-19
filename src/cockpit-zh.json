@@ -605,7 +605,13 @@
     "Hide Whitespace Changes": "隐藏空白字符变化",
     "Collapse Unchanged": "折叠未更改部分",
     "Review": "审查",
-    "Terminal": "终端"
+    "Terminal": "终端",
+    "Automatic Check for Updates": "自动检查更新",
+    "Automatically prompt you to restart the app when a new update is available. When disabled, you can check for updates manually from the app menu.": "有新更新可用时自动提示重启应用。关闭后，可从应用菜单手动检查更新。",
+    "Remote Control": "远程控制",
+    "There are no customizations enabled.": "当前没有已启用的自定义项。",
+    "Global Permissions": "全局权限",
+    "Collapse All": "全部折叠"
   },
   "rules": [
     [
