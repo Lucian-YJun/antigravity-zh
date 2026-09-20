@@ -629,7 +629,11 @@
     "Delete Project": "删除项目",
     "No conversations yet": "尚无对话",
     "Manage folders, agents, and permissions.": "管理文件夹、代理和权限。",
-    "Folders": "文件夹"
+    "Folders": "文件夹",
+    "Inherit Global": "继承全局",
+    "Inherits your Global Permissions when working in this project.": "在此项目中工作时继承你的全局权限。",
+    "Full machine": "整台机器",
+    "All terminal commands require review. The agent can read or write to any file in the machine.": "所有终端命令均需审查。智能体可读写本机上的任何文件。"
   },
   "rules": [
     [
