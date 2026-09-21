@@ -2,6 +2,10 @@
 
 本项目为 Google Antigravity 提供全面、高质量的界面汉化。
 
+## 直接下载（普通用户推荐）
+
+**不懂命令行也能用**：前往 [Releases 页面](https://github.com/Lucian-YJun/antigravity-zh/releases) 下载最新 `Antigravity-zh-patch-vX.X.X.zip`，解压后双击 `安装汉化.bat`（安装前完全退出 Antigravity，含系统托盘）。应用更新后重复一次即可恢复。详细说明见包内 `使用说明.md`。
+
 ## 核心特性 (Next-Gen 专属增强)
 
 基于标准的 Electron 资源解包机制构建，并在前端渲染与词典调度上进行了体验优化：
