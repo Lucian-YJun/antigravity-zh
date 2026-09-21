@@ -82,6 +82,7 @@ antigravity-zh/
 ```bash
 npm install        # 首次使用，安装依赖
 npm run patch      # 打汉化补丁（自动检测安装路径，全程失败安全）
+npm run repatch    # 应用更新后一键恢复：自动优雅关闭→打补丁→重新打开
 npm run sync       # 词典快速热同步（无需重打补丁或退出软件）
 npm run unpatch    # 还原英文原版
 npm run build      # 打包生成 .exe

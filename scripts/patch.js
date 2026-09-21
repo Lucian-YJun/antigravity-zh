@@ -7,7 +7,9 @@
  * 安全设计（相对初版的改进）：
  * 1. 运行前检查 Antigravity 进程，运行中拒绝执行；
  * 2. 先解包打补丁到临时目录，全部成功后才替换正式文件——任何一步失败，原安装毫发无损；
- * 3. 支持 --dry-run 预览匹配情况，不改动任何文件。
+ * 3. 支持 --dry-run 预览匹配情况，不改动任何文件；
+ * 4. --close：运行中时可先尝试"优雅关闭"（发关闭请求，绝不强制结束），关闭成功才继续；
+ * 5. --relaunch：补丁完成后自动重新启动应用（配合 --close 即 npm run repatch 全自动恢复）。
  */
 
 const fs = require('fs');
@@ -18,6 +20,8 @@ const { execSync } = require('child_process');
 const args = process.argv.slice(2);
 const isRevert = args.includes('--revert');
 const isDryRun = args.includes('--dry-run');
+const isClose = args.includes('--close');
+const isRelaunch = args.includes('--relaunch');
 
 console.log(`🚀 Antigravity 中文汉化补丁 (Next-Gen)${isDryRun ? ' [预览模式]' : ''}${isRevert ? ' [还原]' : ''}\n`);
 
@@ -49,6 +53,29 @@ function isAntigravityRunning() {
     }
 }
 
+// 纯 JS 睡眠（不依赖外部命令）
+function sleep(ms) {
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+}
+
+// 向应用发送关闭请求并等待其自行退出；12 秒内未退出则放弃（不强制结束，保护未保存的工作）
+function gracefulCloseAntigravity() {
+    console.log('🔄 检测到 Antigravity 正在运行，尝试优雅关闭（不强制结束进程）...');
+    try {
+        execSync('taskkill /IM Antigravity.exe', { stdio: ['ignore', 'pipe', 'pipe'] });
+    } catch { /* 进程可能在命令执行间隙已退出，taskkill 返回非零属正常 */ }
+    for (let i = 0; i < 12; i++) {
+        sleep(1000);
+        if (!isAntigravityRunning()) {
+            console.log('✅ 应用已关闭');
+            return true;
+        }
+    }
+    console.error('❌ 应用未响应关闭请求（可能最小化到了系统托盘）。');
+    console.error('   请手动右键托盘图标退出后重试；脚本不会强制结束进程，以保护未保存的工作。');
+    return false;
+}
+
 // ---- 还原 ----
 if (isRevert) {
     if (isAntigravityRunning()) {
@@ -75,9 +102,14 @@ if (isRevert) {
 
 // ---- 安装 ----
 if (isAntigravityRunning() && !isDryRun) {
-    console.error('❌ 检测到 Antigravity 正在运行，请先完全退出（含系统托盘图标）再打补丁。');
-    console.error('   （可用 --dry-run 在不退出的情况下预览匹配情况）');
-    process.exit(1);
+    if (isClose) {
+        if (!gracefulCloseAntigravity()) process.exit(1);
+    } else {
+        console.error('❌ 检测到 Antigravity 正在运行，请先完全退出（含系统托盘图标）再打补丁。');
+        console.error('   应用更新后恢复推荐用: npm run repatch（自动关闭→打补丁→重新打开）');
+        console.error('   （可用 --dry-run 在不退出的情况下预览匹配情况）');
+        process.exit(1);
+    }
 }
 
 // 确定解包来源：已打过补丁则从备份还原包解包（保证从干净英文状态开始）
@@ -202,6 +234,22 @@ try {
 
     cleanupJunction();
     console.log('\n🎉 安装完成！请启动 Antigravity 查看效果（修改词典保存即热载，无需重启）。');
+
+    if (isRelaunch) {
+        const exePath = path.join(path.dirname(resourcesDir), 'Antigravity.exe');
+        if (fs.existsSync(exePath)) {
+            console.log('🚀 正在重新启动 Antigravity...');
+            const { spawn } = require('child_process');
+            const child = spawn(exePath, [], {
+                cwd: path.dirname(exePath),
+                detached: true,
+                stdio: 'ignore',
+            });
+            child.unref();
+        } else {
+            console.log(`⚠️ 未找到 ${exePath}，请手动启动。`);
+        }
+    }
 } catch (err) {
     // 失败兜底：清理临时目录与目录联接，正式安装保持原样
     fs.rmSync(staging, { recursive: true, force: true });

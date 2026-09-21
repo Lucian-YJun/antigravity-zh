@@ -12,6 +12,7 @@
   "scripts": {
     "build": "pkg . -t node18-win-x64 -o dist/Antigravity汉化补丁.exe",
     "patch": "node scripts/patch.js",
+    "repatch": "node scripts/patch.js --close --relaunch",
     "unpatch": "node scripts/patch.js --revert",
     "sync": "node scripts/sync-dict.js",
     "test:main": "node tests/test-main.js",
