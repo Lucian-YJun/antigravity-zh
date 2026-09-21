@@ -634,7 +634,12 @@
     "Inherits your Global Permissions when working in this project.": "在此项目中工作时继承你的全局权限。",
     "Full machine": "整台机器",
     "All terminal commands require review. The agent can read or write to any file in the machine.": "所有终端命令均需审查。智能体可读写本机上的任何文件。",
-    "Requires manual review for all terminal commands and file accesses outside of the working folders.": "工作文件夹之外的终端命令和文件访问均需手动审查。"
+    "Requires manual review for all terminal commands and file accesses outside of the working folders.": "工作文件夹之外的终端命令和文件访问均需手动审查。",
+    "Yes, allow this time": "允许，仅此一次",
+    "Yes, and always allow in this conversation": "允许，并在此对话中始终允许",
+    "Yes, and always allow when not in a project": "允许，并在非项目环境中始终允许",
+    "Yes, and always allow": "允许，并始终允许",
+    "No (tell the agent to do it instead)": "不允许（让智能体改为自行处理）"
   },
   "rules": [
     [
