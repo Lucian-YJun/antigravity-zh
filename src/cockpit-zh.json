@@ -164,9 +164,9 @@
     "Code Search": "代码搜索",
     "In Browser": "在浏览器中",
     "Agent can scroll on browser pages to access more content.": "Agent 可以滚动浏览器页面以访问更多内容。",
-    "Artifact Viewer": "工件查看器",
-    "Global Artifact Viewer": "全局工件查看器",
-    "Export Artifact": "导出工件",
+    "Artifact Viewer": "成果查看器",
+    "Global Artifact Viewer": "全局成果查看器",
+    "Export Artifact": "导出成果",
     "Preview unavailable": "预览不可用",
     "Image preview not available": "图片预览不可用",
     "File Viewer": "文件查看器",
@@ -193,7 +193,7 @@
     "More actions": "更多操作",
     "More Actions": "更多操作",
     "More options": "更多选项",
-    "Good response": "回应不错",
+    "Good response": "回复满意",
     "Provide Feedback": "提供反馈",
     "Submit Appeal": "提交申诉",
     "Having trouble? Let us know": "遇到问题？请告诉我们",
@@ -370,7 +370,7 @@
     "Tool Permissions": "工具权限",
     "Modify permissions for file, terminal, and MCP tools.": "修改文件、终端和 MCP 工具的权限。",
     "Agent Behavior": "Agent 行为",
-    "Artifact Review Policy": "工件审查策略",
+    "Artifact Review Policy": "成果审查策略",
     "Whether the agent asks you to review its documents.": "Agent 是否要求你审查其创建的文档。",
     "Network Access Rules": "网络访问规则",
     "Configure allowed and denied URLs for reading.": "配置允许和拒绝读取的 URL。",
@@ -593,7 +593,7 @@
     "View Usage": "查看用量",
     "Comprehensive guide and reference for the Antigravity Customization System. Use to explain how customizations work, their loading priority, discovery mechanisms, and to guide the creation of skills, rules, plugins, hooks, and MCP servers.": "Antigravity 自定义系统的完整指南与参考。用于讲解自定义机制的工作原理、加载优先级、发现机制，并指导创建技能、规则、插件、钩子和 MCP 服务器。",
     "Provides a comprehensive guide, quick reference, and sitemap for Google Antigravity (AGY), including the Antigravity CLI (agy), Antigravity 2.0, Antigravity IDE, Python SDK, slash commands, keybindings, and customizations (skills, rules, MCP, sidecars). Activate this skill when the user asks questions about how to use, configure, or customize Antigravity, AGY, the agy CLI, the Antigravity IDE, or Antigravity 2.0.": "提供 Google Antigravity（AGY）的综合指南、速查表和导览，涵盖 Antigravity CLI（agy）、Antigravity 2.0、Antigravity IDE、Python SDK、斜杠命令、快捷键和自定义配置（技能、规则、MCP、边车）。当用户询问如何使用、配置或定制 Antigravity 及其相关组件时启用此技能。",
-    "How to render rich interactive HTML widgets inline in the chat or as standalone artifacts. Use this skill when you want to show the user diagrams, data visualizations, interactive controls, educational walkthroughs, or any rich visual content beyond plain text and markdown.": "如何在对话中内嵌渲染丰富的交互式 HTML 组件，或作为独立工件展示。当需要向用户展示图表、数据可视化、交互控件、教学演示，或任何超出纯文本和 Markdown 的丰富内容时使用此技能。",
+    "How to render rich interactive HTML widgets inline in the chat or as standalone artifacts. Use this skill when you want to show the user diagrams, data visualizations, interactive controls, educational walkthroughs, or any rich visual content beyond plain text and markdown.": "如何在对话中内嵌渲染丰富的交互式 HTML 组件，或作为独立成果展示。当需要向用户展示图表、数据可视化、交互控件、教学演示，或任何超出纯文本和 Markdown 的丰富内容时使用此技能。",
     "Automatically migrate legacy workflows to modern skills across global and workspace configurations. Scans for existing workflows, creates target SKILL.md files, and safely archives old workflow files.": "自动将旧版工作流迁移为现代技能格式，覆盖全局和工作区配置。扫描现有工作流，生成目标 SKILL.md 文件，并安全归档旧工作流文件。",
     "Guidelines for interacting with GitHub and request permissions from the user when commands fail due to restrictions in the agent environment.": "与 GitHub 交互的指南；当命令因代理环境限制而失败时，向用户请求相应权限。",
     "No MCP servers installed": "未安装 MCP 服务器",
@@ -639,7 +639,216 @@
     "Yes, and always allow in this conversation": "允许，并在此对话中始终允许",
     "Yes, and always allow when not in a project": "允许，并在非项目环境中始终允许",
     "Yes, and always allow": "允许，并始终允许",
-    "No (tell the agent to do it instead)": "不允许（让智能体改为自行处理）"
+    "No (tell the agent to do it instead)": "不允许（让智能体改为自行处理）",
+    "Manage project folders, agent settings, and permissions.": "管理项目文件夹、智能体设置和权限。",
+    "Manage project folders, agent settings, and permissions": "管理项目文件夹、智能体设置和权限",
+    "Manage project folders": "管理项目文件夹",
+    "agent settings, and permissions.": "智能体设置和权限。",
+    "agent settings, and permissions": "智能体设置和权限",
+    "Plan Review Policy": "计划审查策略",
+    "Plan review policy": "计划审查策略",
+    "Plan Review Policy.": "计划审查策略。",
+    "Type / and select plan to have the agent generate a plan.": "输入 / 并选择 plan 让智能体生成计划。",
+    "Type / and select plan to have the agent generate a plan": "输入 / 并选择 plan 让智能体生成计划",
+    "Type / and select": "输入 / 并选择",
+    "and select": "并选择",
+    "and select plan": "并选择 plan",
+    "to have the agent generate a plan.": "让智能体生成计划。",
+    "to have the agent generate a plan": "让智能体生成计划",
+    "Permanently delete": "永久删除",
+    "including 1 active conversation.": "，包含 1 个活动对话。",
+    "including 1 active conversation": "，包含 1 个活动对话",
+    "active conversations": "个活动对话",
+    "active conversation": "个活动对话",
+    "active conversations.": "个活动对话。",
+    "active conversation.": "个活动对话。",
+    "Configure the browser subagent. It requires Google Chrome to be installed.": "配置浏览器子智能体。需要安装 Google Chrome 才能使用。",
+    "Configure the browser subagent. It requires Google Chrome to be installed": "配置浏览器子智能体。需要安装 Google Chrome 才能使用",
+    "Configure the browser subagent. It requires": "配置浏览器子智能体。需要安装",
+    "Configure the browser subagent.": "配置浏览器子智能体。",
+    "Configure the browser subagent": "配置浏览器子智能体",
+    "browser subagent": "浏览器子智能体",
+    "It requires": "需要",
+    "to be installed.": "才能使用。",
+    "to be installed": "才能使用",
+    "Send message Enter": "发送消息 Enter",
+    "Send message (Enter)": "发送消息 (Enter)",
+    "Send message\nEnter": "发送消息 Enter",
+    "Pinned Conversations": "置顶对话",
+    "Pinned conversations": "置顶对话",
+    "Pinned Conversation": "置顶对话",
+    "Pinned conversation": "置顶对话",
+    "Pinned": "已置顶",
+    "Copy Project Name": "复制项目名称",
+    "Copy project name": "复制项目名称",
+    "Show in File Explorer": "在文件资源管理器中显示",
+    "Show in file explorer": "在文件资源管理器中显示",
+    "Show in Explorer": "在资源管理器中显示",
+    "Show in Finder": "在访达中显示",
+    "including": "，包含",
+    "including 2 active conversations.": "，包含 2 个活动对话。",
+    "including 2 active conversations": "，包含 2 个活动对话",
+    "Browser Actuation Permissions": "浏览器操控权限",
+    "Browser actuation permissions": "浏览器操控权限",
+    "Browser Actuation": "浏览器操控",
+    "browser actuation": "浏览器操控",
+    "Browser actuation": "浏览器操控",
+    "Allow/deny agent browser actuation access to specific URLs.": "允许/拒绝智能体对特定 URL 的浏览器操控访问。",
+    "Allow/deny agent browser actuation access to specific URLs": "允许/拒绝智能体对特定 URL 的浏览器操控访问",
+    "Allow/deny": "允许/拒绝",
+    "allow/deny": "允许/拒绝",
+    "allow": "允许",
+    "ask": "询问",
+    "deny": "拒绝",
+    "Deny": "拒绝",
+    "Ask": "询问",
+    "Modified": "已修改",
+    "modified": "已修改",
+    "Last Modified": "最近修改",
+    "Last modified": "最近修改",
+    "Recently Modified": "最近修改",
+    "Recently modified": "最近修改",
+    "Modified time": "修改时间",
+    "Modified Date": "修改日期",
+    "Modified date": "修改日期",
+    "including active conversations.": "，包含活动对话。",
+    "including active conversations": "，包含活动对话",
+    "Edit Conversation Title": "编辑对话标题",
+    "Edit conversation title": "编辑对话标题",
+    "Edit Title": "编辑标题",
+    "Edit title": "编辑标题",
+    "Record Audio": "录制音频",
+    "Record audio": "录制音频",
+    "Record": "录制",
+    "Audio": "音频",
+    "when working in this project.": "在此项目中工作时。",
+    "when working in this project": "在此项目中工作时",
+    "Strong": "强",
+    "strong": "强",
+    "Weak": "弱",
+    "weak": "弱",
+    "Standard": "标准",
+    "standard": "标准",
+    "Allow/deny specific terminal commands.": "允许/拒绝特定的终端命令。",
+    "Allow/deny specific terminal commands": "允许/拒绝特定的终端命令",
+    "specific terminal commands.": "特定的终端命令。",
+    "specific terminal commands": "特定的终端命令",
+    "Block all browser JavaScript execution.": "阻止所有浏览器 JavaScript 执行。",
+    "Block all browser JavaScript execution": "阻止所有浏览器 JavaScript 执行",
+    "Prompt for approval before running browser scripts.": "运行浏览器脚本前提示以待审批。",
+    "Prompt for approval before running browser scripts": "运行浏览器脚本前提示以待审批",
+    "Allow full browser script execution without prompting.": "允许完整执行浏览器脚本，无需提示。",
+    "Allow full browser script execution without prompting": "允许完整执行浏览器脚本，无需提示",
+    "External tools the agent can call via Model Context Protocol.": "智能体可通过模型上下文协议（MCP）调用的外部工具。",
+    "External tools the agent can call via Model Context Protocol": "智能体可通过模型上下文协议（MCP）调用的外部工具",
+    "Contrast": "对比度",
+    "High Contrast": "高对比度",
+    "high contrast": "高对比度",
+    "Dark Theme": "深色主题",
+    "dark theme": "深色主题",
+    "Dark theme": "深色主题",
+    "Working": "工作中",
+    "Working...": "工作中...",
+    "working": "工作中",
+    "working...": "工作中...",
+    "No (tell the agent what to do instead)": "不允许（告诉智能体该做什么）",
+    "No (tell the agent what to do instead).": "不允许（告诉智能体该做什么）。",
+    "Allow running regression tests?": "允许运行回归测试吗？",
+    "Allow running regression tests": "允许运行回归测试",
+    "Queue message Enter": "消息排队 Enter",
+    "Queue message": "消息排队",
+    "Queue Message": "消息排队",
+    "Send immediately (Alt+Enter)": "立即发送 (Alt+Enter)",
+    "Send Immediately (Alt+Enter)": "立即发送 (Alt+Enter)",
+    "Stop Recording Ctrl+M": "停止录音 Ctrl+M",
+    "Stop Recording": "停止录音",
+    "Stop recording": "停止录音",
+    "Check for Updates": "检查更新",
+    "Check for updates": "检查更新",
+    "Check for Updates...": "检查更新...",
+    "Checking for Updates...": "正在检查更新...",
+    "Checking for updates...": "正在检查更新...",
+    "Uncommitted": "未提交",
+    "uncommitted": "未提交",
+    "Staged index changes and working tree changes": "暂存区索引更改和工作区更改",
+    "Staged index changes and working tree changes.": "暂存区索引更改和工作区更改。",
+    "All changes since origin/main": "自 origin/main 以来的所有更改",
+    "Branch": "分支",
+    "Bad Response": "回复不佳",
+    "Bad response": "回复不佳",
+    "Good Response": "回复满意",
+    "Hide breakdown": "收起明细",
+    "Hide breakdowns": "收起明细",
+    "hide breakdown": "收起明细",
+    "Show breakdown": "展开明细",
+    "Show breakdowns": "展开明细",
+    "show breakdown": "展开明细",
+    "Within each group, models share a weekly limit and a 5-hour limit. Quota is consumed proportionally to the cost of the tokens. Thus, limits will last longer with shorter tasks or using more cost-effective models. The 5-hour limit smooths out aggregate demand to fairly distribute global capacity across all users, while your weekly limit is tied directly to your individual tier.": "在每个分组内，模型共享每周限额和 5 小时限额。配额消耗与 token 成本成比例。因此，较短的任务或使用更具性价比的模型可以让限额维持更长时间。5 小时限额用于平滑总体需求，以便在所有用户之间公平分配全球算力容量，而每周限额则直接与你的个人层级绑定。",
+    "Amend": "修正提交 (Amend)",
+    "amend": "修正提交 (Amend)",
+    "Push": "推送",
+    "push": "推送",
+    "Commit & Push": "提交并推送",
+    "Commit and Push": "提交并推送",
+    "Amend Commit": "修正提交",
+    "Amend Previous Commit": "修改上次提交",
+    "Stage and commit all changes": "暂存并提交所有更改",
+    "Stage and commit all changes.": "暂存并提交所有更改。",
+    "Stage and commit": "暂存并提交",
+    "Stage and Commit": "暂存并提交",
+    "Stage all changes": "暂存所有更改",
+    "Stage All Changes": "暂存所有更改",
+    "Add Terminal Command": "添加终端命令",
+    "Add terminal command": "添加终端命令",
+    "Add Terminal Commands": "添加终端命令",
+    "Artifacts": "成果",
+    "Artifact": "成果",
+    "Uploads": "上传内容",
+    "Upload": "上传",
+    "Background Tasks": "后台任务",
+    "Terminals": "终端",
+    "See all": "查看全部",
+    "see all": "查看全部",
+    "See All": "查看全部",
+    "See less": "收起",
+    "see less": "收起",
+    "See Less": "收起",
+    "See more": "查看更多",
+    "see more": "查看更多",
+    "See More": "查看更多",
+    "Stop Execution": "停止执行",
+    "Stop execution": "停止执行",
+    "Action Required": "需要操作",
+    "Action required": "需要操作",
+    "action required": "需要操作",
+    "Updated": "已更新",
+    "updated": "已更新",
+    "Confirm Undo": "确认撤销",
+    "Confirm undo": "确认撤销",
+    "Confirm Undo.": "确认撤销。",
+    "This undo action will not make any code changes.": "此撤销操作不会进行任何代码更改。",
+    "This undo action will not make any code changes": "此撤销操作不会进行任何代码更改",
+    "This undo action will revert all code changes.": "此撤销操作将还原所有代码更改。",
+    "This undo action will revert all code changes": "此撤销操作将还原所有代码更改",
+    "This undo action will revert code changes.": "此撤销操作将还原代码更改。",
+    "Running command": "正在运行命令",
+    "Running commands": "正在运行命令",
+    "Ran command": "已运行命令",
+    "Ran commands": "已运行命令",
+    "Edited": "已编辑",
+    "edited": "已编辑",
+    "Edited files": "已编辑的文件",
+    "Edited Files": "已编辑的文件",
+    "Created": "已创建",
+    "created": "已创建",
+    "Deleted": "已删除",
+    "deleted": "已删除",
+    "Added": "已添加",
+    "added": "已添加",
+    "Renamed": "已重命名",
+    "renamed": "已重命名",
+    "Untracked": "未跟踪",
+    "untracked": "未跟踪"
   },
   "rules": [
     [
@@ -726,6 +935,230 @@
       "^Last (\\d+) days$",
       "最近 $1 天",
       ""
+    ],
+    [
+      "^Permanently delete (.+?) including (\\d+) active conversations?\\.?$",
+      "永久删除 $1（包含 $2 个活动对话）。"
+    ],
+    [
+      "^Permanently delete (.+?)\\.?$",
+      "永久删除 $1。"
+    ],
+    [
+      "^Configure the browser subagent\\. It requires Google Chrome to be installed\\.?$",
+      "配置浏览器子智能体。需要安装 Google Chrome 才能使用。"
+    ],
+    [
+      "^Configure the browser subagent\\. It requires$",
+      "配置浏览器子智能体。需要安装"
+    ],
+    [
+      "^Type (?:/|<[^>]+>) and select (?:plan|<[^>]+>) to have the agent generate a plan\\.?$",
+      "输入 / 并选择 plan 让智能体生成计划。"
+    ],
+    [
+      "^to have the agent generate a plan\\.?$",
+      "让智能体生成计划。"
+    ],
+    [
+      "^Send message\\s+(?:Enter|Return)$",
+      "发送消息 Enter"
+    ],
+    [
+      "^including (\\d+) active conversations?\\.?$",
+      "，包含 $1 个活动对话。"
+    ],
+    [
+      "^active conversations?\\.?$",
+      "个活动对话。"
+    ],
+    [
+      "^Browser Actuation Permissions\\.?$",
+      "浏览器操控权限"
+    ],
+    [
+      "^Allow/deny agent browser actuation access to specific URLs\\.?$",
+      "允许/拒绝智能体对特定 URL 的浏览器操控访问。"
+    ],
+    [
+      "^Modified (.+)$",
+      "修改于 $1"
+    ],
+    [
+      "^Modified: (.+)$",
+      "修改时间：$1"
+    ],
+    [
+      "^Last modified (.+)$",
+      "最近修改于 $1"
+    ],
+    [
+      "^when working in this project\\.?$",
+      "在此项目中工作时。"
+    ],
+    [
+      "^Allow/deny specific terminal commands\\.?$",
+      "允许/拒绝特定的终端命令。"
+    ],
+    [
+      "^Block all browser JavaScript execution\\.?$",
+      "阻止所有浏览器 JavaScript 执行。"
+    ],
+    [
+      "^Prompt for approval before running browser scripts\\.?$",
+      "运行浏览器脚本前提示以待审批。"
+    ],
+    [
+      "^Allow full browser script execution without prompting\\.?$",
+      "允许完整执行浏览器脚本，无需提示。"
+    ],
+    [
+      "^External tools the agent can call via Model Context Protocol\\.?$",
+      "智能体可通过模型上下文协议（MCP）调用的外部工具。"
+    ],
+    [
+      "^Yes, and always allow '(.+?)' in this conversation$",
+      "允许，并在此对话中始终允许「$1」"
+    ],
+    [
+      "^Yes, and always allow '(.+?)' in this project$",
+      "允许，并在此项目中始终允许「$1」"
+    ],
+    [
+      "^Yes, and always allow '(.+?)'$",
+      "允许，并始终允许「$1」"
+    ],
+    [
+      "^Yes, and always allow '(.+?)' in this\\.\\.\\.$",
+      "允许，并在此对话中始终允许「$1」..."
+    ],
+    [
+      "^Allow running (.+?)\\?$",
+      "允许运行 $1 吗？"
+    ],
+    [
+      "^Allow (.+?)\\?$",
+      "允许 $1 吗？"
+    ],
+    [
+      "^Queue message\\s+(?:Enter|Return)$",
+      "消息排队 Enter"
+    ],
+    [
+      "^Send immediately\\s+\\((?:Alt|Option)\\+(?:Enter|Return)\\)$",
+      "立即发送 (Alt+Enter)"
+    ],
+    [
+      "^Stop Recording\\s+(.+)$",
+      "停止录音 $1"
+    ],
+    [
+      "^Stop recording\\s+(.+)$",
+      "停止录音 $1"
+    ],
+    [
+      "^You have used some of your weekly limit, it will fully refresh in (\\d+) hours?, (\\d+) minutes?\\.?$",
+      "你已使用部分每周限额，将在 $1 小时 $2 分钟后完全刷新。"
+    ],
+    [
+      "^You have used some of your weekly limit, it will fully refresh in (\\d+) days?, (\\d+) hours?, (\\d+) minutes?\\.?$",
+      "你已使用部分每周限额，将在 $1 天 $2 小时 $3 分钟后完全刷新。"
+    ],
+    [
+      "^You have used some of your weekly limit, it will fully refresh in (\\d+) hours?\\.?$",
+      "你已使用部分每周限额，将在 $1 小时后完全刷新。"
+    ],
+    [
+      "^You have used some of your weekly limit, it will fully refresh in (\\d+) minutes?\\.?$",
+      "你已使用部分每周限额，将在 $1 分钟后完全刷新。"
+    ],
+    [
+      "^You have used some of your 5-hour limit, it will fully refresh in (\\d+) minutes?\\.?$",
+      "你已使用部分 5 小时限额，将在 $1 分钟后完全刷新。"
+    ],
+    [
+      "^Branch (.+)$",
+      "分支 $1"
+    ],
+    [
+      "^All changes since (.+)$",
+      "自 $1 以来的所有更改"
+    ],
+    [
+      "^Hide (\\d+) breakdowns?$",
+      "收起 $1 项明细"
+    ],
+    [
+      "^Hide breakdowns?\\.?$",
+      "收起明细"
+    ],
+    [
+      "^Show breakdowns?\\.?$",
+      "展开明细"
+    ],
+    [
+      "^Artifacts\\s+(\\d+)$",
+      "成果 $1"
+    ],
+    [
+      "^Uploads\\s+(\\d+)$",
+      "上传内容 $1"
+    ],
+    [
+      "^Background Tasks\\s+(\\d+)$",
+      "后台任务 $1"
+    ],
+    [
+      "^Terminals\\s+(\\d+)$",
+      "终端 $1"
+    ],
+    [
+      "^Stage and commit all changes\\.?$",
+      "暂存并提交所有更改。"
+    ],
+    [
+      "^Updated\\s+(.+)$",
+      "更新于 $1"
+    ],
+    [
+      "^See all\\s+\\((\\d+)\\)$",
+      "查看全部 ($1)"
+    ],
+    [
+      "^See all$",
+      "查看全部"
+    ],
+    [
+      "^See less$",
+      "收起"
+    ],
+    [
+      "^See more$",
+      "查看更多"
+    ],
+    [
+      "^This undo action will not make any (.+?) changes\\.?$",
+      "此撤销操作不会进行任何 $1 更改。"
+    ],
+    [
+      "^This undo action will revert (.+?)\\.?$",
+      "此撤销操作将还原 $1。"
+    ],
+    [
+      "^Running (\\d+) commands?$",
+      "正在运行 $1 条命令"
+    ],
+    [
+      "^Ran (\\d+) commands?$",
+      "已运行 $1 条命令"
+    ],
+    [
+      "^Executed (\\d+) commands?$",
+      "已执行 $1 条命令"
+    ],
+    [
+      "^Edited (\\d+) files?$",
+      "已编辑 $1 个文件"
     ]
   ]
 }

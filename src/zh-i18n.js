@@ -83,14 +83,34 @@ function loadDictionary() {
 }
 // 注入到页面上下文的翻译器（字符串拼接，避免模板字面量冲突）
 const TRANSLATOR_BODY = [
-    'var D=__DATA__;var dict=D.dict,res=null;',
-    'function compileRules(rules){var out=[];rules=rules||[];for(var i=0;i<rules.length;i++){try{out.push([new RegExp(rules[i][0],rules[i][2]||""),rules[i][1]]);}catch(e){}}return out;}',
-    'res=compileRules(D.rules);',
+    'var D=__DATA__;var dict=D.dict;',
+    // 提取规则首字符（^ 之后的字面字符/字符类），无法提取返回 null（进 always 桶兜底，保证行为不变）
+    'function firstChars(p){if(p.charAt(0)!=="^")return null;var i=1,c=p.charAt(i);',
+    '  if(c==="\\\\"){var n=p.charAt(i+1);return n&&"*.+?^${}()|[]\\\\/".indexOf(n)>=0?[n]:null;}',
+    '  if(c==="["){var j=p.indexOf("]",i+1);if(j<0)return null;var cls=p.slice(i+1,j);if(cls.charAt(0)==="^")return null;var cs=[];',
+    '    for(var k=0;k<cls.length;k++){var cc=cls.charAt(k);',
+    '      if(cc==="\\\\"){k++;if(k>=cls.length)return null;var nn=cls.charAt(k);if(nn==="d"||nn==="s"||nn==="w")return null;cs.push(nn);}',
+    '      else if(cc==="-"&&k>0&&k<cls.length-1){var a=cls.charCodeAt(k-1),b=cls.charCodeAt(k+1);if(b-a>128)return null;for(var m=a+1;m<b;m++)cs.push(String.fromCharCode(m));}',
+    '      else cs.push(cc);}',
+    '    return cs.length?cs:null;}',
+    '  if(c==="(")return null;',
+    '  return c?[c]:null;}',
+    // 规则预编译 + 首字符倒排索引：匹配时按文本首字符 O(1) 定位候选规则，跳过无关规则的全部 test
+    'function compileRules(rules){var out=[],always=[],byChar={};rules=rules||[];',
+    '  for(var i=0;i<rules.length;i++){try{var re=new RegExp(rules[i][0],rules[i][2]||"");var en=[re,rules[i][1]];out.push(en);',
+    '    var fc=firstChars(rules[i][0]);',
+    '    if(!fc){always.push(en);}',
+    '    else{for(var k=0;k<fc.length;k++){var ch=fc[k];(byChar[ch]=byChar[ch]||[]).push(en);}}}catch(e){}}',
+    '  return {all:out,always:always,byChar:byChar};}',
+    'var RC=compileRules(D.rules);',
     'var SKIP={SCRIPT:1,STYLE:1,NOSCRIPT:1,CODE:1,PRE:1,TEXTAREA:1,SVG:1,MATH:1};',
     'function tr(s){var core=s.replace(/^\\s+|\\s+$/g,"");if(!core){return null;}',
     '  if(Object.prototype.hasOwnProperty.call(dict,core)){var v=dict[core];return s.replace(core,function(){return v;});}',
-    '  for(var i=0;i<res.length;i++){var rr=res[i];',
-    '    if(rr[0].test(core)){return s.replace(core,function(){return core.replace(rr[0],rr[1]);});}}',
+    '  var bucket=RC.byChar[core.charAt(0)];',
+    '  if(bucket){for(var i=0;i<bucket.length;i++){var rr=bucket[i];',
+    '    if(rr[0].test(core)){return s.replace(core,function(){return core.replace(rr[0],rr[1]);});}}}',
+    '  for(var j=0;j<RC.always.length;j++){var ra=RC.always[j];',
+    '    if(ra[0].test(core)){return s.replace(core,function(){return core.replace(ra[0],ra[1]);});}}',
     '  return null;}',
     'function trNode(n){var v=tr(n.nodeValue);if(v!==null&&v!==n.nodeValue){n.nodeValue=v;}}',
     'var ATTRS=["placeholder","title","aria-label","aria-placeholder","data-tooltip","alt"];',
@@ -116,7 +136,7 @@ const TRANSLATOR_BODY = [
     'var rootEl=document.documentElement||document.body;',
     'mo.observe(rootEl,{childList:true,subtree:true,characterData:true});',
     'window.__antigravityZh={retranslate:function(){walk(document.body);var t=tr(document.title);if(t){document.title=t;}},',
-    '  setData:function(nd){if(!nd){return;}D=nd;dict=nd.dict||{};res=compileRules(nd.rules);try{walk(document.body);}catch(e){}}};',
+    '  setData:function(nd){if(!nd){return;}D=nd;dict=nd.dict||{};RC=compileRules(nd.rules);try{walk(document.body);}catch(e){}}};',
     'walk(document.body);var t0=tr(document.title);if(t0){document.title=t0;}'
 ].join('\n');
 function buildScript(dic) {

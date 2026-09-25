@@ -106,6 +106,45 @@ const flush = () => new Promise(r => setTimeout(r, 0)); // 让微任务（Mutati
   const oldStill = d.getElementById('host').lastElementChild.textContent;
   check('旧词条在新词典下保持英文', oldStill === 'View Usage');
 
+  // 7. 规则路径：字面首字符 → 索引桶匹配（firstChars 优化后行为不变）
+  w.__antigravityZh.setData({ dict: {}, rules: [['^Permanently delete (.+?)\\.?$', '永久删除 $1。']] });
+  const rule1 = d.createElement('div');
+  rule1.textContent = 'Permanently delete MyProject';
+  d.getElementById('host').appendChild(rule1);
+  await flush();
+  check('规则经首字符索引桶正确匹配', rule1.textContent === '永久删除 MyProject。');
+
+  // 8. 规则路径：字符类首字符展开（[AB] → A、B 两个桶）
+  w.__antigravityZh.setData({ dict: {}, rules: [['^[AB] item$', '匹配项']] });
+  const rule2 = d.createElement('div');
+  rule2.textContent = 'B item';
+  d.getElementById('host').appendChild(rule2);
+  await flush();
+  check('字符类首字符规则正确匹配', rule2.textContent === '匹配项');
+
+  // 9. 规则路径：无法提取首字符（如括号开头）→ 兜底桶，行为不变
+  w.__antigravityZh.setData({ dict: {}, rules: [['^(.+?) has been saved$', '已保存 $1']] });
+  const rule3 = d.createElement('div');
+  rule3.textContent = 'Report has been saved';
+  d.getElementById('host').appendChild(rule3);
+  await flush();
+  check('括号开头规则经兜底桶正确匹配', rule3.textContent === '已保存 Report');
+
+  // 10. 重叠规则顺序：特殊规则必须先于一般规则（同桶内保持数组顺序）
+  w.__antigravityZh.setData({ dict: {}, rules: [
+    ['^Yes, and always allow \'(.+?)\' in this conversation$', '允许，对话内始终允许「$1」'],
+    ['^Yes, and always allow \'(.+?)\'$', '允许，始终允许「$1」'],
+  ] });
+  const rule4a = d.createElement('div');
+  rule4a.textContent = "Yes, and always allow 'git push' in this conversation";
+  const rule4b = d.createElement('div');
+  rule4b.textContent = "Yes, and always allow 'git push'";
+  d.getElementById('host').appendChild(rule4a);
+  d.getElementById('host').appendChild(rule4b);
+  await flush();
+  check('重叠规则先匹配特殊规则', rule4a.textContent === '允许，对话内始终允许「git push」');
+  check('重叠规则一般规则兜底', rule4b.textContent === '允许，始终允许「git push」');
+
   console.log(`\n页面翻译器: ${pass} 通过, ${fail} 失败`);
   fs.rmSync(SIM, { recursive: true, force: true });
   process.exit(fail ? 1 : 0);
