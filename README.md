@@ -1,4 +1,4 @@
-# Antigravity 中文汉化补丁 (Next-Gen)
+# Antigravity 中文汉化补丁
 
 本项目为 Google Antigravity 提供全面、高质量的界面汉化。
 
@@ -106,5 +106,5 @@ npm run test:page  # 页面翻译器集成测试（11 项，需 jsdom）
 ## 许可与致谢
 
 本项目基于 [oljh0/AntigravityChinese](https://github.com/oljh0/AntigravityChinese)（MIT 协议）修改增强，
-词典与原生替换表源自该项目，翻译引擎经本地 fork 改进（同帧翻译 + 词典热载）。
+词典与原生替换表源自该项目，翻译引擎改进（同帧翻译 + 词典热载）。
 详见 LICENSE。第三方非官方补丁，仅供学习交流，使用自担风险。
