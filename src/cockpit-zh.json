@@ -848,7 +848,21 @@
     "Renamed": "已重命名",
     "renamed": "已重命名",
     "Untracked": "未跟踪",
-    "untracked": "未跟踪"
+    "untracked": "未跟踪",
+    "Analyzed": "已分析",
+    "analyzed": "已分析",
+    "Analyzing": "正在分析",
+    "analyzing": "正在分析",
+    "Exploring": "正在探索",
+    "exploring": "正在探索",
+    "Explored": "已探索",
+    "explored": "已探索",
+    "Exploring files": "正在探索文件",
+    "Explored files": "已探索文件",
+    "Exploring 1 file": "正在探索 1 个文件",
+    "Explored 1 file": "已探索 1 个文件",
+    "Thinking": "正在思考",
+    "thinking": "正在思考"
   },
   "rules": [
     [
@@ -1159,6 +1173,82 @@
     [
       "^Edited (\\d+) files?$",
       "已编辑 $1 个文件"
+    ],
+    [
+      "^Worked for (\\d+)h (\\d+)m (\\d+)s$",
+      "工作耗时 $1 小时 $2 分 $3 秒"
+    ],
+    [
+      "^Worked for (\\d+)h (\\d+)m$",
+      "工作耗时 $1 小时 $2 分钟"
+    ],
+    [
+      "^Worked for (\\d+)m (\\d+)s$",
+      "工作耗时 $1 分 $2 秒"
+    ],
+    [
+      "^Worked for (\\d+)h$",
+      "工作耗时 $1 小时"
+    ],
+    [
+      "^Worked for (\\d+)m$",
+      "工作耗时 $1 分钟"
+    ],
+    [
+      "^Worked for (\\d+(?:\\.\\d+)?)s$",
+      "工作耗时 $1 秒"
+    ],
+    [
+      "^Worked for (\\d+)ms$",
+      "工作耗时 $1 毫秒"
+    ],
+    [
+      "^Thought for (\\d+)m (\\d+)s$",
+      "思考耗时 $1 分 $2 秒"
+    ],
+    [
+      "^Thought for (\\d+)m$",
+      "思考耗时 $1 分钟"
+    ],
+    [
+      "^Thought for (\\d+(?:\\.\\d+)?)s$",
+      "思考耗时 $1 秒"
+    ],
+    [
+      "^Exploring (\\d+) files?$",
+      "正在探索 $1 个文件"
+    ],
+    [
+      "^Explored (\\d+) files?$",
+      "已探索 $1 个文件"
+    ],
+    [
+      "^Analyzing (\\d+) files?$",
+      "正在分析 $1 个文件"
+    ],
+    [
+      "^Analyzed (\\d+) files?$",
+      "已分析 $1 个文件"
+    ],
+    [
+      "^Editing (\\d+) files?$",
+      "正在编辑 $1 个文件"
+    ],
+    [
+      "^Reading (\\d+) files?$",
+      "正在读取 $1 个文件"
+    ],
+    [
+      "^Read (\\d+) files?$",
+      "已读取 $1 个文件"
+    ],
+    [
+      "^Searching (\\d+) files?$",
+      "正在搜索 $1 个文件"
+    ],
+    [
+      "^Searched (\\d+) files?$",
+      "已搜索 $1 个文件"
     ]
   ]
 }
