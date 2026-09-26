@@ -238,6 +238,27 @@ const flush = () => new Promise(r => setTimeout(r, 0)); // 让微任务（Mutati
     d.getElementById('price').textContent === '价格：99.9 美元'
   );
 
+  // 16. 多节点/变量插值：React 模板将带变量文本拆分为多个相邻 TextNode
+  w.__antigravityZh.setData({
+    dict: {
+      'Plugins are packaged collections of skills and MCPs to help the Agent in': '插件是技能和 MCP 的打包集合，用于帮助智能体在',
+      'work with Google developer products. You can always change your choices in Settings.': '中配合 Google 开发者产品协同工作。你可以随时在“设置”中更改你的选项。'
+    },
+    rules: []
+  });
+
+  const pMulti = d.createElement('p');
+  pMulti.id = 'react-multi-node';
+  pMulti.appendChild(d.createTextNode('Plugins are packaged collections of skills and MCPs to help the Agent in '));
+  pMulti.appendChild(d.createTextNode('Antigravity'));
+  pMulti.appendChild(d.createTextNode(' work with Google developer products. You can always change your choices in Settings.'));
+  d.getElementById('host').appendChild(pMulti);
+  await flush();
+
+  check('多节点/变量插值：React 拆分的相邻 TextNode 拼接翻译自然连贯',
+    d.getElementById('react-multi-node').textContent === '插件是技能和 MCP 的打包集合，用于帮助智能体在 Antigravity 中配合 Google 开发者产品协同工作。你可以随时在“设置”中更改你的选项。'
+  );
+
   console.log(`\n页面翻译器: ${pass} 通过, ${fail} 失败`);
   fs.rmSync(SIM, { recursive: true, force: true });
   process.exit(fail ? 1 : 0);

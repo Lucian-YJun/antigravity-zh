@@ -931,6 +931,12 @@
     "with Google developer products. You can always change your choices in": "配合 Google 开发者产品。你可以随时在“设置”中更改你的选项：",
     "with Google developer products.": "配合 Google 开发者产品。",
     "with Google developer products": "配合 Google 开发者产品",
+    "Plugins are packaged collections of skills and MCPs to help the Agent in": "插件是技能和 MCP 的打包集合，用于帮助智能体在",
+    "work with Google developer products. You can always change your choices in Settings.": "中配合 Google 开发者产品协同工作。你可以随时在“设置”中更改你的选项。",
+    "work with Google developer products. You can always change your choices in Settings": "中配合 Google 开发者产品协同工作。你可以随时在“设置”中更改你的选项。",
+    "work with Google developer products. You can always change your choices in": "中配合 Google 开发者产品协同工作。你可以随时在“设置”中更改你的选项：",
+    "work with Google developer products.": "中配合 Google 开发者产品协同工作。",
+    "work with Google developer products": "中配合 Google 开发者产品协同工作",
     "Build and publish Chrome Extensions using Manifest V3 best practices. Use this skill whenever the user asks to create, modify, debug, or understand Chrome browser extensions, add-ons, or anything involving the Chrome Extensions API. Trigger on mentions of: 'Chrome extension', 'browser extension', 'manifest.json', 'content script', 'service worker' (in browser context), 'popup' (in browser extension context), 'side panel', 'chrome.* API', 'declarativeNetRequest', 'omnibox', 'context menu' (in extension context), 'userScripts', 'user script', 'script manager', or any request to build functionality that integrates with the Chrome browser UI. Also trigger for publishing to the Chrome Web Store: 'publish extension', preparing an extension for publishing, responding to a review rejection, writing permission justifications, or drafting a privacy policy.": "遵循 Manifest V3 最佳实践构建与发布 Chrome 浏览器扩展。当用户需要创建、修改、调试或理解 Chrome 浏览器扩展、插件，或任何涉及 Chrome Extensions API 的需求时使用此技能。当提及以下内容时触发：“Chrome 扩展”、“浏览器扩展”、“manifest.json”、“content script”、“service worker”（浏览器上下文中）、“popup”（扩展上下文中）、“side panel”、“chrome.* API”、“declarativeNetRequest”、“omnibox”、“context menu”（扩展上下文中）、“userScripts”、“user script”、“脚本管理器”，或任何与 Chrome 浏览器界面集成的功能请求。对于发布到 Chrome 应用商店（Chrome Web Store）的相关需求同样触发：“发布扩展”、准备发布扩展包、应对审核驳回、撰写权限申请理由或起草隐私政策。",
     "Build and publish Chrome Extensions using Manifest V3 best practices.": "遵循 Manifest V3 最佳实践构建与发布 Chrome 浏览器扩展。",
     "Search tool for modern web development best practices. MANDATORY: Execute FIRST for all HTML/CSS and clientside JS tasks. Do NOT skip — web APIs evolve rapidly and training weights contain obsolete patterns.": "现代 Web 开发最佳实践检索工具。对于所有 HTML/CSS 及客户端 JS 任务必须首先执行此工具。切勿跳过 —— Web API 发展迅速，模型权重中可能包含过时模式。",
@@ -1464,6 +1470,22 @@
     [
       "^You can always change your choices in(?:\\s+Settings\\.?)?$",
       "你可以随时在“设置”中更改你的选项。"
+    ],
+    [
+      "^Plugins are packaged collections of skills and MCPs to help the Agent in$",
+      "插件是技能和 MCP 的打包集合，用于帮助智能体在"
+    ],
+    [
+      "^work with Google developer products\\.\\s*You can always change your choices in(?:\\s+Settings\\.?)?$",
+      "中配合 Google 开发者产品协同工作。你可以随时在“设置”中更改你的选项。"
+    ],
+    [
+      "^work with Google developer products\\.\\s*You can always change your choices in:?$",
+      "中配合 Google 开发者产品协同工作。你可以随时在“设置”中更改你的选项："
+    ],
+    [
+      "^work with Google developer products\\.?$",
+      "中配合 Google 开发者产品协同工作。"
     ],
     [
       "^Build and publish Chrome Extensions using Manifest V3 best practices[\\s\\S]*$",
