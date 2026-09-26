@@ -145,6 +145,99 @@ const flush = () => new Promise(r => setTimeout(r, 0)); // 让微任务（Mutati
   check('重叠规则先匹配特殊规则', rule4a.textContent === '允许，对话内始终允许「git push」');
   check('重叠规则一般规则兜底', rule4b.textContent === '允许，始终允许「git push」');
 
+  // 11. 标签黑名单安全保护：<code>、<pre>、<textarea>、<svg> 内容绝对不翻译
+  w.__antigravityZh.setData({
+    dict: { 'File': '文件', 'Edit': '编辑', 'Copy': '复制', 'Settings': '设置', 'Close': '关闭' },
+    rules: []
+  });
+
+  const codeEl = d.createElement('code');
+  codeEl.textContent = 'File';
+  d.getElementById('host').appendChild(codeEl);
+
+  const preEl = d.createElement('pre');
+  preEl.innerHTML = '<code><span class="token">Edit</span></code>';
+  d.getElementById('host').appendChild(preEl);
+
+  const textareaEl = d.createElement('textarea');
+  textareaEl.textContent = 'Copy';
+  textareaEl.setAttribute('placeholder', 'Settings');
+  d.getElementById('host').appendChild(textareaEl);
+
+  const svgEl = d.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  const svgText = d.createElementNS('http://www.w3.org/2000/svg', 'text');
+  svgText.textContent = 'Close';
+  svgEl.appendChild(svgText);
+  d.getElementById('host').appendChild(svgEl);
+
+  await flush();
+  check('标签保护：<code> 内容保持英文不翻译', codeEl.textContent === 'File');
+  check('标签保护：<pre> 内嵌套 <span> 语法高亮保持英文不翻译', preEl.textContent === 'Edit');
+  check('标签保护：<textarea> 内部文本保持英文不翻译', textareaEl.textContent === 'Copy');
+  check('标签保护：<textarea> placeholder 属性正常翻译', textareaEl.getAttribute('placeholder') === '设置');
+  check('标签保护：<svg> 矢量图内部文本不被篡改', svgText.textContent === 'Close');
+
+  // 12. 富文本输入区保护：contenteditable 内部元素不受干扰
+  const ceContainer = d.createElement('div');
+  ceContainer.setAttribute('contenteditable', 'true');
+  const ceInner = d.createElement('p');
+  ceInner.innerHTML = '<span>File</span> and <strong>Edit</strong>';
+  ceContainer.appendChild(ceInner);
+  d.getElementById('host').appendChild(ceContainer);
+
+  await flush();
+  check('富文本保护：contenteditable 内部嵌套元素文本不受干扰', ceInner.textContent === 'File and Edit');
+
+  // 13. 多属性覆盖测试：title / aria-label / data-tooltip / alt
+  const attrBox = d.createElement('div');
+  attrBox.innerHTML = `
+    <button id="btn-title" title="Settings"></button>
+    <button id="btn-aria" aria-label="Close"></button>
+    <span id="tooltip-span" data-tooltip="Copy"></span>
+    <img id="test-img" alt="File">
+  `;
+  d.getElementById('host').appendChild(attrBox);
+  await flush();
+
+  check('属性翻译：title 正确翻译', d.getElementById('btn-title').getAttribute('title') === '设置');
+  check('属性翻译：aria-label 正确翻译', d.getElementById('btn-aria').getAttribute('aria-label') === '关闭');
+  check('属性翻译：data-tooltip 正确翻译', d.getElementById('tooltip-span').getAttribute('data-tooltip') === '复制');
+  check('属性翻译：alt 正确翻译', d.getElementById('test-img').getAttribute('alt') === '文件');
+
+  // 14. 边界与安全性：特殊转义符、HTML实体、模板插值字符与多次扫描幂等性
+  w.__antigravityZh.setData({
+    dict: {
+      'Terms & Conditions': '条款与条件',
+      'Value is ${foo}': '变量为 ${foo}',
+      'Say "Hello"': '说 "你好"'
+    },
+    rules: [
+      ['^Price: \\$([0-9.]+)$', '价格：$1 美元']
+    ]
+  });
+
+  const secBox = d.createElement('div');
+  secBox.innerHTML = `
+    <div id="ent">Terms & Conditions</div>
+    <div id="tmpl">Value is \${foo}</div>
+    <div id="quote">Say "Hello"</div>
+    <div id="price">Price: $99.9</div>
+  `;
+  d.getElementById('host').appendChild(secBox);
+  await flush();
+
+  check('特殊字符：HTML 实体符号 & 正常翻译且不破坏 DOM', d.getElementById('ent').textContent === '条款与条件');
+  check('特殊字符：模板字面量插值字符 ${...} 安全处理', d.getElementById('tmpl').textContent === '变量为 ${foo}');
+  check('特殊字符：包含单双引号文本正常匹配', d.getElementById('quote').textContent === '说 "你好"');
+  check('特殊字符：含美元符号 $ 的正则安全捕获与替换', d.getElementById('price').textContent === '价格：99.9 美元');
+
+  // 15. 幂等性：对已翻译内容二次 retranslate 不产生二次翻译破坏
+  w.__antigravityZh.retranslate();
+  check('幂等性：二次 retranslate 后已翻译内容保持不变',
+    d.getElementById('ent').textContent === '条款与条件' &&
+    d.getElementById('price').textContent === '价格：99.9 美元'
+  );
+
   console.log(`\n页面翻译器: ${pass} 通过, ${fail} 失败`);
   fs.rmSync(SIM, { recursive: true, force: true });
   process.exit(fail ? 1 : 0);
