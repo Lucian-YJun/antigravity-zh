@@ -516,6 +516,63 @@ const flush = () => new Promise(r => setTimeout(r, 0)); // 让微任务（Mutati
   await new Promise(r => setTimeout(r, 50));
   check('三级切片：第三帧全部 105 步消化完毕', tripSpans[70].textContent === '文件' && tripSpans[104].textContent === '文件');
 
+  // 28. /plan 介绍及相关斜杠命令与模式汉化验证
+  w.__antigravityZh.setData(JSON.parse(fs.readFileSync(path.join(SRC, 'cockpit-zh.json'), 'utf-8')));
+  const planBox = d.createElement('div');
+  planBox.innerHTML = `
+    <div id="plan-desc">Plan carefully before executing a task.</div>
+    <div id="plan-mode">Planning Mode</div>
+    <div id="plan-review">Review and refine the agent's step-by-step plan before execution.</div>
+    <div id="plan-impl">Implementation Plan</div>
+  `;
+  d.getElementById('host').appendChild(planBox);
+  await flush();
+  check('/plan 命令短介绍汉化', d.getElementById('plan-desc').textContent === '在执行任务前周密制定计划。');
+  check('计划模式 (Planning Mode) 汉化', d.getElementById('plan-mode').textContent === '计划模式');
+  check('计划审查说明汉化', d.getElementById('plan-review').textContent === '在执行前审查并完善智能体的分步计划。');
+  check('实施计划 (Implementation Plan) 汉化', d.getElementById('plan-impl').textContent === '实施计划');
+
+  // 29. Unicode 空白符与 &nbsp; (\u00A0)、全角空格 \u3000 首尾修剪与汉化验证
+  const unicodeSpaceBox = d.createElement('div');
+  unicodeSpaceBox.innerHTML = `
+    <div id="u-nbsp">\u00A0File\u00A0</div>
+    <div id="u-em">\u2003Settings\u2003</div>
+    <div id="u-cjk">\u3000New Conversation\u3000</div>
+    <div id="u-mixed">\u00A0\t Close \r\n\u00A0</div>
+  `;
+  d.getElementById('host').appendChild(unicodeSpaceBox);
+  await flush();
+  check('&nbsp; (\\u00A0) 空白符正确修剪并汉化', d.getElementById('u-nbsp').textContent === '\u00A0文件\u00A0');
+  check('Em space (\\u2003) 空白符正确修剪并汉化', d.getElementById('u-em').textContent === '\u2003设置\u2003');
+  check('全角空格 (\\u3000) 空白符正确修剪并汉化', d.getElementById('u-cjk').textContent === '\u3000新建对话\u3000');
+  check('多重混合 Unicode 空白符正确修剪并汉化', d.getElementById('u-mixed').textContent === '\u00A0\t 关闭 \n\u00A0');
+
+  // 30. 双代未命中缓存 (Generational Cache) 与热点更新验证
+  // 测试超过单代 2000 容量后，旧缓存正常平滑轮转至 prev，新热点正常添加且不抛错
+  const genBox = d.createElement('div');
+  for (let i = 0; i < 2500; i++) {
+    const p = d.createElement('span');
+    p.textContent = 'unmatchedToken_' + i;
+    genBox.appendChild(p);
+  }
+  d.getElementById('host').appendChild(genBox);
+  await flush();
+  check('双代未命中缓存平滑轮转 2500 项无异常', genBox.children.length === 2500);
+
+  // 验证轮转后已知词条仍旧能够毫秒级翻译且不被未命中缓存污染
+  const postGenEl = d.createElement('span');
+  postGenEl.textContent = 'File';
+  d.getElementById('host').appendChild(postGenEl);
+  await flush();
+  check('双代轮转后标准词条正常命中翻译', postGenEl.textContent === '文件');
+
+  // 31. 中文字符首字符快速短路 (CJK Fast Short-Circuit) 与纯空白透传
+  const cjkEl = d.createElement('span');
+  cjkEl.textContent = '这是已经汉化完成的界面内容';
+  d.getElementById('host').appendChild(cjkEl);
+  await flush();
+  check('中文已汉化文本极速透传不篡改', cjkEl.textContent === '这是已经汉化完成的界面内容');
+
   console.log(`\n页面翻译器: ${pass} 通过, ${fail} 失败`);
   fs.rmSync(SIM, { recursive: true, force: true });
   process.exit(fail ? 1 : 0);

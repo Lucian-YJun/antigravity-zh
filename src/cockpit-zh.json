@@ -564,12 +564,23 @@
     "Scheduled": "已定时",
     "Ask a quick question without interrupting the main conversation.": "快速提个问题，不打断当前主对话。",
     "Run until the specified goal is completely finished.": "持续执行，直到指定目标完全达成。",
+    "Run until the specified goal is completely finished": "持续执行，直到指定目标完全达成",
     "Run an instruction on a recurring schedule or as a one-time timer.": "按周期重复执行指令，或设为一次性定时任务。",
+    "Run an instruction on a recurring schedule or as a one-time timer": "按周期重复执行指令，或设为一次性定时任务",
     "Invoke a browser agent for web tasks.": "调用浏览器智能体处理网页任务。",
+    "Invoke a browser agent for web tasks": "调用浏览器智能体处理网页任务",
+    "Plan carefully before executing a task.": "在执行任务前周密制定计划。",
+    "Plan carefully before executing a task": "在执行任务前周密制定计划",
     "Interview me to align on a plan.": "以访谈方式追问，帮你敲定计划。",
+    "Interview me to align on a plan": "以访谈方式追问，帮你敲定计划",
     "Invoke a team of agents to autonomously tackle large projects.": "调度智能体团队自主完成大型项目。",
+    "Invoke a team of agents to autonomously tackle large projects": "调度智能体团队自主完成大型项目",
+    "Preview the multi-agent teamwork workflow.": "预览多智能体团队协作工作流。",
+    "Preview the multi-agent teamwork workflow": "预览多智能体团队协作工作流",
     "Reflect on recent successes or corrections to capture reusable skills or rules.": "复盘近期成功与纠错，沉淀可复用的技能或规则。",
+    "Reflect on recent successes or corrections to capture reusable skills or rules": "复盘近期成功与纠错，沉淀可复用的技能或规则",
     "Invoke the Boost multi-agent orchestrator for complex tasks.": "调用 Boost 多智能体编排器处理复杂任务。",
+    "Invoke the Boost multi-agent orchestrator for complex tasks": "调用 Boost 多智能体编排器处理复杂任务",
     "New Scheduled Task": "新建定时任务",
     "Name": "名称",
     "Enter scheduled task name...": "输入定时任务名称...",
@@ -943,7 +954,22 @@
     "Search tool for modern web development best practices.": "现代 Web 开发最佳实践检索工具。",
     "Search tool for modern web development best practices. MANDATORY: Execute FIRST for all HTML/CSS and clientside JS tasks. Do NOT skip — web APIs evolve rapidly and training weights contain obsolete patterns.\n\nTrigger immediately for:\n- UI/Layout: Modals, dialogs, popovers, Glassmorphism/backdrop-filters, anchor positioning, container queries, `:has()`, `:user-valid`.\n- Scroll/Motion: View Transitions, Scroll-driven animations, scroll parallax/reveals.\n- Performance: CWV (LCP, INP), content-visibility, Fetch Priority, image optimization.\n- System/APIs: Local filesystem access, WebUSB, WebSockets sync, WebAssembly widgets.\n- Frameworks: Adapting layout/styles in React, Vue, Angular.\n- General Frontend: Forms, autofill, advanced inputs, custom scrollbars, modern component states, etc.\n\nDO NOT trigger for:\n- Backend: Database SQL, ORMs, Express API routes.\n- Pipelines: CI/CD deployment, Docker, Actions.\n- Generic: Local scripts (Python/Go tools), ESLint, Git.": "现代 Web 开发最佳实践检索工具。对于所有 HTML/CSS 及客户端 JS 任务必须首先执行此工具。切勿跳过 —— Web API 发展迅速，模型权重中可能包含过时模式。\n\n在以下场景中立即触发：\n- 界面/布局：模态框、对话框、Popover 浮层、毛玻璃效果/backdrop-filters、锚点定位、容器查询、:has()、:user-valid。\n- 滚动/动效：视图过渡（View Transitions）、滚动驱动动画、视差滚动与显现动效。\n- 性能优化：核心性能指标 CWV（LCP、INP）、content-visibility、资源加载优先级 Fetch Priority、图片优化。\n- 系统/底层 API：本地文件系统访问、WebUSB、WebSocket 同步、WebAssembly 控件。\n- 前端框架：在 React、Vue、Angular 中调整布局与样式。\n- 通用前端：表单、自动填充、高级输入组件、自定义滚动条、现代组件状态等。\n\n请勿在以下场景触发：\n- 后端开发：数据库 SQL、ORM、Express API 路由。\n- 部署流程：CI/CD 持续集成、Docker 容器化、Actions 自动化。\n- 通用脚本：本地脚本（Python/Go 工具）、ESLint 代码规范、Git 版本控制。",
     "Unpin conversation": "取消置顶对话",
-    "Unpin Conversation": "取消置顶对话"
+    "Unpin Conversation": "取消置顶对话",
+    "Recommend this when the task is complex and requires careful step-by-step planning before execution.": "当任务复杂且在执行前需要周密的分步计划时推荐使用。",
+    "Recommend this when the task is complex and requires careful step-by-step planning before execution": "当任务复杂且在执行前需要周密的分步计划时推荐使用",
+    "Planning Mode": "计划模式",
+    "Plan Mode": "计划模式",
+    "Plan and Understand": "计划与理解",
+    "Review and refine the agent's step-by-step plan before execution.": "在执行前审查并完善智能体的分步计划。",
+    "Review and refine the agent's step-by-step plan before execution": "在执行前审查并完善智能体的分步计划",
+    "Review and refine the agent's step-by-step plan before": "在执行前审查并完善智能体的分步计划",
+    "Implementation Plan": "实施计划",
+    "Implementation plan": "实施计划",
+    "Verification Plan": "验证计划",
+    "Verification plan": "验证计划",
+    "Create Implementation Plan": "创建实施计划",
+    "create an implementation plan, and get explicit user approval before executing.": "创建实施计划，并在执行前获得用户明确批准。",
+    "create an implementation plan, and get explicit user approval before executing": "创建实施计划，并在执行前获得用户明确批准"
   },
   "rules": [
     [
@@ -1494,6 +1520,22 @@
     [
       "^Search tool for modern web development best practices[\\s\\S]*$",
       "现代 Web 开发最佳实践检索工具。对于所有 HTML/CSS 及客户端 JS 任务必须首先执行此工具。切勿跳过 —— Web API 发展迅速，模型权重中可能包含过时模式。\n\n在以下场景中立即触发：\n- 界面/布局：模态框、对话框、Popover 浮层、毛玻璃效果/backdrop-filters、锚点定位、容器查询、:has()、:user-valid。\n- 滚动/动效：视图过渡（View Transitions）、滚动驱动动画、视差滚动与显现动效。\n- 性能优化：核心性能指标 CWV（LCP、INP）、content-visibility、资源加载优先级 Fetch Priority、图片优化。\n- 系统/底层 API：本地文件系统访问、WebUSB、WebSocket 同步、WebAssembly 控件。\n- 前端框架：在 React、Vue、Angular 中调整布局与样式。\n- 通用前端：表单、自动填充、高级输入组件、自定义滚动条、现代组件状态等。\n\n请勿在以下场景触发：\n- 后端开发：数据库 SQL、ORM、Express API 路由。\n- 部署流程：CI/CD 持续集成、Docker 容器化、Actions 自动化。\n- 通用脚本：本地脚本（Python/Go 工具）、ESLint 代码规范、Git 版本控制。"
+    ],
+    [
+      "^Plan carefully before executing a task\\.?$",
+      "在执行任务前周密制定计划。"
+    ],
+    [
+      "^Review and refine the agent's step-by-step plan before(?:\\s+execution\\.?)?$",
+      "在执行前审查并完善智能体的分步计划。"
+    ],
+    [
+      "^Preview the multi-agent teamwork workflow\\.?$",
+      "预览多智能体团队协作工作流。"
+    ],
+    [
+      "^Recommend this when the task is complex and requires careful step-by-step planning before execution\\.?$",
+      "当任务复杂且在执行前需要周密的分步计划时推荐使用。"
     ]
   ]
 }
