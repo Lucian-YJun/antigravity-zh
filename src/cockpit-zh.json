@@ -888,7 +888,7 @@
     "Plugins are packaged collections of skills and MCPs to help the Agent in Antigravity work with Google developer products. You can always change your choices in": "插件是技能和 MCP 的打包集合，用于帮助 Antigravity 中的智能体配合 Google 开发者产品协同工作。你可以随时在“设置”中更改你的选项：",
     "Plugins are packaged collections of skills and MCPs to help the Agent in Antigravity work with Google developer products.": "插件是技能和 MCP 的打包集合，用于帮助 Antigravity 中的智能体配合 Google 开发者产品协同工作。",
     "You can always change your choices in Settings.": "你可以随时在“设置”中更改你的选项。",
-    "You can always change your choices in Settings": "你可以随时在“设置”中更改你的选项",
+    "You can always change your choices in Settings": "你可以随时在“设置”中更改你的选项。",
     "Core tools and knowledge required to develop for Android": "开发 Android 所需的核心工具与知识",
     "Core tools and knowledge required to develop for Android.": "开发 Android 所需的核心工具与知识。",
     "Modern Web Guidance": "现代 Web 开发指南",
@@ -921,7 +921,16 @@
     "Exploring tasks": "正在探索任务",
     "1 file changed": "1 个文件已更改",
     "Files changed": "已更改文件",
-    "files changed": "个文件已更改"
+    "files changed": "个文件已更改",
+    "Plugins are packaged collections of skills and MCPs to help the Agent in Antigravity work with Google developer products. You can always change your choices in Settings": "插件是技能和 MCP 的打包集合，用于帮助 Antigravity 中的智能体配合 Google 开发者产品协同工作。你可以随时在“设置”中更改你的选项。",
+    "Plugins are packaged collections of skills and MCPs to help the Agent in Antigravity work with Google developer products": "插件是技能和 MCP 的打包集合，用于帮助 Antigravity 中的智能体配合 Google 开发者产品协同工作。",
+    "You can always change your choices in": "你可以随时在“设置”中更改你的选项：",
+    "Plugins are packaged collections of skills and MCPs to help the Agent in Antigravity work": "插件是技能和 MCP 的打包集合，用于帮助 Antigravity 中的智能体协同工作",
+    "with Google developer products. You can always change your choices in Settings.": "配合 Google 开发者产品。你可以随时在“设置”中更改你的选项。",
+    "with Google developer products. You can always change your choices in Settings": "配合 Google 开发者产品。你可以随时在“设置”中更改你的选项。",
+    "with Google developer products. You can always change your choices in": "配合 Google 开发者产品。你可以随时在“设置”中更改你的选项：",
+    "with Google developer products.": "配合 Google 开发者产品。",
+    "with Google developer products": "配合 Google 开发者产品"
   },
   "rules": [
     [
@@ -1350,14 +1359,6 @@
       "已探索 $1 个文件，编辑了 $2 个文件，执行了 $3 条命令"
     ],
     [
-      "^Plugins are packaged collections of skills and MCPs to help the Agent in Antigravity work[\\s\\S]+?You can always change your choices in Settings\\.?$",
-      "插件是技能和 MCP 的打包集合，用于帮助 Antigravity 中的智能体配合 Google 开发者产品协同工作。你可以随时在“设置”中更改你的选项。"
-    ],
-    [
-      "^Plugins are packaged collections of skills and MCPs to help the Agent in Antigravity work[\\s\\S]+?You can always change your choices in$",
-      "插件是技能和 MCP 的打包集合，用于帮助 Antigravity 中的智能体配合 Google 开发者产品协同工作。你可以随时在“设置”中更改你的选项："
-    ],
-    [
       "^Build applications with the Gemini Interactions API and Live API, including text generation, multi-turn chat, streaming, function calling, managed agents, and real-[\\s\\S]*$",
       "使用 Gemini Interactions API 和 Live API 构建应用，涵盖文本生成、多轮对话、流式传输、函数调用、托管智能体及实时多模态交互。"
     ],
@@ -1428,6 +1429,34 @@
     [
       "^(\\d+) files? changed$",
       "$1 个文件已更改"
+    ],
+    [
+      "^Plugins are packaged collections of skills and MCPs to help the Agent in Antigravity work[\\s\\S]*?with Google developer products\\.[\\s\\S]*?You can always change your choices in(?:\\s+Settings\\.?)?$",
+      "插件是技能和 MCP 的打包集合，用于帮助 Antigravity 中的智能体配合 Google 开发者产品协同工作。你可以随时在“设置”中更改你的选项。"
+    ],
+    [
+      "^Plugins are packaged collections of skills and MCPs to help the Agent in Antigravity work$",
+      "插件是技能和 MCP 的打包集合，用于帮助 Antigravity 中的智能体协同工作"
+    ],
+    [
+      "^Plugins are packaged collections of skills and MCPs to help the Agent in Antigravity work with Google developer products\\.?$",
+      "插件是技能和 MCP 的打包集合，用于帮助 Antigravity 中的智能体配合 Google 开发者产品协同工作。"
+    ],
+    [
+      "^with Google developer products\\.\\s+You can always change your choices in(?:\\s+Settings\\.?)?$",
+      "配合 Google 开发者产品。你可以随时在“设置”中更改你的选项。"
+    ],
+    [
+      "^with Google developer products\\.\\s+You can always change your choices in:?$",
+      "配合 Google 开发者产品。你可以随时在“设置”中更改你的选项："
+    ],
+    [
+      "^with Google developer products\\.?$",
+      "配合 Google 开发者产品。"
+    ],
+    [
+      "^You can always change your choices in(?:\\s+Settings\\.?)?$",
+      "你可以随时在“设置”中更改你的选项。"
     ]
   ]
 }
