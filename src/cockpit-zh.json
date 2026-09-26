@@ -912,7 +912,16 @@
     "Specialized suite of skills for data engineers and database practitioners on Google Cloud": "专为 Google Cloud 上的数据工程师与数据库从业者打造的专业技能套件",
     "Specialized suite of skills for data engineers and database practitioners on Google Cloud.": "专为 Google Cloud 上的数据工程师与数据库从业者打造的专业技能套件。",
     "Build applications with the Gemini Interactions API and Live API, including text generation, multi-turn chat, streaming, function calling, managed agents, and real-...": "使用 Gemini Interactions API 和 Live API 构建应用，涵盖文本生成、多轮对话、流式传输、函数调用、托管智能体及实时多模态交互。",
-    "Build applications with the Gemini Interactions API and Live API, including text generation, multi-turn chat, streaming, function calling, managed agents, and real-…": "使用 Gemini Interactions API 和 Live API 构建应用，涵盖文本生成、多轮对话、流式传输、函数调用、托管智能体及实时多模态交互。"
+    "Build applications with the Gemini Interactions API and Live API, including text generation, multi-turn chat, streaming, function calling, managed agents, and real-…": "使用 Gemini Interactions API 和 Live API 构建应用，涵盖文本生成、多轮对话、流式传输、函数调用、托管智能体及实时多模态交互。",
+    "Timed 1 second": "计时 1 秒",
+    "Timed": "已计时",
+    "Explored 1 task": "已探索 1 个任务",
+    "Exploring 1 task": "正在探索 1 个任务",
+    "Explored tasks": "已探索任务",
+    "Exploring tasks": "正在探索任务",
+    "1 file changed": "1 个文件已更改",
+    "Files changed": "已更改文件",
+    "files changed": "个文件已更改"
   },
   "rules": [
     [
@@ -1351,6 +1360,74 @@
     [
       "^Build applications with the Gemini Interactions API and Live API, including text generation, multi-turn chat, streaming, function calling, managed agents, and real-[\\s\\S]*$",
       "使用 Gemini Interactions API 和 Live API 构建应用，涵盖文本生成、多轮对话、流式传输、函数调用、托管智能体及实时多模态交互。"
+    ],
+    [
+      "^Timed (\\d+) seconds?$",
+      "计时 $1 秒"
+    ],
+    [
+      "^Timed (\\d+) minutes?$",
+      "计时 $1 分钟"
+    ],
+    [
+      "^Timed (\\d+)m (\\d+)s$",
+      "计时 $1 分 $2 秒"
+    ],
+    [
+      "^Timed (\\d+)h (\\d+)m$",
+      "计时 $1 小时 $2 分钟"
+    ],
+    [
+      "^Timed (\\d+)h$",
+      "计时 $1 小时"
+    ],
+    [
+      "^Timed for (\\d+) seconds?$",
+      "计时 $1 秒"
+    ],
+    [
+      "^Timed for (\\d+) minutes?$",
+      "计时 $1 分钟"
+    ],
+    [
+      "^Explored (\\d+) tasks?$",
+      "已探索 $1 个任务"
+    ],
+    [
+      "^Exploring (\\d+) tasks?$",
+      "正在探索 $1 个任务"
+    ],
+    [
+      "^Explored (\\d+) tasks?, ran (\\d+) commands?$",
+      "已探索 $1 个任务，执行了 $2 条命令"
+    ],
+    [
+      "^Explored (\\d+) tasks?, edited (\\d+) files?$",
+      "已探索 $1 个任务，编辑了 $2 个文件"
+    ],
+    [
+      "^Explored (\\d+) files?, ran (\\d+) tasks?$",
+      "已探索 $1 个文件，执行了 $2 个任务"
+    ],
+    [
+      "^Ran (\\d+) commands?, explored (\\d+) tasks?$",
+      "执行了 $1 条命令，探索了 $2 个任务"
+    ],
+    [
+      "^(\\d+) files? changed\\s+(\\+\\d+)\\s+(-\\d+)$",
+      "$1 个文件已更改 $2 $3"
+    ],
+    [
+      "^(\\d+) files? changed\\s+(\\+\\d+)$",
+      "$1 个文件已更改 $2"
+    ],
+    [
+      "^(\\d+) files? changed\\s+(-\\d+)$",
+      "$1 个文件已更改 $2"
+    ],
+    [
+      "^(\\d+) files? changed$",
+      "$1 个文件已更改"
     ]
   ]
 }
