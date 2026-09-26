@@ -78,16 +78,14 @@ const flush = () => new Promise(r => setTimeout(r, 0)); // 让微任务（Mutati
   await new Promise(r => setTimeout(r, 150));
   check('大批量改动延迟后完成翻译', bigSpans[0].textContent === '置顶' && bigSpans[34].textContent === '置顶');
 
-  // 5. 打字更新（characterData）走防抖
+  // 5. 动态状态（characterData）走同帧即时汉化（微任务落地，零闪烁）
   const typing = d.createElement('div');
   typing.textContent = 'hello';
   d.getElementById('host').appendChild(typing);
   await flush();
   typing.firstChild.nodeValue = 'Conversation';
   await flush();
-  check('打字更新防抖内未立即翻译', typing.textContent === 'Conversation');
-  await new Promise(r => setTimeout(r, 120));
-  check('打字更新防抖后翻译', typing.textContent === '对话');
+  check('动态状态（characterData）同帧即时汉化成功', typing.textContent === '对话');
 
   // 6. setData 热更新：换新词典后新词条生效
   w.__antigravityZh.setData({ dict: { 'Brand New Thing': '全新事物' }, rules: [] });
@@ -258,6 +256,265 @@ const flush = () => new Promise(r => setTimeout(r, 0)); // 让微任务（Mutati
   check('多节点/变量插值：React 拆分的相邻 TextNode 拼接翻译自然连贯',
     d.getElementById('react-multi-node').textContent === '插件是技能和 MCP 的打包集合，用于帮助智能体在 Antigravity 中配合 Google 开发者产品协同工作。你可以随时在“设置”中更改你的选项。'
   );
+
+  // 17. /boost 动态状态同帧汉化与高频连续推进
+  w.__antigravityZh.setData({
+    dict: {
+      'Running': '运行中',
+      'Exploring': '探索中',
+      'Completed': '已完成',
+      'File': '文件',
+      'Settings': '设置',
+      'Close': '关闭'
+    },
+    rules: [
+      ['^(\\d+) tasks? remaining$', '剩余 $1 个任务']
+    ]
+  });
+
+  const boostBox = d.createElement('div');
+  const boostStatus = d.createElement('span');
+  boostStatus.textContent = '10 tasks remaining';
+  boostBox.appendChild(boostStatus);
+  d.getElementById('host').appendChild(boostBox);
+  await flush();
+  check('/boost 动态任务数同帧即时汉化', boostStatus.textContent === '剩余 10 个任务');
+
+  boostStatus.firstChild.nodeValue = '9 tasks remaining';
+  await flush();
+  check('/boost 动态任务数高频变更同帧即刻跟进', boostStatus.textContent === '剩余 9 个任务');
+
+  boostStatus.firstChild.nodeValue = 'Completed';
+  await flush();
+  check('/boost 最终状态流转同帧汉化', boostStatus.textContent === '已完成');
+
+  // 18. 双重防重入闭环 + 短周期振荡熔断器（React 受控纠偏极端场景）
+  const oscEl = d.createElement('span');
+  oscEl.textContent = 'Settings';
+  d.getElementById('host').appendChild(oscEl);
+  await flush();
+  check('振荡测试：初始赋值同帧翻译成功', oscEl.textContent === '设置');
+
+  // 模拟 React 受控纠偏第 1 次纠偏：React 把底层 nodeValue 强行纠正为 Settings
+  oscEl.firstChild.nodeValue = 'Settings';
+  await flush();
+  check('振荡测试：第 1 次受控纠偏翻译器维持纠正', oscEl.textContent === '设置');
+
+  // 模拟 React 受控纠偏第 2 次纠偏（500ms 内累积超 2 次）：短周期振荡熔断器触发生效
+  oscEl.firstChild.nodeValue = 'Settings';
+  await flush();
+  check('振荡测试：短周期高频振荡触发熔断器（放弃修改保留原文）', oscEl.textContent === 'Settings');
+
+  // 熔断后持久绝缘状态：后续即便再次传入，翻译器彻底放弃对此节点的修改，绝不死锁
+  oscEl.firstChild.nodeValue = 'Settings';
+  await flush();
+  check('振荡测试：熔断后保持绝缘，彻底杜绝递归风暴与死锁', oscEl.textContent === 'Settings');
+
+  // 正常间隔（>= 500ms）更新不触发熔断
+  const normalEl = d.createElement('span');
+  normalEl.textContent = 'Running';
+  d.getElementById('host').appendChild(normalEl);
+  await flush();
+  check('正常更新：初始状态正常汉化', normalEl.textContent === '运行中');
+
+  await new Promise(r => setTimeout(r, 520));
+  normalEl.firstChild.nodeValue = 'Exploring';
+  await flush();
+  check('正常更新：间隔 500ms 以上更新计数重置，正常汉化', normalEl.textContent === '探索中');
+
+  await new Promise(r => setTimeout(r, 520));
+  normalEl.firstChild.nodeValue = 'Completed';
+  await flush();
+  check('正常更新：再次间隔 500ms 更新继续正常汉化', normalEl.textContent === '已完成');
+
+  // 19. 全景物理输入绝缘护盾：全局 IME 锁（compositionstart/end）
+  const imeEl = d.createElement('span');
+  imeEl.textContent = 'Initial';
+  d.getElementById('host').appendChild(imeEl);
+  await flush();
+
+  // 模拟输入法启动（拼音输入激活）
+  w.dispatchEvent(new w.Event('compositionstart'));
+  imeEl.firstChild.nodeValue = 'File';
+  await flush();
+  check('IME 护盾：拼音组合输入期间绝对绝缘不翻译', imeEl.textContent === 'File');
+
+  // 模拟输入法候选词变换中
+  imeEl.firstChild.nodeValue = 'Close';
+  await flush();
+  check('IME 护盾：候选字切换过程绝对不跳字', imeEl.textContent === 'Close');
+
+  // 模拟输入法完成（上屏结束）
+  w.dispatchEvent(new w.Event('compositionend'));
+  imeEl.firstChild.nodeValue = 'File';
+  await flush();
+  check('IME 护盾：输入法结束后恢复正常同帧汉化', imeEl.textContent === '文件');
+
+  // 20. 现代编辑器与终端容器全量物理隔离
+  const editorBox = d.createElement('div');
+  editorBox.innerHTML = `
+    <div class="monaco-editor"><div class="view-lines"><span>File</span><span>Close</span></div></div>
+    <div class="monaco-diff-editor"><span>Edit</span></div>
+    <div class="cm-editor"><div class="cm-content"><span>Settings</span></div></div>
+    <div class="CodeMirror"><div class="CodeMirror-code"><span>File</span></div></div>
+    <div class="xterm"><div class="xterm-rows"><span>Running</span></div></div>
+    <div class="ProseMirror"><p><span>File</span> and <span>Edit</span></p></div>
+  `;
+  d.getElementById('host').appendChild(editorBox);
+  await flush();
+
+  check('现代容器隔离：.monaco-editor 内部绝对不翻译', editorBox.querySelector('.monaco-editor').textContent.includes('File'));
+  check('现代容器隔离：.monaco-diff-editor 代码对比区绝对不翻译', editorBox.querySelector('.monaco-diff-editor').textContent.trim() === 'Edit');
+  check('现代容器隔离：.cm-editor (CodeMirror 6) 绝对不翻译', editorBox.querySelector('.cm-editor').textContent.trim() === 'Settings');
+  check('现代容器隔离：.CodeMirror (CodeMirror 5) 绝对不翻译', editorBox.querySelector('.CodeMirror').textContent.trim() === 'File');
+  check('现代容器隔离：.xterm 终端控制台绝对不翻译', editorBox.querySelector('.xterm').textContent.trim() === 'Running');
+  check('现代容器隔离：.ProseMirror 富文本编辑器绝对不翻译', editorBox.querySelector('.ProseMirror').textContent.trim() === 'File and Edit');
+
+  // Monaco 容器内部动态更新 characterData 绝缘测试
+  const monacoSpan = editorBox.querySelector('.monaco-editor span');
+  monacoSpan.firstChild.nodeValue = 'Settings';
+  await flush();
+  check('现代容器隔离：Monaco 容器内动态打字/characterData 绝缘不篡改', monacoSpan.textContent === 'Settings');
+
+  // 21. 纯英文快速打字保护（打字 100% 绝对不跳字）
+  const ceBox = d.createElement('div');
+  ceBox.setAttribute('contenteditable', 'true');
+  const ceText = d.createTextNode('');
+  ceBox.appendChild(ceText);
+  d.getElementById('host').appendChild(ceBox);
+  await flush();
+
+  // 模拟快速键入 'F' -> 'Fi' -> 'Fil' -> 'File'
+  ceText.nodeValue = 'F';
+  await flush();
+  ceText.nodeValue = 'Fi';
+  await flush();
+  ceText.nodeValue = 'Fil';
+  await flush();
+  ceText.nodeValue = 'File';
+  await flush();
+  check('纯英文打字保护：contenteditable 连续快速敲击 100% 不跳字', ceText.nodeValue === 'File');
+
+  // 22. TreeWalker 原生子树剪枝（NodeFilter.FILTER_REJECT）与职责分离
+  const twBox = d.createElement('div');
+  twBox.innerHTML = `
+    <pre><code><span class="token">File</span><span class="token">Edit</span></code></pre>
+    <div class="normal-sibling">File</div>
+    <math><mrow><mi>File</mi></mrow></math>
+  `;
+  d.getElementById('host').appendChild(twBox);
+  await flush();
+
+  check('TreeWalker 剪枝：<pre><code> 内部 Token 整体 REJECT 剪枝保持原样', twBox.querySelector('code').textContent === 'FileEdit');
+  check('TreeWalker 剪枝：同容器兄弟节点免检直传正常汉化', twBox.querySelector('.normal-sibling').textContent === '文件');
+  check('TreeWalker 剪枝：<math> 数学公式容器整树剪枝保持原样', twBox.querySelector('math').textContent === 'File');
+
+  // 23. 两级联动预算切片（单容器深度遍历 35 步预算）
+  const singleContainer = d.createElement('div');
+  const deepSpans = [];
+  for (let i = 0; i < 70; i++) {
+    const s = d.createElement('span');
+    s.textContent = 'File';
+    singleContainer.appendChild(s);
+    deepSpans.push(s);
+  }
+  // 单个容器插入（addedNodes.length === 1，不走顶层 >30 分流，走单容器 35 步预算切片）
+  d.getElementById('host').appendChild(singleContainer);
+  await flush(); // 微任务落地（当前首帧）
+
+  check('单容器切片：首帧完成前 35 步预算汉化', deepSpans[0].textContent === '文件' && deepSpans[34].textContent === '文件');
+  check('单容器切片：超出 35 步的深层节点首帧平滑交割暂未阻塞', deepSpans[35].textContent === 'File' && deepSpans[69].textContent === 'File');
+
+  // 等待宏任务分批消化
+  await new Promise(r => setTimeout(r, 60));
+  check('单容器切片：宏任务分批交割平滑消化完毕', deepSpans[35].textContent === '文件' && deepSpans[69].textContent === '文件');
+
+  // 24. 极端边界与容错鲁棒性
+  const detachedNode = d.createTextNode('File');
+  // 对未挂载父级的游离孤立文本节点安全操作，不应抛出异常
+  let noThrow = true;
+  try {
+    w.__antigravityZh.retranslate();
+    detachedNode.nodeValue = 'Close';
+  } catch (e) {
+    noThrow = false;
+  }
+  check('鲁棒性：游离孤立节点安全容错不崩溃', noThrow);
+
+  const unknownBox = d.createElement('div');
+  unknownBox.textContent = 'SomeRandomUnmatchedWord123 !!!';
+  d.getElementById('host').appendChild(unknownBox);
+  await flush();
+  check('鲁棒性：未知词条与纯标点安全透传', unknownBox.textContent === 'SomeRandomUnmatchedWord123 !!!');
+
+  // 25. 扩展 contenteditable 形式全量物理隔离
+  const ceVariationsBox = d.createElement('div');
+  ceVariationsBox.innerHTML = `
+    <div contenteditable id="ce-bool"><span>File</span></div>
+    <div contenteditable="" id="ce-empty"><span>Edit</span></div>
+    <div contenteditable="plaintext-only" id="ce-plain"><span>Close</span></div>
+    <div contenteditable="false" id="ce-false"><span>File</span></div>
+  `;
+  d.getElementById('host').appendChild(ceVariationsBox);
+  await flush();
+
+  check('可编辑隔离：contenteditable 布尔属性绝对不翻译', d.getElementById('ce-bool').textContent.trim() === 'File');
+  check('可编辑隔离：contenteditable="" 空字符串属性绝对不翻译', d.getElementById('ce-empty').textContent.trim() === 'Edit');
+  check('可编辑隔离：contenteditable="plaintext-only" 绝对不翻译', d.getElementById('ce-plain').textContent.trim() === 'Close');
+  check('可编辑隔离：contenteditable="false" 正常翻译', d.getElementById('ce-false').textContent.trim() === '文件');
+
+  // 26. IME 锁失焦 (blur) 与取消 (compositioncancel) 自动脱困恢复
+  const imeRecoverEl = d.createElement('span');
+  imeRecoverEl.textContent = 'Initial';
+  d.getElementById('host').appendChild(imeRecoverEl);
+  await flush();
+
+  // 启动 composition
+  w.dispatchEvent(new w.Event('compositionstart'));
+  imeRecoverEl.firstChild.nodeValue = 'File';
+  await flush();
+  check('IME 护盾脱困：输入中绝缘保持', imeRecoverEl.textContent === 'File');
+
+  // 模拟窗口失焦 (blur) 自动解除 IME 锁
+  w.dispatchEvent(new w.Event('blur'));
+  imeRecoverEl.firstChild.nodeValue = 'Settings';
+  await flush();
+  check('IME 护盾脱困：失焦 blur 后自动解除输入锁正常汉化', imeRecoverEl.textContent === '设置');
+
+  // 模拟 compositioncancel 自动解除 IME 锁
+  w.dispatchEvent(new w.Event('compositionstart'));
+  imeRecoverEl.firstChild.nodeValue = 'File';
+  await flush();
+  check('IME 护盾脱困：再次输入中绝缘保持', imeRecoverEl.textContent === 'File');
+
+  w.dispatchEvent(new w.Event('compositioncancel'));
+  imeRecoverEl.firstChild.nodeValue = 'Close';
+  await flush();
+  check('IME 护盾脱困：compositioncancel 后自动解除输入锁正常汉化', imeRecoverEl.textContent === '关闭');
+
+  // 27. 三级跨帧预算切片测试（单容器 105 个节点，分三帧宏任务平滑消化）
+  const tripleContainer = d.createElement('div');
+  const tripSpans = [];
+  for (let i = 0; i < 105; i++) {
+    const s = d.createElement('span');
+    s.textContent = 'File';
+    tripleContainer.appendChild(s);
+    tripSpans.push(s);
+  }
+  d.getElementById('host').appendChild(tripleContainer);
+  await flush(); // 首帧微任务
+
+  check('三级切片：首帧完成前 35 步预算汉化', tripSpans[0].textContent === '文件' && tripSpans[34].textContent === '文件');
+  check('三级切片：超出 35 步的深层节点首帧平滑交割', tripSpans[35].textContent === 'File' && tripSpans[104].textContent === 'File');
+
+  // 等待第 1 次 16ms 宏任务交割
+  await new Promise(r => setTimeout(r, 30));
+  check('三级切片：第二帧消化至 70 步', tripSpans[35].textContent === '文件' && tripSpans[69].textContent === '文件');
+  check('三级切片：超出 70 步的节点仍保持平滑交割', tripSpans[70].textContent === 'File' && tripSpans[104].textContent === 'File');
+
+  // 等待第 2 次 16ms 宏任务交割
+  await new Promise(r => setTimeout(r, 50));
+  check('三级切片：第三帧全部 105 步消化完毕', tripSpans[70].textContent === '文件' && tripSpans[104].textContent === '文件');
 
   console.log(`\n页面翻译器: ${pass} 通过, ${fail} 失败`);
   fs.rmSync(SIM, { recursive: true, force: true });
