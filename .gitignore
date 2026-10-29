@@ -6,3 +6,5 @@ tests/zh-patch-sim*
 dist/
 dist2/
 release/
+.agents/
+PROJECT.md

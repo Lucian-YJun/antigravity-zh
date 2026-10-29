@@ -5,6 +5,6 @@
   ],
   [
     "title: 'Check for Updates',\n                message: 'No updates available',\n                buttons: ['OK'],",
-    "title: '检查更新',\n                message: '当前已是最新版本',\n                buttons: ['确定'],"
+    "title: '检查更新',\n                message: '当前已是最新版本',\n                detail: `您当前运行的是 ${electron_1.app.getName()} 的最新版本 (${electron_1.app.getVersion()})。`,\n                buttons: ['确定'],"
   ]
 ]

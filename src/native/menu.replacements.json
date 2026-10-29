@@ -12,7 +12,19 @@
     "label: '文档',"
   ],
   [
-    "hideDevTools(menu);\n    // Re-apply the menu so the change takes effect.",
-    "hideDevTools(menu);\n    // 汉化：递归翻译所有菜单项标签（保留 role 与快捷键）\n    zhI18n.translateMenu(menu);\n    // Re-apply the menu so the change takes effect."
+    "(0, debugConsole_1.configureDebugConsoleMenu)(menu);\n    // Re-apply the menu so the change takes effect.",
+    "(0, debugConsole_1.configureDebugConsoleMenu)(menu);\n    // 汉化：递归翻译所有菜单项标签（保留 role 与快捷键）\n    zhI18n.translateMenu(menu);\n    // Re-apply the menu so the change takes effect."
+  ],
+  [
+    "return { label: 'Connect to WSL', submenu };",
+    "return { label: '连接到 WSL', submenu };"
+  ],
+  [
+    "return { label: 'Reopen Locally', click: () => relaunchWithWslDistro('') };",
+    "return { label: '在本地重新打开', click: () => relaunchWithWslDistro('') };"
+  ],
+  [
+    "const submenuItem = appMenu.items.find((item) => item.label === submenuLabel);",
+    "const submenuItem = appMenu.items.find((item) => item.label === submenuLabel || (typeof zhI18n !== 'undefined' && zhI18n.MENU_LABELS && zhI18n.MENU_LABELS[submenuLabel] === item.label));"
   ]
 ]

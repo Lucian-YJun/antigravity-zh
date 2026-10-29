@@ -30,5 +30,13 @@
   [
     "buttons: ['Cancel', 'Quit'],\n        defaultId: 1,\n        cancelId: 0,\n        title: 'Confirm Quit',\n        message: 'Are you sure you want to quit?',\n        detail: 'There may be agents or background tasks running.',",
     "buttons: ['取消', '退出'],\n        defaultId: 1,\n        cancelId: 0,\n        title: '确认退出',\n        message: '确定要退出吗？',\n        detail: '可能仍有 Agent 或后台任务正在运行。',"
+  ],
+  [
+    "title: 'WSL distro not found',\n                message: `The WSL distro \"${WSL_DISTRO}\" is no longer installed.`,\n                detail: 'Antigravity opened on Windows instead.',",
+    "title: '未找到 WSL 发行版',\n                message: `WSL 发行版 \"${WSL_DISTRO}\" 已不再安装。`,\n                detail: 'Antigravity 已改为在 Windows 本地打开。',"
+  ],
+  [
+    "const msg = `Failed to install the server into WSL distro \"${WSL_DISTRO}\":\\n${err.message}`;\n            (0, wsl_1.persistWslDistro)(path.join(electron_1.app.getPath('userData'), wsl_1.WSL_STATE_FILE), '');\n            if (HEADLESS) {\n                console.error('ERROR:', msg);\n            }\n            else {\n                await electron_1.dialog.showErrorBox('WSL setup failed', msg);\n            }",
+    "const msg = `未能将服务安装到 WSL 发行版 \"${WSL_DISTRO}\"：\\n${err.message}`;\n            (0, wsl_1.persistWslDistro)(path.join(electron_1.app.getPath('userData'), wsl_1.WSL_STATE_FILE), '');\n            if (HEADLESS) {\n                console.error('ERROR:', msg);\n            }\n            else {\n                await electron_1.dialog.showErrorBox('WSL 配置失败', msg);\n            }"
   ]
 ]

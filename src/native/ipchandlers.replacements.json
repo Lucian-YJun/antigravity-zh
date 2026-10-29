@@ -6,5 +6,9 @@
   [
     "title: 'Open workspaces',",
     "title: '打开工作区',"
+  ],
+  [
+    "if (t.error) {\n            electron_1.dialog.showErrorBox('Cannot open folder', t.error);\n            return undefined;\n        }\n        if (t.warning) {\n            void electron_1.dialog.showMessageBox({\n                type: 'warning',\n                message: 'Folder is on the Windows filesystem',\n                detail: t.warning,\n            });\n        }",
+    "if (t.error) {\n            electron_1.dialog.showErrorBox('无法打开文件夹', t.error);\n            return undefined;\n        }\n        if (t.warning) {\n            void electron_1.dialog.showMessageBox({\n                type: 'warning',\n                message: '文件夹位于 Windows 文件系统',\n                detail: t.warning,\n            });\n        }"
   ]
 ]

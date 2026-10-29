@@ -60,6 +60,11 @@ const MENU_LABELS = {
     'Checking for Updates...': '正在检查更新...',
     'Downloading Update...': '正在下载更新...',
     'Restart to Update': '重启以安装更新',
+    'Connect to WSL': '连接到 WSL',
+    'Reopen Locally': '在本地重新打开',
+    'Selection': '选择',
+    'Run': '运行',
+    'Terminal': '终端',
 };
 exports.MENU_LABELS = MENU_LABELS;
 function translateMenu(menu) {
