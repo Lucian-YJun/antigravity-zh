@@ -631,6 +631,93 @@ const flush = () => new Promise(r => setTimeout(r, 0)); // 让微任务（Mutati
   } catch (e) {}
   check('Subagent 计时器：Page Visibility 调度事件响应正常无报错', visEventFired);
 
+  // 36. 补全未汉化界面条目与动态规则深度验证（图像1-5与文本项6-8、/boost）
+  w.__antigravityZh.setData(JSON.parse(fs.readFileSync(path.join(SRC, 'cockpit-zh.json'), 'utf-8')));
+  const unlocBox1 = d.createElement('div');
+  unlocBox1.innerHTML = `
+    <div id="test-perm-preset">Permission Preset</div>
+    <div id="test-perm-preset-lower">permission preset</div>
+    <div id="test-perm-preset-colon">Permission Preset:</div>
+    <div id="test-notif-pref">Manage your notification preferences.</div>
+    <div id="test-notif-pref-noun">Manage notification preferences</div>
+    <div id="test-builtin-browser">Built-in Browser</div>
+    <div id="test-browser-pref">Configure link opening and built-in browser preferences.</div>
+    <div id="test-external-browser">External Browser</div>
+    <div id="test-browser-subagent">Browser Subagent</div>
+    <div id="test-browser-desc">Configure the browser subagent. It requires <a href="#">Google Chrome</a> to be installed. The browser subagent can be invoked by typing /browser in the conversation input box.</div>
+    <div id="test-browser-desc-capital">Configure browser subagent. Requires Google Chrome to be installed. The browser subagent can be invoked by typing /browser in the conversation input box.</div>
+    <div id="test-browser-desc-short">Requires <a href="#">Google Chrome</a> to be installed.</div>
+  `;
+  const unlocBox2 = d.createElement('div');
+  unlocBox2.innerHTML = `
+    <div id="test-replace-new">Replace with New</div>
+    <div id="test-replace-new-lower">replace with new</div>
+    <div id="test-bg-cmds-single">Background Commands</div>
+    <div id="test-bg-cmds-badge">Background Commands 3</div>
+    <div id="test-bg-cmds-lower">background commands 2</div>
+    <div id="test-bg-cmds-colon">Background Commands: 4</div>
+    <div id="test-bg-cmds-bracket">Background Commands [5]</div>
+    <div id="test-bg-cmds-count-first">3 background commands</div>
+    <div id="test-bg-cmds-none">No background commands</div>
+    <div id="test-bg-cmds-split"><span>Background Commands</span> <span class="badge">1</span></div>
+    <div id="test-full-view">Full view</div>
+    <div id="test-full-veiw">Full veiw</div>
+  `;
+  const unlocBox3 = d.createElement('div');
+  unlocBox3.innerHTML = `
+    <div id="test-toggle-full-view">Toggle Full View</div>
+    <div id="test-new-tab">New Tab</div>
+    <div id="test-new-tab-shortcut">New Tab (Ctrl+T)</div>
+    <div id="test-open-new-tab">Open New Tab</div>
+    <div id="test-no-changes">No changes to review</div>
+    <div id="test-no-changes-yet">No changes to review yet.</div>
+    <div id="test-there-are-no-changes">There are no changes to review.</div>
+    <div id="test-boost-mode">Switch to Boost Mode</div>
+    <div id="test-boost-exit">Exit Boost Mode</div>
+    <div id="test-boost-enable">Enable Boost Mode</div>
+    <div id="test-boost-active">Boost Mode is active</div>
+  `;
+  d.getElementById('host').appendChild(unlocBox1);
+  d.getElementById('host').appendChild(unlocBox2);
+  d.getElementById('host').appendChild(unlocBox3);
+  await flush();
+
+  check('图像1：Permission Preset 汉化', d.getElementById('test-perm-preset').textContent === '权限预设');
+  check('图像1：permission preset 小写首字母分桶汉化', d.getElementById('test-perm-preset-lower').textContent === '权限预设');
+  check('图像1：Permission Preset: 冒号表单项汉化', d.getElementById('test-perm-preset-colon').textContent === '权限预设：');
+  check('图像2：Manage your notification preferences. 完整句汉化', d.getElementById('test-notif-pref').textContent === '管理你的通知偏好设置。');
+  check('图像2：Manage notification preferences 标题规范汉化（无冗余代词与标点）', d.getElementById('test-notif-pref-noun').textContent === '管理通知偏好设置');
+  check('图像3：Built-in Browser 汉化', d.getElementById('test-builtin-browser').textContent === '内置浏览器');
+  check('图像3：Configure link opening and built-in browser preferences. 汉化', d.getElementById('test-browser-pref').textContent === '配置链接打开方式和内置浏览器偏好设置。');
+  check('图像3：External Browser 汉化', d.getElementById('test-external-browser').textContent === '外部浏览器');
+  check('图像3：Browser Subagent 汉化', d.getElementById('test-browser-subagent').textContent === '浏览器子智能体');
+  check('图像3：浏览器子智能体混合拆分文本整句自然汉化', d.getElementById('test-browser-desc').textContent.replace(/\s+/g, ' ').trim() === '配置浏览器子智能体。需要安装 Google Chrome 才能使用。在对话输入框中输入 /browser 即可调用浏览器子智能体。');
+  check('图像3：大写 Requires 无主语整句正则汉化（彻底修复大小写缺陷）', d.getElementById('test-browser-desc-capital').textContent.replace(/\s+/g, ' ').trim() === '配置浏览器子智能体。需要安装 Google Chrome 才能使用。在对话输入框中输入 /browser 即可调用浏览器子智能体。');
+  check('图像3：Requires 独立段落插值拆分汉化', d.getElementById('test-browser-desc-short').textContent.replace(/\s+/g, ' ').trim() === '需要安装 Google Chrome 才能使用。');
+  check('图像4：Replace with New 汉化', d.getElementById('test-replace-new').textContent === '替换为新对话');
+  check('图像4：replace with new 全小写分桶汉化', d.getElementById('test-replace-new-lower').textContent === '替换为新对话');
+  check('图像5：Background Commands 独立汉化', d.getElementById('test-bg-cmds-single').textContent === '后台命令');
+  check('图像5：Background Commands 动态计数汉化', d.getElementById('test-bg-cmds-badge').textContent === '后台命令 3');
+  check('图像5：background commands 小写首字母动态徽章汉化', d.getElementById('test-bg-cmds-lower').textContent === '后台命令 2');
+  check('图像5：Background Commands: 带冒号计数汉化', d.getElementById('test-bg-cmds-colon').textContent === '后台命令 4');
+  check('图像5：Background Commands [5] 中括号计数汉化', d.getElementById('test-bg-cmds-bracket').textContent === '后台命令 (5)');
+  check('图像5：3 background commands 数量前置动态汉化', d.getElementById('test-bg-cmds-count-first').textContent === '3 个后台命令');
+  check('图像5：No background commands 空状态面板汉化', d.getElementById('test-bg-cmds-none').textContent === '没有后台命令');
+  check('图像5：真实 DOM 标签+徽章双子节点渲染汉化', d.getElementById('test-bg-cmds-split').textContent.replace(/\s+/g, ' ').trim() === '后台命令 1');
+  check('文本项6：Full view 汉化', d.getElementById('test-full-view').textContent === '完整视图');
+  check('文本项6：Full veiw 拼写容错汉化', d.getElementById('test-full-veiw').textContent === '完整视图');
+  check('文本项6：Toggle Full View 菜单动作汉化', d.getElementById('test-toggle-full-view').textContent === '切换完整视图');
+  check('文本项7：New Tab 汉化', d.getElementById('test-new-tab').textContent === '新建标签页');
+  check('文本项7：New Tab (Ctrl+T) 快捷键提示汉化', d.getElementById('test-new-tab-shortcut').textContent === '新建标签页 (Ctrl+T)');
+  check('文本项7：Open New Tab 动作汉化', d.getElementById('test-open-new-tab').textContent === '打开新建标签页');
+  check('文本项8：No changes to review 汉化', d.getElementById('test-no-changes').textContent === '没有需要审查的更改');
+  check('文本项8：No changes to review yet. 时态与句号汉化', d.getElementById('test-no-changes-yet').textContent === '尚无需要审查的更改。');
+  check('文本项8：There are no changes to review. 完整句汉化', d.getElementById('test-there-are-no-changes').textContent === '没有需要审查的更改。');
+  check('/boost：Switch to Boost Mode 模式切换汉化', d.getElementById('test-boost-mode').textContent === '切换到 Boost 模式');
+  check('/boost：Exit Boost Mode 退出模式汉化', d.getElementById('test-boost-exit').textContent === '退出 Boost 模式');
+  check('/boost：Enable Boost Mode 启用动作汉化', d.getElementById('test-boost-enable').textContent === '启用 Boost 模式');
+  check('/boost：Boost Mode is active 状态指示汉化', d.getElementById('test-boost-active').textContent === 'Boost 模式处于激活状态');
+
   console.log(`\n页面翻译器: ${pass} 通过, ${fail} 失败`);
   fs.rmSync(SIM, { recursive: true, force: true });
   process.exit(fail ? 1 : 0);

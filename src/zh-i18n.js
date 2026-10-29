@@ -65,6 +65,22 @@ const MENU_LABELS = {
     'Selection': '选择',
     'Run': '运行',
     'Terminal': '终端',
+    'Full View': '完整视图',
+    'Full view': '完整视图',
+    'Background Commands': '后台命令',
+    'Built-in Browser': '内置浏览器',
+    'External Browser': '外部浏览器',
+    'Replace with New': '替换为新对话',
+    'Replace with new': '替换为新对话',
+    'Permission Preset': '权限预设',
+    'Permission Presets': '权限预设',
+    'Browser Subagent': '浏览器子智能体',
+    'Boost Mode': 'Boost 模式',
+    'Switch to Boost Mode': '切换到 Boost 模式',
+    'Exit Boost Mode': '退出 Boost 模式',
+    'Enable Boost Mode': '启用 Boost 模式',
+    'Disable Boost Mode': '禁用 Boost 模式',
+    'No changes to review': '没有需要审查的更改',
 };
 exports.MENU_LABELS = MENU_LABELS;
 function translateMenu(menu) {
