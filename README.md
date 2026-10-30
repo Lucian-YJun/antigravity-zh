@@ -6,7 +6,7 @@
 
 ## 快速上手（免命令行）
 
-从 [Releases 页面](https://github.com/Lucian-YJun/antigravity-zh/releases) 下载最新的 `Antigravity-zh-patch-v1.2.0.zip`。
+从 [Releases 页面](https://github.com/Lucian-YJun/antigravity-zh/releases) 下载最新的 `Antigravity-zh-patch-v1.2.1.zip`。
 
 1. **完全退出 Antigravity**（确认 Windows 系统托盘右下角的图标已退出）。
 2. 解压下载的压缩包，双击运行 `安装汉化.bat`。
@@ -103,12 +103,12 @@ npm test
 
 ### 测试与验证
 
-项目包含 108 项自动化测试，覆盖词典格式、主进程注入、DOM 树遍历、输入法隔离、Subagent 跨刷新持久化与极限边界场景：
+项目包含 390+ 项自动化测试，覆盖词典格式、主进程注入、DOM 树遍历、输入法隔离、Subagent 跨刷新持久化与极限边界场景：
 
 ```bash
 npm run test:dict   # 词典静态格式与正则有效性检查 (13 项)
-npm run test:main   # 主进程注入与菜单逻辑测试 (7 项)
-npm run test:page   # 页面同帧翻译、剪枝、计时器与边界集成测试 (88 项)
+npm run test:main   # 主进程注入与菜单逻辑测试 (19+ 项)
+npm run test:page   # 页面同帧翻译、剪枝、计时器与边界集成测试 (358 项)
 ```
 
 ---

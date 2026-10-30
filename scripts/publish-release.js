@@ -2,6 +2,8 @@ const fs = require('fs');
 const path = require('path');
 const https = require('https');
 
+const VERSION = '1.2.1';
+
 // 从 mcp_config.json 安全读取 token，避免明文硬编码
 function getToken() {
   const mcpPath = path.join(process.env.USERPROFILE || process.env.HOME, '.gemini', 'config', 'mcp_config.json');
@@ -90,13 +92,13 @@ async function main() {
   }
 
   const notesPath = path.join(__dirname, '..', 'RELEASE_NOTES.md');
-  const releaseBody = fs.existsSync(notesPath) ? fs.readFileSync(notesPath, 'utf8') : 'Antigravity 中文汉化补丁 v1.2.0';
+  const releaseBody = fs.existsSync(notesPath) ? fs.readFileSync(notesPath, 'utf8') : `Antigravity 中文汉化补丁 v${VERSION}`;
 
-  console.log('创建 GitHub Release v1.2.0...');
+  console.log(`创建 GitHub Release v${VERSION}...`);
   const releasePayload = JSON.stringify({
-    tag_name: 'v1.2.0',
+    tag_name: `v${VERSION}`,
     target_commitish: 'main',
-    name: 'v1.2.0: 页面注入引擎性能与双代轮转缓存重构',
+    name: `v${VERSION}: 未汉化项补全与菜单/弹窗加固`,
     body: releaseBody,
     draft: false,
     prerelease: false
@@ -122,7 +124,7 @@ async function main() {
       console.log('Release 已存在，正在获取现有 Release 信息...');
       release = await request({
         hostname: 'api.github.com',
-        path: '/repos/Lucian-YJun/antigravity-zh/releases/tags/v1.2.0',
+        path: `/repos/Lucian-YJun/antigravity-zh/releases/tags/v${VERSION}`,
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -136,7 +138,7 @@ async function main() {
   }
 
   // 上传发布资产
-  const zipPath = path.join(__dirname, '..', 'dist', 'Antigravity-zh-patch-v1.2.0.zip');
+  const zipPath = path.join(__dirname, '..', 'dist', 'Antigravity-zh-patch-v' + VERSION + '.zip');
   if (fs.existsSync(zipPath)) {
     await uploadAsset(release.upload_url, zipPath, 'application/zip', token);
   }
