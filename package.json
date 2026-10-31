@@ -1,6 +1,6 @@
 {
   "name": "antigravity-zh",
-  "version": "1.3.0",
+  "version": "1.3.1",
   "description": "Antigravity 中文汉化补丁 - 首屏优先与渐进式翻译",
   "main": "scripts/patch.js",
   "bin": "scripts/patch.js",
