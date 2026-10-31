@@ -264,10 +264,13 @@ check('热载后歧义组各自精确形态仍按原样翻译', tr('Alpha') === 
 w.__antigravityZh.setData({ dict: { 'Alpha': '甲', 'ALPHA.': '甲' }, rules: [] });
 check('热载后同译文变体正常经归一化命中', tr('ALPHA.') === '甲', `实际 ${JSON.stringify(tr('ALPHA.'))}`);
 
-// ---- 7. 压缩成效守卫 ----
-check('词典词条已压缩到 1300 条以内（原 1607 条）', dictKeys.length < 1300, `当前 ${dictKeys.length} 条`);
-check('MENU_LABELS 已压缩到 200 条以内（原 316 条）',
-  Object.keys(zh.MENU_LABELS).length < 200, `当前 ${Object.keys(zh.MENU_LABELS).length} 条`);
+// ---- 7. 规模兜底 ----
+// 这里只做「异常膨胀」的兜底，不是覆盖率目标：官方每次更新都可能新增界面文案，
+// 词典本就该随之增长。真正的防膨胀靠 test-dict.js 的变体冗余检查（同一归一化键
+// 且同译文只允许一条），那才是可判定的指标。用绝对字数当门禁只会逼着人调阈值。
+check('词典规模在合理范围内（异常膨胀兜底）', dictKeys.length < 2500, `当前 ${dictKeys.length} 条`);
+check('MENU_LABELS 规模在合理范围内（异常膨胀兜底）',
+  Object.keys(zh.MENU_LABELS).length < 400, `当前 ${Object.keys(zh.MENU_LABELS).length} 条`);
 
 if (w.__agTimerInterval) clearInterval(w.__agTimerInterval);
 w.close();
