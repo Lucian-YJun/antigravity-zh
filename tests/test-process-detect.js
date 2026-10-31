@@ -77,10 +77,16 @@ check('sidecar 判定包含 --type= 排除条件', /--type=/.test(src));
 const runningFn = (src.match(/function isAntigravityRunning\(\)[\s\S]*?\n\}/) || [''])[0];
 check('tasklist 兜底的失败分支返回 true（fail-open 修复）',
   /catch\s*\{[\s\S]*?return true;/.test(runningFn), runningFn || '未找到函数');
-check('还原分支同样调用 killResidualSidecars',
-  /if \(isRevert\)[\s\S]*?killResidualSidecars\(\)/.test(src));
-check('还原分支的文件操作有 try/catch 兜底',
-  /if \(isRevert\)[\s\S]*?try \{[\s\S]*?fs\.renameSync\(origPath, asarPath\)[\s\S]*?\} catch \(err\)/.test(src));
+// 安装/还原逻辑已拆进 runInstall()/runRevert()，断言改为在函数体内匹配；
+// 末尾分发单独断言，避免「函数还在但没人调用」也算通过。
+const revertFn = (src.match(/function runRevert\(\)[\s\S]*?\n\}/) || [''])[0];
+check('还原分支同样调用 killResidualSidecars（拆分后）',
+  /killResidualSidecars\(\)/.test(revertFn), revertFn || '未找到 runRevert');
+check('还原分支的文件操作有 try/catch 兜底（拆分后）',
+  /try \{[\s\S]*?fs\.renameSync\(origPath, asarPath\)[\s\S]*?\} catch \(err\)/.test(revertFn),
+  revertFn || '未找到 runRevert');
+check('isRevert 分发到 runRevert / runInstall',
+  /if \(isRevert\) \{\s*runRevert\(\);\s*\} else \{\s*runInstall\(\);\s*\}/.test(src));
 
 console.log(`\n进程检测解析测试: ${pass} 通过, ${fail} 失败`);
 process.exit(fail ? 1 : 0);
