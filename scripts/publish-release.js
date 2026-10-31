@@ -195,8 +195,10 @@ async function main() {
   console.log('全部发布流程圆满完成！访问链接:', release.html_url);
 }
 
-// 直接运行或 `node -e "require('./scripts/publish-release.js')"` 都执行发布流程
-if (require.main === module || require.main === undefined) {
+// 只有直接执行才真正发版。被 require（包括 `node -e "require('...')"`，
+// 此时 require.main 为 undefined）时一律只导出函数，绝不产生网络副作用——
+// 发布是不可逆的外部操作，不能因为一次探视性 require 就发出去。
+if (require.main === module) {
   main().catch(err => {
     console.error('发布失败:', err.message || err);
     process.exit(1);
