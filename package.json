@@ -27,7 +27,8 @@
     "release:package": "node scripts/package-release.js",
     "test:normalize": "node tests/test-dict-normalize.js",
     "test:watch": "node tests/test-watch-robustness.js",
-    "test:publish": "node tests/test-publish-guard.js"
+    "test:publish": "node tests/test-publish-guard.js",
+    "add-terms": "node scripts/add-terms.js"
   },
   "keywords": [
     "antigravity",
