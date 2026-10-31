@@ -339,7 +339,7 @@ const TRANSLATOR_BODY = [
     // 避免「菜单能认的写法页面认不得」这类两套规则漂移。
     'var NE=__NORM__;var needsNorm=NE.needsNorm,normKey=NE.normKey;',
     // 索引在注入时构建一次：tr() 热路径只做一次哈希查表，绝不做线性搜索
-    'var NORM=NE.compileNorm(dict,null);',
+    'var NORM=NE.compileNorm(dict,true);',
     // 非规范形态的译文缓存：长句每次重建归一化字符串太贵（实测长弹窗句会慢到 3 倍），
     // 同一句在 UI 里会反复出现（每次 DOM 变更都查一遍），缓存一次即可摊平这笔开销。
     'var normHit=new Map();',
@@ -430,11 +430,13 @@ const TRANSLATOR_BODY = [
     '    var v=dict[core];',
     '    return (start===0&&end===len)?v:(s.slice(0,start)+v+s.slice(end));',
     '  }',
-    // 归一化兜底：精确未命中且该写法确实需要归一化时才构造归一化键，
-    // 全小写 + 无尾部标点的串直接跳过，不为每个 miss 付构造字符串的成本。
-    '  if(NORM!==null&&needsNorm(core)){',
-    '    var nv=normLookup(core);',
-    '    if(nv!==null)return (start===0&&end===len)?nv:(s.slice(0,start)+nv+s.slice(end));',
+    // 归一化兜底：精确未命中时查归一化索引。
+    // needsNorm 为真才构造归一化键；为假说明 core 已是规范形态，直接拿它查表（零分配）。
+    // 这里不能跳过查找——索引里的键来自词典中的非规范写法（"Dashboard" → "dashboard"），
+    // 跳过就会漏掉「词典只有 Title Case、界面出现全小写」这类情况。
+    '  if(NORM!==null){',
+    '    var nv=needsNorm(core)?normLookup(core):NORM[core];',
+    '    if(nv!==null&&nv!==undefined)return (start===0&&end===len)?nv:(s.slice(0,start)+nv+s.slice(end));',
     '  }',
     '  var bucket=RC.byChar[core.charAt(0)];',
     '  if(bucket){',
@@ -585,7 +587,7 @@ const TRANSLATOR_BODY = [
     // rev 为可选词典版本号：多窗口并发热载时，慢窗口的旧 payload 不得覆盖新 payload
     '  setData:function(nd,rev){if(!nd){return;}',
     '    if(rev>0){if(rev<=dataRev){return;}dataRev=rev;}',
-    '    D=nd;dict=nd.dict||{};missCurr.clear();missPrev.clear();normHit.clear();nodeMap=new WeakMap();cooldownQueue=[];if(cooldownTimer!==null){clearTimeout(cooldownTimer);cooldownTimer=null;}RC=compileRules(nd.rules);NORM=NE.compileNorm(dict,null);try{walk(document.body);}catch(e){}}};',
+    '    D=nd;dict=nd.dict||{};missCurr.clear();missPrev.clear();normHit.clear();nodeMap=new WeakMap();cooldownQueue=[];if(cooldownTimer!==null){clearTimeout(cooldownTimer);cooldownTimer=null;}RC=compileRules(nd.rules);NORM=NE.compileNorm(dict,true);try{walk(document.body);}catch(e){}}};',
     'walk(document.body);var t0=tr(document.title);if(t0){document.title=t0;}'
 ].join('\n');
 // Subagent 运行时长原生动态显示模块 2.0 (Zero-Flicker, Persistence & Adaptive Scheduling)

@@ -15,7 +15,7 @@
     "repatch": "node scripts/patch.js --close --relaunch",
     "unpatch": "node scripts/patch.js --revert",
     "sync": "node scripts/sync-dict.js",
-    "test": "node tests/test-dict.js && node tests/test-main.js && node tests/test-page.js && node tests/test-process-detect.js && node tests/test-patch-install.js && node tests/test-sync-dict.js && node tests/test-dict-normalize.js && node tests/test-watch-robustness.js && node tests/test-publish-guard.js",
+    "test": "node tests/test-dict.js && node tests/test-main.js && node tests/test-page.js && node tests/test-process-detect.js && node tests/test-patch-install.js && node tests/test-sync-dict.js && node tests/test-dict-normalize.js && node tests/test-watch-robustness.js && node tests/test-publish-guard.js && node tests/test-add-terms.js",
     "test:dict": "node tests/test-dict.js",
     "test:main": "node tests/test-main.js",
     "test:page": "node tests/test-page.js",
@@ -28,7 +28,8 @@
     "test:normalize": "node tests/test-dict-normalize.js",
     "test:watch": "node tests/test-watch-robustness.js",
     "test:publish": "node tests/test-publish-guard.js",
-    "add-terms": "node scripts/add-terms.js"
+    "add-terms": "node scripts/add-terms.js",
+    "test:add-terms": "node tests/test-add-terms.js"
   },
   "keywords": [
     "antigravity",

@@ -27,14 +27,18 @@ const path = require('path');
 const args = process.argv.slice(2);
 const isDryRun = args.includes('--dry-run');
 const isForce = args.includes('--force');
-const file = args.find(a => !a.startsWith('--'));
+const dictArgIdx = args.indexOf('--dict');
+// 允许指定目标词典：测试必须能在沙箱副本上跑，不能动真实词典
+const dictPath = dictArgIdx >= 0 && args[dictArgIdx + 1]
+    ? path.resolve(args[dictArgIdx + 1])
+    : path.join(__dirname, '..', 'src', 'cockpit-zh.json');
+const file = args.find((a, i) => !a.startsWith('--') && i !== dictArgIdx + 1);
 
 if (!file) {
-    console.error('用法: node scripts/add-terms.js <词条文件> [--dry-run] [--force]');
+    console.error('用法: node scripts/add-terms.js <词条文件> [--dict <词典路径>] [--dry-run] [--force]');
     process.exit(1);
 }
 
-const dictPath = path.join(__dirname, '..', 'src', 'cockpit-zh.json');
 const rawText = fs.readFileSync(dictPath, 'utf8');
 const data = JSON.parse(rawText);
 const dict = data.dict || {};
@@ -49,6 +53,8 @@ function parseLine(line) {
     let idx = -1, sepLen = 0;
     for (const s of seps) {
         const i = line.indexOf(s);
+        // 分隔符出现在第 0 位说明这一行没有原文（如 "= 只有译文"），视为非法
+        if (i === 0) return { invalid: true };
         if (i > 0 && (idx < 0 || i < idx)) { idx = i; sepLen = s.length; }
     }
     if (idx < 0) return { src: line, dst: null };
@@ -116,6 +122,13 @@ for (const line of lines) {
         dict[item.src] = item.dst;
         added.push([item.src, item.dst]);
     }
+    // 同一批文件里也去重：否则 Foo 和 FOO 会双双入库，
+    // 上一轮 96 条新词里有 25 条就是这么产生的。
+    if (normKey) {
+        const n2 = normKey(item.src);
+        if (!normIndex.has(n2)) normIndex.set(n2, []);
+        normIndex.get(n2).push(item.src);
+    }
 }
 
 console.log(`解析完成：新增/更新 ${added.length}，跳过 ${skipped.length}，冗余 ${redundant.length}，非法 ${invalid.length}`);
@@ -152,15 +165,32 @@ if (!added.length) {
 fs.writeFileSync(dictPath, JSON.stringify(data, null, 2) + '\n', 'utf8');
 console.log(`\n✅ 已写入 ${path.relative(process.cwd(), dictPath)}`);
 
-// 写脏了会让 test-dict 整片红，先自检再同步
-const { execFileSync } = require('child_process');
-try {
-    execFileSync(process.execPath, [path.join(__dirname, '..', 'tests', 'test-dict.js')], { stdio: 'pipe' });
-    console.log('✅ 词典静态体检通过');
-} catch (e) {
-    console.error('❌ 词典体检失败，请检查上面的写入内容：');
-    console.error(String(e.stdout || e.message).split('\n').filter(l => l.includes('FAIL')).join('\n'));
-    process.exit(1);
+// 写脏了会让 test-dict 整片红，先自检
+const isDefaultDict = dictPath === path.join(__dirname, '..', 'src', 'cockpit-zh.json');
+if (!isDefaultDict) {
+    // 沙箱词典：test-dict.js 固定校验真实词典，这里就地做同等检查
+    const problems = [];
+    const written = JSON.parse(fs.readFileSync(dictPath, 'utf8'));
+    for (const [k, v] of Object.entries(written.dict || {})) {
+        if (k === '' || v === '') problems.push(`空 key 或空值: ${JSON.stringify(k)}`);
+        if (k !== k.trim()) problems.push(`key 首尾空格: ${JSON.stringify(k)}`);
+        if (typeof v === 'string' && v !== v.trim()) problems.push(`值首尾空格: ${JSON.stringify(k)}`);
+    }
+    if (problems.length) {
+        console.error('❌ 词典体检失败：\n' + problems.slice(0, 10).join('\n'));
+        process.exit(1);
+    }
+    console.log('✅ 词典静态体检通过（沙箱）');
+} else {
+    const { execFileSync } = require('child_process');
+    try {
+        execFileSync(process.execPath, [path.join(__dirname, '..', 'tests', 'test-dict.js')], { stdio: 'pipe' });
+        console.log('✅ 词典静态体检通过');
+    } catch (e) {
+        console.error('❌ 词典体检失败，请检查上面的写入内容：');
+        console.error(String(e.stdout || e.message).split('\n').filter(l => l.includes('FAIL')).join('\n'));
+        process.exit(1);
+    }
 }
 
 console.log('下一步：npm run sync（推送到已安装客户端，1~2 秒生效）');
