@@ -107,6 +107,30 @@ check('dict 中无空 Value', emptyValues.length === 0, `空 Value 对应的 Key
 check('dict 中无首尾多余空格的 Key', untrimmedKeys.length === 0, `未 trim 的 Key: ${untrimmedKeys.slice(0, 5).join(', ')}`);
 check('dict 中无首尾多余空格的 Value', untrimmedValues.length === 0, `未 trim 的 Value 对应的 Key: ${untrimmedValues.slice(0, 5).join(', ')}`);
 
+// 2b. 变体冗余：引擎查表是「精确匹配 → 归一化匹配」，所以同一归一化键、
+// 同一译文的多个写法里只有一个有用，其余纯属重复（曾经 1607 条里 573 条是这种）。
+// 把这道检查放在测试里，而不是指望提词条脚本被正确使用——谁改词典都会被拦。
+// 注意：译文不同的变体不算冗余（句号版 / 省略号版各有各的译文），不在此列。
+const normEngine = require('../src/zh-i18n.js').normEngine;
+let redundantVariants = [];
+try {
+  const NE = normEngine();
+  const groups = new Map();
+  for (const k of dictKeys) {
+    const n = NE.normKey(k);
+    if (!groups.has(n)) groups.set(n, []);
+    groups.get(n).push(k);
+  }
+  for (const [, keys] of groups) {
+    if (keys.length < 2) continue;
+    if (new Set(keys.map(k => dict[k])).size === 1) redundantVariants.push(...keys.slice(1));
+  }
+  check('dict 无归一化后重复的变体（同写法同译文）', redundantVariants.length === 0,
+    `${redundantVariants.length} 条冗余: ${redundantVariants.slice(0, 6).join(', ')}`);
+} catch (e) {
+  check('dict 无归一化后重复的变体（同写法同译文）', false, '归一化逻辑不可用: ' + e.message);
+}
+
 // 3. rules 正则规则与捕获组匹配校验
 const rules = data.rules || [];
 check('cockpit-zh.json 包含有效 rules 数组', Array.isArray(rules) && rules.length > 0);
