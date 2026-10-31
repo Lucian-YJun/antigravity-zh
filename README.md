@@ -1,18 +1,18 @@
 # Antigravity 中文汉化补丁
 
-为 Google Antigravity 提供界面汉化。基于 Electron asar 解包机制，注入同帧文本处理逻辑与词典热重载能力。
+为 Google Antigravity 提供界面汉化。基于 Electron asar 解包机制，注入文本翻译逻辑与词典热重载能力。
 
 ---
 
 ## 快速上手（免命令行）
 
-从 [Releases 页面](https://github.com/Lucian-YJun/antigravity-zh/releases) 下载最新的 `Antigravity-zh-patch-v1.2.1.zip`。
+从 [Releases 页面](https://github.com/Lucian-YJun/antigravity-zh/releases) 下载最新的 `Antigravity-zh-patch-v*.zip`。
 
 1. **完全退出 Antigravity**（确认 Windows 系统托盘右下角的图标已退出）。
-2. 解压下载的压缩包，双击运行 `安装汉化.bat`。
+2. 解压下载的压缩包，双击运行 `一键安装.bat`。
 3. 提示安装成功后，重新启动 Antigravity 即可看到中文界面。
 
-> 如果官方推送了客户端更新，重新跑一次 `安装汉化.bat` 即可恢复汉化。想恢复英文原版，双击运行 `一键还原.bat`。
+> 如果官方推送了客户端更新，重新跑一次 `一键安装.bat` 即可恢复汉化。想恢复英文原版，双击运行 `一键还原.bat`。
 
 ---
 
@@ -22,8 +22,8 @@
 
 这个版本主要针对这些细节做重构与平滑处理：
 
-### 1. 同帧渲染无闪烁
-浏览器在每帧绘制前会先清空微任务队列。补丁通过同步微任务拦截 React 局部的文本变动（`characterData` 与小节点挂载），在主线程将这一帧绘制到屏幕前完成替换，让界面首次显示就是中文。
+### 1. 首屏优先翻译，剩余内容渐进补齐
+页面初次加载时，补丁先处理可视区内的文本，让首屏尽量以中文呈现；其余节点按时间片分批跟进，每批只处理有限数量的文本节点就把控制权交还给浏览器，处理完再继续下一批。因此对于内容极多的界面（例如一次挂载上千个文本节点），整页翻译完成需要短暂的时间（量级在秒级），期间页面保持可交互，不会因为一次性遍历整棵树而卡住。
 
 ### 2. 编辑器与代码块整树剪枝
 遇到 Monaco Editor、CodeMirror、`<pre>`、`<code>`、终端控制台（xterm）等容器时，底层 TreeWalker 遍历器直接返回 `FILTER_REJECT`，物理跳过整棵子树，不检查内部成千上万个代码 Token。页面遍历耗时从原本的近百毫秒压到几毫秒以内。
@@ -34,7 +34,7 @@
 
 ### 4. 输入法（IME）与受控组件保护
 - 监听 `compositionstart`、`compositionend` 与 `blur` 事件，在拼音打字或候选字切换期间冻结文本替换，解决敲键盘时中途吞字的问题。
-- 引入 500ms 短周期振荡计数器，当检测到前端框架受控组件连续回写超过两次时主动熔断，避免死循环。
+- 引入节点级熔断：当检测到某个节点被前端框架反复回写（500ms 内多次覆盖回英文）时，对该节点短暂冷却，暂停替换以避免与框架互相拉扯；冷却结束后自动重新尝试翻译，不会因为一次冲突就永久放弃这个节点。
 
 ### 5. 词典本地热更新
 主进程监听 `cockpit-zh.json` 文件变动，保存文件后主进程自动向所有窗口推送新词典并刷新文本，修改翻译用语时无需频繁重启软件。
@@ -58,8 +58,8 @@ antigravity-zh/
 ├── scripts/
 │   ├── patch.js               # 解包、打补丁与还原逻辑
 │   ├── sync-dict.js           # 复制组件并经由 CDP 热推送词典
-│   ├── package-release.js     # 生成可解压即用的发布压缩包
-│   └── publish-release.js     # 创建 GitHub Release 并上传资产
+│   ├── package-release.js     # 生成发布用 zip（内置 zip 写入器）
+│   └── publish-release.js     # 调用 GitHub API 建 Release 并上传产物
 └── tests/                     # 自动化测试与性能基准套件
 ```
 
@@ -104,14 +104,16 @@ npm test
 
 ### 测试与验证
 
-项目包含 406 项自动化测试，覆盖词典格式、主进程注入、DOM 树遍历、输入法隔离、Subagent 跨刷新持久化、进程检测解析与极限边界场景：
+项目自带一套基于 Node 脚本的自动化测试（无测试框架，直接运行即可），覆盖词典格式、主进程注入、DOM 树遍历、输入法隔离、Subagent 跨刷新持久化、进程检测与安装流程、以及极限边界场景：
 
 ```bash
-npm run test:dict   # 词典静态格式与正则有效性检查 (13 项)
-npm run test:main   # 主进程注入与菜单逻辑测试 (19 项)
-npm run test:page   # 页面同帧翻译、剪枝、计时器与边界集成测试 (358 项)
-npm run test:process # 进程检测解析与回归断言 (16 项)
+npm run test:dict   # 词典静态格式与正则有效性检查
+npm run test:main   # 主进程注入与菜单逻辑测试
+npm run test:page   # 页面翻译、剪枝、计时器与边界集成测试
+npm run test:process # 进程检测解析与回归断言
 ```
+
+运行 `npm test` 会执行 `package.json` 中登记的全部测试套件；每个脚本结束时都会打印通过/失败条数，以实际输出为准。
 
 ---
 
