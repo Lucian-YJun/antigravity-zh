@@ -280,14 +280,14 @@ const MENU_LABELS = {
     'Previous Worktree.': '先前的工作树。',
     'Previous Worktree...': '先前的工作树...',
     'Previous Worktree:': '先前的工作树：',
-    'Local Checkout': '本地仓库',
-    'Local Checkout.': '本地仓库。',
-    'Local Checkout...': '本地仓库...',
-    'Local Checkout:': '本地仓库：',
-    'Local Checkouts': '本地仓库',
-    'Local Checkouts.': '本地仓库。',
-    'Local Checkouts...': '本地仓库...',
-    'Local Checkouts:': '本地仓库：',
+    'Local Checkout': '本地检出',
+    'Local Checkout.': '本地检出。',
+    'Local Checkout...': '本地检出...',
+    'Local Checkout:': '本地检出：',
+    'Local Checkouts': '本地检出',
+    'Local Checkouts.': '本地检出。',
+    'Local Checkouts...': '本地检出...',
+    'Local Checkouts:': '本地检出：',
 };
 exports.MENU_LABELS = MENU_LABELS;
 // 供工具复用同一份归一化逻辑（add-terms 用它判断新词条是否已被现有条目覆盖），

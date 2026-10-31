@@ -1167,14 +1167,14 @@
     "Previous Worktree.": "先前的工作树。",
     "Previous Worktree...": "先前的工作树...",
     "Previous Worktree:": "先前的工作树：",
-    "local checkout": "本地仓库",
-    "Local Checkout.": "本地仓库。",
-    "Local Checkout...": "本地仓库...",
-    "Local Checkout:": "本地仓库：",
-    "local checkouts": "本地仓库",
-    "Local Checkouts.": "本地仓库。",
-    "Local Checkouts...": "本地仓库...",
-    "Local Checkouts:": "本地仓库：",
+    "local checkout": "本地检出",
+    "Local Checkout.": "本地检出。",
+    "Local Checkout...": "本地检出...",
+    "Local Checkout:": "本地检出：",
+    "local checkouts": "本地检出",
+    "Local Checkouts.": "本地检出。",
+    "Local Checkouts...": "本地检出...",
+    "Local Checkouts:": "本地检出：",
     "Antigrative Dashboard": "Antigrative 仪表盘",
     "Antigravity Dashboard": "Antigravity 仪表盘",
     "dashboard": "仪表盘",
@@ -2404,27 +2404,27 @@
     ],
     [
       "^[lL][oO][cC][aA][lL] [cC][hH][eE][cC][kK][oO][uU][tT][sS]?:?\\s*\\((.+)\\)\\.?$",
-      "本地仓库 ($1)"
+      "本地检出 ($1)"
     ],
     [
       "^[lL][oO][cC][aA][lL] [cC][hH][eE][cC][kK][oO][uU][tT][sS]?:?\\s*\\[(.+)\\]\\.?$",
-      "本地仓库 [$1]"
+      "本地检出 [$1]"
     ],
     [
       "^[lL][oO][cC][aA][lL] [cC][hH][eE][cC][kK][oO][uU][tT][sS]?:\\s*$",
-      "本地仓库："
+      "本地检出："
     ],
     [
       "^[lL][oO][cC][aA][lL] [cC][hH][eE][cC][kK][oO][uU][tT][sS]?(?:\\.\\.\\.|…)$",
-      "本地仓库..."
+      "本地检出..."
     ],
     [
       "^[lL][oO][cC][aA][lL] [cC][hH][eE][cC][kK][oO][uU][tT][sS]?\\.$",
-      "本地仓库。"
+      "本地检出。"
     ],
     [
       "^[lL][oO][cC][aA][lL] [cC][hH][eE][cC][kK][oO][uU][tT][sS]?\\.?$",
-      "本地仓库"
+      "本地检出"
     ],
     [
       "^Work locally on (.+)$",
