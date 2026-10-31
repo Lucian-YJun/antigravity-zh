@@ -1,0 +1,91 @@
+diff --git a/src/zh-i18n.js b/src/zh-i18n.js
+index 81cb164..533ac8c 100644
+--- a/src/zh-i18n.js
++++ b/src/zh-i18n.js
+@@ -699,12 +699,66 @@ function pushDictionaryToWindows() {
+         }
+     }
+ }
++// fs.watch 不可用时的兜底：轮询词典 mtime
++function startMtimePoll(dicPath, onChange) {
++    let last = 0;
++    try {
++        last = fs.statSync(dicPath).mtimeMs;
++    }
++    catch (e) {
++        return;
++    }
++    const timer = setInterval(() => {
++        let m = 0;
++        try {
++            m = fs.statSync(dicPath).mtimeMs;
++        }
++        catch (e) {
++            return;
++        }
++        if (m !== last) {
++            last = m;
++            onChange();
++        }
++    }, 500);
++    if (timer.unref) {
++        timer.unref();
++    }
++}
++function startDictionaryWatch() {
++    const dicPath = path.join(__dirname, 'cockpit-zh.json');
++    let reloadTimer = null;
++    const onChange = () => {
++        if (reloadTimer) {
++            clearTimeout(reloadTimer);
++        }
++        reloadTimer = setTimeout(pushDictionaryToWindows, 200);
++    };
++    try {
++        const watcher = fs.watch(dicPath, onChange);
++        // FSWatcher 的 error 是异步事件，外层 try/catch 接不住，未处理会直接终止主进程
++        watcher.on('error', () => {
++            try {
++                watcher.close();
++            }
++            catch (e) { }
++            startMtimePoll(dicPath, onChange);
++        });
++    }
++    catch (e) {
++        // 词典监视失败不影响基础翻译功能，降级为轮询
++        startMtimePoll(dicPath, onChange);
++    }
++}
+ /**
+  * 为窗口附加网页 UI 翻译：每次 did-finish-load 后注入词典翻译脚本。
+  * 词典热更新：修改 cockpit-zh.json 后自动推送到已打开窗口（无需手动刷新）。
+  */
+ function attachWebTranslator(win) {
+     registeredWindows.add(win);
++    if (typeof win.once === 'function') {
++        win.once('closed', () => { registeredWindows.delete(win); });
++    }
+     win.webContents.on('did-finish-load', () => {
+         if (win.isDestroyed()) {
+             return;
+@@ -721,18 +775,6 @@ function attachWebTranslator(win) {
+     });
+     if (!watchStarted) {
+         watchStarted = true;
+-        try {
+-            const dicPath = path.join(__dirname, 'cockpit-zh.json');
+-            let reloadTimer = null;
+-            fs.watch(dicPath, () => {
+-                if (reloadTimer) {
+-                    clearTimeout(reloadTimer);
+-                }
+-                reloadTimer = setTimeout(pushDictionaryToWindows, 200);
+-            });
+-        }
+-        catch (e) {
+-            // 词典监视失败不影响基础翻译功能
+-        }
++        startDictionaryWatch();
+     }
+ }
