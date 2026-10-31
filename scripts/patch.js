@@ -504,10 +504,13 @@ function runRevert() {
             fs.renameSync(origPath, asarPath);
             console.log('✅ 恢复了 app.asar');
         } else if (backupIsStale) {
-            console.log('⚠️ app.asar.orig 与当前 app.asar 不同源（客户端已更新），保留当前版本、丢弃过期备份。');
+            console.log('⚠️ 客户端已经更新过，app.asar.orig 是上一版留下的备份，不能用它覆盖新版本。');
+            console.log('   当前安装的就是更新后的英文原版，汉化补丁已全部移除，不会降级也不会残留。');
+            console.log('   无需任何额外操作，直接启动 Antigravity 即可。');
             fs.rmSync(origPath, { force: true });
         } else {
-            console.log('⚠️ 找不到 app.asar.orig，可能已经是原版。');
+            console.log('💡 没找到 app.asar.orig：补丁本来就不在安装状态，无需还原。');
+            console.log('   直接启动 Antigravity 即可（正常情况下它已经是英文原版）。');
         }
         fs.rmSync(backupMetaPath, { force: true });
         for (const dir of [appDir, kitDir]) {

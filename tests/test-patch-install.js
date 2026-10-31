@@ -189,7 +189,15 @@ check('③b 前置打补丁成功', r.status === 0 && fs.existsSync(origPath), (
 // 模拟客户端更新：写入新包，但 .orig 仍是 v2
 fs.copyFileSync(buildV3, asarPath);
 r = runPatch(['--revert']);
-check('③b 过期备份场景还原退出码为 0', r.status === 0, (r.stderr || '') + (r.stdout || ''));
+const staleOut = (r.stdout || '') + (r.stderr || '');
+// 提示要用户能懂：说清发生了什么（客户端已更新）、当前状态（英文原版、补丁已移除）、
+// 以及无需额外操作；同时不再出现「不同源」这类术语。
+check('③b 过期备份场景还原退出码为 0，且提示说明了原因、现状与无需操作',
+  r.status === 0 &&
+  /客户端已经更新过/.test(staleOut) &&
+  /英文原版/.test(staleOut) && /补丁已全部移除/.test(staleOut) &&
+  /无需任何额外操作/.test(staleOut) && !/不同源/.test(staleOut),
+  staleOut.slice(-300));
 check('③b 保留客户端更新后的新包，不回退到旧版本',
   fs.existsSync(asarPath) && sha256(asarPath) === sha256(buildV3));
 check('③b 丢弃过期备份与 meta', !fs.existsSync(origPath) && !fs.existsSync(metaPath));
