@@ -59,7 +59,32 @@ function parseLine(line) {
 }
 
 const lines = fs.readFileSync(file, 'utf8').split(/\r?\n/);
-const added = [], skipped = [], invalid = [];
+const added = [], skipped = [], invalid = [], redundant = [];
+
+// 用引擎自己的归一化逻辑判断「这条是否已经被现有词条覆盖」。
+// 引擎的查找顺序是精确匹配 → 归一化匹配，所以 Dashboard 已经在词典里时，
+// 再录 dashboard / dashboard. / DASHBOARD 都是纯冗余——这正是过去 1607 条
+// 膨胀到只剩 1033 条不同 key 的原因，光靠"精确重复"检查拦不住。
+let normKey = null;
+try {
+    const NE = require(path.join(__dirname, '..', 'src', 'zh-i18n.js')).normEngine();
+    normKey = NE.normKey;
+} catch (e) {
+    console.log('⚠️ 无法加载引擎归一化逻辑，本次跳过冗余检测：' + e.message);
+}
+
+// 归一化 key → 已存在的条目列表（只构建一次）
+function buildNormIndex() {
+    const idx = new Map();
+    if (!normKey) return idx;
+    for (const k of Object.keys(dict)) {
+        const n = normKey(k);
+        if (!idx.has(n)) idx.set(n, []);
+        idx.get(n).push(k);
+    }
+    return idx;
+}
+const normIndex = buildNormIndex();
 
 for (const line of lines) {
     const item = parseLine(line);
@@ -68,6 +93,21 @@ for (const line of lines) {
 
     const exists = Object.prototype.hasOwnProperty.call(dict, item.src);
     if (exists && !isForce) { skipped.push(item.src); continue; }
+
+    // 归一化后已被覆盖，且译文一致 → 加进去只是重复，默认不写
+    if (normKey && !isForce) {
+        const n = normKey(item.src);
+        const hits = (normIndex.get(n) || []).filter(k => k !== item.src);
+        if (hits.length) {
+            // 只给原文时更危险：占位符会成为精确匹配，反过来遮蔽归一化命中的正确译文，
+            // 所以只要归一化后已经有条目，就不该再写入。
+            if (item.dst === null || hits.some(k => dict[k] === item.dst)) {
+                redundant.push([item.src, hits[0]]);
+                continue;
+            }
+        }
+    }
+
     if (item.dst === null) {
         // 没给译文：写占位符，避免 JSON 出现空值，同时一眼能看出待补
         dict[item.src] = '⟪待翻译⟫';
@@ -78,10 +118,14 @@ for (const line of lines) {
     }
 }
 
-console.log(`解析完成：新增/更新 ${added.length}，跳过 ${skipped.length}，非法 ${invalid.length}`);
+console.log(`解析完成：新增/更新 ${added.length}，跳过 ${skipped.length}，冗余 ${redundant.length}，非法 ${invalid.length}`);
 if (added.length) {
     console.log('\n将写入：');
     added.forEach(([s, d]) => console.log(`  ${JSON.stringify(s)}  →  ${JSON.stringify(d)}`));
+}
+if (redundant.length) {
+    console.log('\n冗余、跳过（归一化后已被现有词条覆盖，加 --force 可强制写入）：');
+    redundant.forEach(([s, hit]) => console.log(`  ${JSON.stringify(s)}  ≡  已有 ${JSON.stringify(hit)}`));
 }
 if (skipped.length) {
     console.log(`\n已存在、跳过（要覆盖加 --force）：`);

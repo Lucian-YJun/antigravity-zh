@@ -138,6 +138,9 @@ const MENU_LABELS = {
     'Go': '前往',
     'Window': '窗口',
     'Help': '帮助',
+    'Give Feedback': '提供反馈',
+    'Files': '文件',
+    'Folder': '文件夹',
     'New Window': '新建窗口',
     'New Tab': '新建标签页',
     'New Conversation': '新建对话',
@@ -277,16 +280,19 @@ const MENU_LABELS = {
     'Previous Worktree.': '先前的工作树。',
     'Previous Worktree...': '先前的工作树...',
     'Previous Worktree:': '先前的工作树：',
-    'Local Checkout': '本地检出',
-    'Local Checkout.': '本地检出。',
-    'Local Checkout...': '本地检出...',
-    'Local Checkout:': '本地检出：',
-    'Local Checkouts': '本地检出',
-    'Local Checkouts.': '本地检出。',
-    'Local Checkouts...': '本地检出...',
-    'Local Checkouts:': '本地检出：',
+    'Local Checkout': '本地仓库',
+    'Local Checkout.': '本地仓库。',
+    'Local Checkout...': '本地仓库...',
+    'Local Checkout:': '本地仓库：',
+    'Local Checkouts': '本地仓库',
+    'Local Checkouts.': '本地仓库。',
+    'Local Checkouts...': '本地仓库...',
+    'Local Checkouts:': '本地仓库：',
 };
 exports.MENU_LABELS = MENU_LABELS;
+// 供工具复用同一份归一化逻辑（add-terms 用它判断新词条是否已被现有条目覆盖），
+// 避免脚本里再造一套规则、与引擎逐渐走偏。
+exports.normEngine = normEngine;
 // 菜单归一化索引：构造菜单是一次性动作，直接建全量索引（含规范形态），
 // 让「大小写 × 尾部标点」的变体都能命中，词典里就不必再逐条展开。
 const MENU_NORM = NORM_IMPL.compileNorm(MENU_LABELS, true);
