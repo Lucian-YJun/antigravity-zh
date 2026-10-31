@@ -1,6 +1,6 @@
 {
   "name": "antigravity-zh",
-  "version": "1.2.1",
+  "version": "1.3.0",
   "description": "Antigravity 中文汉化补丁 (Next-Gen) - 同帧无闪烁渲染版",
   "main": "scripts/cli.js",
   "bin": "scripts/patch.js",
@@ -15,12 +15,14 @@
     "repatch": "node scripts/patch.js --close --relaunch",
     "unpatch": "node scripts/patch.js --revert",
     "sync": "node scripts/sync-dict.js",
-    "test": "node tests/test-dict.js && node tests/test-main.js && node tests/test-page.js && node tests/test-process-detect.js",
+    "test": "node tests/test-dict.js && node tests/test-main.js && node tests/test-page.js && node tests/test-process-detect.js && node tests/test-patch-install.js && node tests/test-sync-dict.js",
     "test:dict": "node tests/test-dict.js",
     "test:main": "node tests/test-main.js",
     "test:page": "node tests/test-page.js",
     "test:process": "node tests/test-process-detect.js",
-    "bench": "node tests/perf-benchmark.js"
+    "test:sync": "node tests/test-sync-dict.js",
+    "bench": "node tests/perf-benchmark.js",
+    "test:install": "node tests/test-patch-install.js"
   },
   "keywords": [
     "antigravity",
@@ -34,7 +36,8 @@
   },
   "type": "commonjs",
   "dependencies": {
-    "asar": "^3.2.0"
+    "asar": "^3.2.0",
+    "ws": "^8.21.3"
   },
   "devDependencies": {
     "jsdom": "^30.1.0",
