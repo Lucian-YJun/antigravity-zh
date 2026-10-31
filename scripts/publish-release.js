@@ -2,22 +2,61 @@ const fs = require('fs');
 const path = require('path');
 const https = require('https');
 
-const VERSION = '1.2.1';
+// 版本号只在 package.json 里维护一份，避免发版时漏改脚本里的副本
+const VERSION = require('../package.json').version;
 
-// 从 mcp_config.json 安全读取 token，避免明文硬编码
+// 发布标题从 RELEASE_NOTES.md 的首个一级标题推导，脚本不再写死某一版的文案
+function deriveReleaseTitle(notesPath, fallback) {
+  let heading = '';
+  try {
+    const firstLine = fs.readFileSync(notesPath, 'utf8').split(/\r?\n/).find(line => line.trim());
+    heading = (firstLine || '').trim();
+  } catch { /* 读不到就用版本号兜底 */ }
+  // 标题里的 Markdown 标记、版本号与「Release」前缀跟 tag 语义重复，剥掉后只留描述部分
+  const desc = heading
+    .replace(/^#+\s*/, '')
+    .replace(/^release\s+/i, '')
+    .replace(/^v?\d+(?:\.\d+)*\s*[-:：]?\s*/i, '')
+    .trim();
+  return desc ? `v${VERSION}: ${desc}` : fallback;
+}
+
+const REPO_SLUG = 'Lucian-YJun/antigravity-zh';
+const ZIP_NAME = `Antigravity-zh-patch-v${VERSION}.zip`;
+const EXE_NAME = 'Antigravity-zh-patch.exe';
+
+// 环境变量优先于本地配置文件：CI 里通常只注入 GITHUB_TOKEN，
+// 而本机开发者习惯把 token 放在 mcp 配置里，两条路都要能用。
 function getToken() {
-  const mcpPath = path.join(process.env.USERPROFILE || process.env.HOME, '.gemini', 'config', 'mcp_config.json');
+  const fromEnv = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
+  if (fromEnv) return { token: fromEnv, source: process.env.GITHUB_TOKEN ? 'GITHUB_TOKEN' : 'GH_TOKEN' };
+
+  const mcpPath = path.join(process.env.USERPROFILE || process.env.HOME || '', '.gemini', 'config', 'mcp_config.json');
   if (fs.existsSync(mcpPath)) {
     try {
       const cfg = JSON.parse(fs.readFileSync(mcpPath, 'utf8'));
-      if (cfg.mcpServers && cfg.mcpServers.github && cfg.mcpServers.github.env) {
-        return cfg.mcpServers.github.env.GITHUB_PERSONAL_ACCESS_TOKEN;
-      }
+      const token = cfg.mcpServers && cfg.mcpServers.github && cfg.mcpServers.github.env
+        && cfg.mcpServers.github.env.GITHUB_PERSONAL_ACCESS_TOKEN;
+      if (token) return { token, source: mcpPath };
     } catch (e) {
-      console.error('读取 mcp_config.json 失败:', e.message);
+      console.error(`读取 ${mcpPath} 失败:`, e.message);
     }
   }
-  return process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
+  return null;
+}
+
+// 发布前先确认资产齐备，避免在 GitHub 上留下一个没有附件、无法安装的空 Release
+function resolveAssets(root) {
+  const assets = [
+    { name: ZIP_NAME, path: path.join(root, 'dist', ZIP_NAME), type: 'application/zip', hint: 'npm run release:package' },
+    { name: EXE_NAME, path: path.join(root, 'dist', EXE_NAME), type: 'application/octet-stream', hint: 'npm run build:exe' },
+  ];
+  const missing = assets.filter(a => !fs.existsSync(a.path));
+  if (missing.length) {
+    const lines = missing.map(a => `  - dist/${a.name}${a.hint ? `（缺少它请先运行 ${a.hint}）` : ''}`);
+    throw new Error(`缺少发布资产，发布中止：\n${lines.join('\n')}\n\n请先执行 \`npm run release:package\` 生成完整发布包（含 exe、三个 bat 与 src/）后再重试。`);
+  }
+  return assets;
 }
 
 function request(options, data) {
@@ -85,20 +124,32 @@ function uploadAsset(uploadUrlRaw, filePath, contentType, token) {
 }
 
 async function main() {
-  const token = getToken();
-  if (!token) {
-    console.error('未找到有效的 GitHub Token');
+  const auth = getToken();
+  if (!auth) {
+    console.error('未找到有效的 GitHub Token，发布中止。');
+    console.error('请设置环境变量 GITHUB_TOKEN（或 GH_TOKEN）后重试，例如：');
+    console.error('  PowerShell: $env:GITHUB_TOKEN = "ghp_xxx"; node scripts/publish-release.js');
+    console.error('  CMD:        set GITHUB_TOKEN=ghp_xxx && node scripts/publish-release.js');
+    console.error('  Git Bash:   GITHUB_TOKEN=ghp_xxx node scripts/publish-release.js');
+    console.error('也可以在 PowerShell 里持久化：setx GITHUB_TOKEN "ghp_xxx"（新开终端生效）。');
+    console.error(`回退路径 ~/.gemini/config/mcp_config.json 的 mcpServers.github.env.GITHUB_PERSONAL_ACCESS_TOKEN 未提供可用值。`);
     process.exit(1);
   }
+  const { token, source } = auth;
+  console.log(`使用 Token 来源: ${source}`);
+
+  // 先校验资产再创建 Release：缺 zip 时若已建好 Release，GitHub 上会留下一个空的发布
+  const assets = resolveAssets(path.join(__dirname, '..'));
 
   const notesPath = path.join(__dirname, '..', 'RELEASE_NOTES.md');
   const releaseBody = fs.existsSync(notesPath) ? fs.readFileSync(notesPath, 'utf8') : `Antigravity 中文汉化补丁 v${VERSION}`;
+  const releaseTitle = deriveReleaseTitle(notesPath, `v${VERSION}`);
 
   console.log(`创建 GitHub Release v${VERSION}...`);
   const releasePayload = JSON.stringify({
     tag_name: `v${VERSION}`,
     target_commitish: 'main',
-    name: `v${VERSION}: 未汉化项补全与菜单/弹窗加固`,
+    name: releaseTitle,
     body: releaseBody,
     draft: false,
     prerelease: false
@@ -108,7 +159,7 @@ async function main() {
   try {
     release = await request({
       hostname: 'api.github.com',
-      path: '/repos/Lucian-YJun/antigravity-zh/releases',
+      path: `/repos/${REPO_SLUG}/releases`,
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -124,7 +175,7 @@ async function main() {
       console.log('Release 已存在，正在获取现有 Release 信息...');
       release = await request({
         hostname: 'api.github.com',
-        path: `/repos/Lucian-YJun/antigravity-zh/releases/tags/v${VERSION}`,
+        path: `/repos/${REPO_SLUG}/releases/tags/v${VERSION}`,
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -137,21 +188,19 @@ async function main() {
     }
   }
 
-  // 上传发布资产
-  const zipPath = path.join(__dirname, '..', 'dist', 'Antigravity-zh-patch-v' + VERSION + '.zip');
-  if (fs.existsSync(zipPath)) {
-    await uploadAsset(release.upload_url, zipPath, 'application/zip', token);
-  }
-
-  const exePath = path.join(__dirname, '..', 'dist', 'Antigravity-zh-patch.exe');
-  if (fs.existsSync(exePath)) {
-    await uploadAsset(release.upload_url, exePath, 'application/octet-stream', token);
+  for (const asset of assets) {
+    await uploadAsset(release.upload_url, asset.path, asset.type, token);
   }
 
   console.log('全部发布流程圆满完成！访问链接:', release.html_url);
 }
 
-main().catch(err => {
-  console.error('发布失败:', err);
-  process.exit(1);
-});
+// 直接运行或 `node -e "require('./scripts/publish-release.js')"` 都执行发布流程
+if (require.main === module || require.main === undefined) {
+  main().catch(err => {
+    console.error('发布失败:', err.message || err);
+    process.exit(1);
+  });
+}
+
+module.exports = { getToken, resolveAssets, deriveReleaseTitle };

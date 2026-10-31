@@ -57,8 +57,9 @@ antigravity-zh/
 │   └── native/                # Electron 菜单等原生进程替换表
 ├── scripts/
 │   ├── patch.js               # 解包、打补丁与还原逻辑
-│   ├── cli.js                 # 终端交互菜单
-│   └── sync-dict.js           # 词典热同步脚本
+│   ├── sync-dict.js           # 复制组件并经由 CDP 热推送词典
+│   ├── package-release.js     # 生成可解压即用的发布压缩包
+│   └── publish-release.js     # 创建 GitHub Release 并上传资产
 └── tests/                     # 自动化测试与性能基准套件
 ```
 
