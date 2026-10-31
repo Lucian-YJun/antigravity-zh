@@ -2,12 +2,134 @@
 // Antigravity 主程序汉化模块：原生菜单词典 + 网页 UI 词典翻译注入
 // 词典文件位于 ../cockpit-zh.json（zh-patch 目录下），可随时编辑。
 // 本分支增强：1) 小改动同帧翻译（菜单打开无英文闪烁）2) 词典文件变更自动热载（无需 Ctrl+R）
-Object.defineProperty(exports, "__esModule", { value: true });
 exports.translateMenu = translateMenu;
 exports.attachWebTranslator = attachWebTranslator;
 exports.MENU_LABELS = void 0;
 const fs = require('fs');
 const path = require('path');
+// 归一化实现：主进程菜单与页面注入脚本共用同一份源码（注入时序列化进字符串），
+// 避免两套规则各写一遍后慢慢漂移。
+function normEngine() {
+    // 尾部标点参与归一化，但按类别分组：句号/省略号/冒号/问号/感叹号在原词典里
+    // 对应不同译文形态（删除对话。 / 删除对话... / 删除对话：），合并会把语义抹平。
+    var TRAIL_PUNCT = { 46: 1, 12290: 1, 8230: 1, 58: 1, 65306: 1, 63: 1, 65311: 1, 33: 1, 65281: 1 };
+    function isSpace(c) {
+        return c <= 32 || c === 160 || c === 0xFEFF || (c >= 0x2000 && c <= 0x200B) || c === 0x3000;
+    }
+    // 快路径判定：全小写、无尾部标点、无连续/异形空白时归一化是恒等变换，
+    // 直接查原表即可，不必为每个 miss 构造归一化字符串。
+    function needsNorm(s) {
+        var len = s.length;
+        if (len === 0)
+            return false;
+        if (TRAIL_PUNCT[s.charCodeAt(len - 1)])
+            return true;
+        var prevSpace = false;
+        for (var i = 0; i < len; i++) {
+            var c = s.charCodeAt(i);
+            if (c >= 65 && c <= 90)
+                return true;
+            if (isSpace(c)) {
+                // 连续空白或非普通空格都要折叠，否则会漏掉「双空格」这类变体
+                if (prevSpace || c !== 32)
+                    return true;
+                prevSpace = true;
+            }
+            else {
+                prevSpace = false;
+            }
+        }
+        return false;
+    }
+    function normKey(s) {
+        var len = s.length, end = len, dots = 0, ell = false, colon = false, ques = false, excl = false;
+        while (end > 0) {
+            var c = s.charCodeAt(end - 1);
+            if (!TRAIL_PUNCT[c])
+                break;
+            if (c === 46 || c === 12290)
+                dots++;
+            else if (c === 8230)
+                ell = true;
+            else if (c === 58 || c === 65306)
+                colon = true;
+            else if (c === 63 || c === 65311)
+                ques = true;
+            else
+                excl = true;
+            end--;
+        }
+        var kinds = (dots ? 1 : 0) + (ell ? 1 : 0) + (colon ? 1 : 0) + (ques ? 1 : 0) + (excl ? 1 : 0);
+        var sig = '';
+        if (kinds === 1) {
+            if (ell || dots > 1)
+                sig = '\u0001e';
+            else if (dots === 1)
+                sig = '\u0001d';
+            else if (colon)
+                sig = '\u0001c';
+            else if (ques)
+                sig = '\u0001q';
+            else
+                sig = '\u0001x';
+        }
+        else if (kinds > 1) {
+            sig = '\u0001' + s.slice(end);
+        }
+        var out = '', prevSpace = false;
+        for (var j = 0; j < end; j++) {
+            var ch = s.charCodeAt(j);
+            if (isSpace(ch)) {
+                if (!prevSpace)
+                    out += ' ';
+                prevSpace = true;
+            }
+            else {
+                prevSpace = false;
+                if (ch >= 65 && ch <= 90)
+                    ch += 32;
+                out += String.fromCharCode(ch);
+            }
+        }
+        if (prevSpace)
+            out = out.slice(0, out.length - 1);
+        return out + sig;
+    }
+    // 索引在加载/热载时构建一次，查找只是哈希查表。
+    // includeIdentity 为真时连「归一化是恒等变换」的键也入索引（菜单只查一次，不需要快路径）。
+    function compileNorm(dict, includeIdentity) {
+        var vals = Object.create(null);
+        var ambiguous = Object.create(null);
+        var hasOwn = Object.prototype.hasOwnProperty;
+        var k;
+        // 第一遍统计每个归一键的全部译文：规范形态本身也是一条译文，
+        // 漏掉它会让「一个变体 + 一个规范形态」的歧义组被悄悄挑一个。
+        for (k in dict) {
+            if (!hasOwn.call(dict, k))
+                continue;
+            var nk = normKey(k);
+            if (vals[nk] === undefined)
+                vals[nk] = dict[k];
+            else if (vals[nk] !== dict[k])
+                ambiguous[nk] = 1;
+        }
+        var idx = Object.create(null);
+        // 第二遍只收录无歧义的键；同一归一键对应不同译文时整组作废，
+        // 宁可回落到英文，也不猜一个可能错的译文。
+        for (k in dict) {
+            if (!hasOwn.call(dict, k))
+                continue;
+            var nk2 = normKey(k);
+            if (ambiguous[nk2] || (nk2 === k && !includeIdentity))
+                continue;
+            idx[nk2] = vals[nk2];
+        }
+        return idx;
+    }
+    return { needsNorm: needsNorm, normKey: normKey, compileNorm: compileNorm };
+}
+const NORM_IMPL = normEngine();
+const NORM_SRC = '(' + normEngine.toString() + ')()';
 // Electron 默认菜单及本应用菜单的英文 → 中文映射（保留 role，仅改显示文本）
 const MENU_LABELS = {
     'File': '文件',
@@ -66,12 +188,10 @@ const MENU_LABELS = {
     'Run': '运行',
     'Terminal': '终端',
     'Full View': '完整视图',
-    'Full view': '完整视图',
     'Background Commands': '后台命令',
     'Built-in Browser': '内置浏览器',
     'External Browser': '外部浏览器',
     'Replace with New': '替换为新对话',
-    'Replace with new': '替换为新对话',
     'Permission Preset': '权限预设',
     'Permission Presets': '权限预设',
     'Browser Subagent': '浏览器子智能体',
@@ -87,7 +207,6 @@ const MENU_LABELS = {
     'Auto-Pin': '自动置顶',
     'Archived Only': '仅已归档',
     'Mark All as Read': '全部标记为已读',
-    'Mark All As Read': '全部标记为已读',
     'Collapse All Folders': '折叠所有文件夹',
     'Expand All Folders': '展开所有文件夹',
     'Move Conversation Up': '上移对话',
@@ -102,16 +221,10 @@ const MENU_LABELS = {
     'Extension': '扩展',
     'No extensions available': '无可用扩展',
     'No extensions available.': '无可用扩展。',
-    'No Extensions Available': '无可用扩展',
-    'No Extensions Available.': '无可用扩展。',
     'Search automations...': '搜索自动化...',
     'Search automations': '搜索自动化',
-    'Search Automations...': '搜索自动化...',
-    'Search Automations': '搜索自动化',
     'No automations configured.': '尚未配置自动化。',
     'No automations configured': '尚未配置自动化',
-    'No Automations Configured.': '尚未配置自动化。',
-    'No Automations Configured': '尚未配置自动化',
     'Reopen Closed Tab': '重新打开关闭的标签页',
     'Reopen Closed Editor': '重新打开关闭的编辑器',
     'Previous Aux Pane Tab': '上一个辅助窗格标签页',
@@ -119,223 +232,79 @@ const MENU_LABELS = {
     'Next Aux Pane Tab': '下一个辅助窗格标签页',
     'Next Auxiliary Pane Tab': '下一个辅助窗格标签页',
     'Delete Conversation': '删除对话',
-    'Delete conversation': '删除对话',
-    'delete conversation': '删除对话',
-    'DELETE CONVERSATION': '删除对话',
     'Delete Conversation.': '删除对话。',
-    'Delete conversation.': '删除对话。',
-    'delete conversation.': '删除对话。',
-    'DELETE CONVERSATION.': '删除对话。',
     'Delete Conversation...': '删除对话...',
-    'Delete conversation...': '删除对话...',
-    'delete conversation...': '删除对话...',
-    'DELETE CONVERSATION...': '删除对话...',
-    'Delete Conversation…': '删除对话...',
-    'Delete conversation…': '删除对话...',
-    'delete conversation…': '删除对话...',
-    'DELETE CONVERSATION…': '删除对话...',
     'Delete Conversation:': '删除对话：',
-    'Delete conversation:': '删除对话：',
-    'delete conversation:': '删除对话：',
-    'DELETE CONVERSATION:': '删除对话：',
     'Delete Conversation?': '删除对话？',
-    'Delete conversation?': '删除对话？',
-    'delete conversation?': '删除对话？',
-    'DELETE CONVERSATION?': '删除对话？',
     'Permission Settings': '权限设置',
-    'Permission settings': '权限设置',
-    'permission settings': '权限设置',
     'Permission Settings.': '权限设置。',
-    'Permission settings.': '权限设置。',
-    'permission settings.': '权限设置。',
     'Permission Settings...': '权限设置...',
-    'Permission settings...': '权限设置...',
-    'permission settings...': '权限设置...',
-    'Permission Settings…': '权限设置...',
-    'Permission settings…': '权限设置...',
-    'permission settings…': '权限设置...',
     'when working in these conversations.': '在这些对话中工作时。',
     'when working in these conversations': '在这些对话中工作时',
-    'When working in these conversations.': '在这些对话中工作时。',
-    'When working in these conversations': '在这些对话中工作时',
-    'When Working in These Conversations.': '在这些对话中工作时。',
-    'When Working in These Conversations': '在这些对话中工作时',
-    'When Working In These Conversations.': '在这些对话中工作时。',
-    'When Working In These Conversations': '在这些对话中工作时',
     'Copy Project Name': '复制项目名称',
-    'Copy project name': '复制项目名称',
-    'copy project name': '复制项目名称',
     'Copy Project Name.': '复制项目名称。',
-    'Copy project name.': '复制项目名称。',
-    'copy project name.': '复制项目名称。',
     'Copy Project Name...': '复制项目名称...',
-    'Copy project name...': '复制项目名称...',
-    'copy project name...': '复制项目名称...',
-    'Copy Project Name…': '复制项目名称...',
-    'Copy project name…': '复制项目名称...',
-    'copy project name…': '复制项目名称...',
     'Project Settings': '项目设置',
-    'Project settings': '项目设置',
-    'project settings': '项目设置',
     'Project Settings.': '项目设置。',
-    'Project settings.': '项目设置。',
-    'project settings.': '项目设置。',
     'Project Settings...': '项目设置...',
-    'Project settings...': '项目设置...',
-    'project settings...': '项目设置...',
-    'Project Settings…': '项目设置...',
-    'Project settings…': '项目设置...',
-    'project settings…': '项目设置...',
     'Show in File Explorer': '在文件资源管理器中显示',
-    'Show in file explorer': '在文件资源管理器中显示',
-    'show in file explorer': '在文件资源管理器中显示',
-    'Show In File Explorer': '在文件资源管理器中显示',
     'Show in File Explorer.': '在文件资源管理器中显示。',
-    'Show in file explorer.': '在文件资源管理器中显示。',
-    'show in file explorer.': '在文件资源管理器中显示。',
-    'Show In File Explorer.': '在文件资源管理器中显示。',
     'Show in File Explorer...': '在文件资源管理器中显示...',
-    'Show in file explorer...': '在文件资源管理器中显示...',
-    'show in file explorer...': '在文件资源管理器中显示...',
-    'Show In File Explorer...': '在文件资源管理器中显示...',
-    'Show in File Explorer…': '在文件资源管理器中显示...',
-    'Show in file explorer…': '在文件资源管理器中显示...',
-    'show in file explorer…': '在文件资源管理器中显示...',
-    'Show In File Explorer…': '在文件资源管理器中显示...',
     'Show in Explorer': '在资源管理器中显示',
     'Show in Finder': '在访达中显示',
     'Delete Project': '删除项目',
-    'Delete project': '删除项目',
-    'delete project': '删除项目',
     'Delete Project.': '删除项目。',
-    'Delete project.': '删除项目。',
-    'delete project.': '删除项目。',
     'Delete Project...': '删除项目...',
-    'Delete project...': '删除项目...',
-    'delete project...': '删除项目...',
-    'Delete Project…': '删除项目...',
-    'Delete project…': '删除项目...',
-    'delete project…': '删除项目...',
     'Search customizations...': '搜索自定义项...',
     'Search customizations': '搜索自定义项',
     'Search Customizations...': '搜索自定义项...',
-    'Search Customizations': '搜索自定义项',
     'search customizations...': '搜索自定义项...',
-    'search customizations': '搜索自定义项',
     'Search customizations.': '搜索自定义项。',
-    'Search Customizations.': '搜索自定义项。',
-    'search customizations.': '搜索自定义项。',
     'Search customizations…': '搜索自定义项…',
     'Search Customizations…': '搜索自定义项…',
     'search customizations…': '搜索自定义项…',
     'No customizations configured.': '尚未配置自定义项。',
     'No customizations configured': '尚未配置自定义项',
-    'No Customizations Configured.': '尚未配置自定义项。',
-    'No Customizations Configured': '尚未配置自定义项',
-    'no customizations configured.': '尚未配置自定义项。',
-    'no customizations configured': '尚未配置自定义项',
     'No customizations available.': '无可用自定义项。',
     'No customizations available': '无可用自定义项',
-    'No Customizations Available.': '无可用自定义项。',
-    'No Customizations Available': '无可用自定义项',
-    'no customizations available.': '无可用自定义项。',
-    'no customizations available': '无可用自定义项',
     'No customizations found.': '未找到自定义项。',
     'No customizations found': '未找到自定义项',
-    'No Customizations Found.': '未找到自定义项。',
-    'No Customizations Found': '未找到自定义项',
-    'no customizations found.': '未找到自定义项。',
-    'no customizations found': '未找到自定义项',
     'Previous Worktrees': '先前的工作树',
-    'Previous worktrees': '先前的工作树',
-    'previous worktrees': '先前的工作树',
-    'PREVIOUS WORKTREES': '先前的工作树',
     'Previous Worktrees.': '先前的工作树。',
-    'Previous worktrees.': '先前的工作树。',
-    'previous worktrees.': '先前的工作树。',
-    'PREVIOUS WORKTREES.': '先前的工作树。',
     'Previous Worktrees...': '先前的工作树...',
-    'Previous worktrees...': '先前的工作树...',
-    'previous worktrees...': '先前的工作树...',
-    'PREVIOUS WORKTREES...': '先前的工作树...',
-    'Previous Worktrees…': '先前的工作树...',
-    'Previous worktrees…': '先前的工作树...',
-    'previous worktrees…': '先前的工作树...',
-    'PREVIOUS WORKTREES…': '先前的工作树...',
     'Previous Worktrees:': '先前的工作树：',
-    'Previous worktrees:': '先前的工作树：',
-    'previous worktrees:': '先前的工作树：',
-    'PREVIOUS WORKTREES:': '先前的工作树：',
     'Previous Worktree': '先前的工作树',
-    'Previous worktree': '先前的工作树',
-    'previous worktree': '先前的工作树',
-    'PREVIOUS WORKTREE': '先前的工作树',
     'Previous Worktree.': '先前的工作树。',
-    'Previous worktree.': '先前的工作树。',
-    'previous worktree.': '先前的工作树。',
-    'PREVIOUS WORKTREE.': '先前的工作树。',
     'Previous Worktree...': '先前的工作树...',
-    'Previous worktree...': '先前的工作树...',
-    'previous worktree...': '先前的工作树...',
-    'PREVIOUS WORKTREE...': '先前的工作树...',
-    'Previous Worktree…': '先前的工作树...',
-    'Previous worktree…': '先前的工作树...',
-    'previous worktree…': '先前的工作树...',
-    'PREVIOUS WORKTREE…': '先前的工作树...',
     'Previous Worktree:': '先前的工作树：',
-    'Previous worktree:': '先前的工作树：',
-    'previous worktree:': '先前的工作树：',
-    'PREVIOUS WORKTREE:': '先前的工作树：',
     'Local Checkout': '本地检出',
-    'Local checkout': '本地检出',
-    'local checkout': '本地检出',
-    'LOCAL CHECKOUT': '本地检出',
     'Local Checkout.': '本地检出。',
-    'Local checkout.': '本地检出。',
-    'local checkout.': '本地检出。',
-    'LOCAL CHECKOUT.': '本地检出。',
     'Local Checkout...': '本地检出...',
-    'Local checkout...': '本地检出...',
-    'local checkout...': '本地检出...',
-    'LOCAL CHECKOUT...': '本地检出...',
-    'Local Checkout…': '本地检出...',
-    'Local checkout…': '本地检出...',
-    'local checkout…': '本地检出...',
-    'LOCAL CHECKOUT…': '本地检出...',
     'Local Checkout:': '本地检出：',
-    'Local checkout:': '本地检出：',
-    'local checkout:': '本地检出：',
-    'LOCAL CHECKOUT:': '本地检出：',
     'Local Checkouts': '本地检出',
-    'Local checkouts': '本地检出',
-    'local checkouts': '本地检出',
-    'LOCAL CHECKOUTS': '本地检出',
     'Local Checkouts.': '本地检出。',
-    'Local checkouts.': '本地检出。',
-    'local checkouts.': '本地检出。',
-    'LOCAL CHECKOUTS.': '本地检出。',
     'Local Checkouts...': '本地检出...',
-    'Local checkouts...': '本地检出...',
-    'local checkouts...': '本地检出...',
-    'LOCAL CHECKOUTS...': '本地检出...',
-    'Local Checkouts…': '本地检出...',
-    'Local checkouts…': '本地检出...',
-    'local checkouts…': '本地检出...',
-    'LOCAL CHECKOUTS…': '本地检出...',
     'Local Checkouts:': '本地检出：',
-    'Local checkouts:': '本地检出：',
-    'local checkouts:': '本地检出：',
-    'LOCAL CHECKOUTS:': '本地检出：',
 };
 exports.MENU_LABELS = MENU_LABELS;
+// 菜单归一化索引：构造菜单是一次性动作，直接建全量索引（含规范形态），
+// 让「大小写 × 尾部标点」的变体都能命中，词典里就不必再逐条展开。
+const MENU_NORM = NORM_IMPL.compileNorm(MENU_LABELS, true);
 function translateMenu(menu) {
     if (!menu || !menu.items) {
         return;
     }
     for (const item of menu.items) {
-        const zh = MENU_LABELS[item.label];
-        if (zh && item.label !== zh) {
-            item.label = zh;
+        const label = item.label;
+        if (typeof label === 'string' && label) {
+            let zh = MENU_LABELS[label];
+            // 菜单只在建菜单时跑一遍，不做快路径判断：省下的一次查表远不值当漏译的风险
+            if (!zh) {
+                zh = MENU_NORM[NORM_IMPL.normKey(label)];
+            }
+            if (zh && label !== zh) {
+                item.label = zh;
+            }
         }
         if (item.submenu) {
             translateMenu(item.submenu);
@@ -354,13 +323,28 @@ const TRANSLATOR_BODY = [
     'var missCurr=new Set(),missPrev=new Set();',
     'var ALPHA_RE=/[a-zA-Z]/;',
     'var EDITOR_CLS_RE=/(?:^|\\s)(?:monaco-editor|monaco-diff-editor|cm-editor|cm-s-default|CodeMirror|xterm|ProseMirror)(?:\\s|$)/;',
-    'var ATTR_SEL="[placeholder],[title],[aria-label],[aria-placeholder],[data-tooltip],[alt]";',
     'var ATTRS=["placeholder","title","aria-label","aria-placeholder","data-tooltip","alt"];',
     'var SKIP_TAGS={SCRIPT:1,STYLE:1,NOSCRIPT:1,CODE:1,PRE:1,TEXTAREA:1,SVG:1,MATH:1,script:1,style:1,noscript:1,code:1,pre:1,textarea:1,svg:1,math:1};',
     'var ATTR_SKIP_SEL="code,pre,script,style,noscript,svg,math,.monaco-editor,.monaco-diff-editor,.cm-editor,.cm-s-default,.CodeMirror,.xterm,.ProseMirror,[contenteditable]:not([contenteditable=\\"false\\"])";',
     'var CONTENT_SKIP_SEL="code,pre,textarea,script,style,noscript,svg,math,.monaco-editor,.monaco-diff-editor,.cm-editor,.cm-s-default,.CodeMirror,.xterm,.ProseMirror,[contenteditable]:not([contenteditable=\\"false\\"])";',
     'function isSpace(c){return c<=32||c===160||c===0xFEFF||(c>=0x2000&&c<=0x200B)||c===0x3000;}',
     'function isAllSpace(s){var len=s.length;for(var i=0;i<len;i++){var c=s.charCodeAt(i);if(!isSpace(c))return false;}return true;}',
+    // 归一化规则与主进程共用同一份实现（NORM_SRC 由 normEngine 序列化注入），
+    // 避免「菜单能认的写法页面认不得」这类两套规则漂移。
+    'var NE=__NORM__;var needsNorm=NE.needsNorm,normKey=NE.normKey;',
+    // 索引在注入时构建一次：tr() 热路径只做一次哈希查表，绝不做线性搜索
+    'var NORM=NE.compileNorm(dict,null);',
+    // 非规范形态的译文缓存：长句每次重建归一化字符串太贵（实测长弹窗句会慢到 3 倍），
+    // 同一句在 UI 里会反复出现（每次 DOM 变更都查一遍），缓存一次即可摊平这笔开销。
+    'var normHit=new Map();',
+    'function normLookup(core){',
+    '  var v=normHit.get(core);',
+    '  if(v!==undefined)return v;',
+    '  v=NORM[normKey(core)];',
+    '  if(v===undefined)v=null;',
+    '  if(normHit.size>=2000)normHit.clear();',
+    '  normHit.set(core,v);',
+    '  return v;}',
     'function firstChars(p){if(p.charAt(0)!=="^")return null;var i=1,c=p.charAt(i);',
     '  if(c==="\\\\"){var n=p.charAt(i+1);',
     '    if(n==="d")return ["0","1","2","3","4","5","6","7","8","9"];',
@@ -396,10 +380,10 @@ const TRANSLATOR_BODY = [
     '  return false;}',
     'function isEditorCls(cls){',
     '  if(typeof cls!=="string"||!cls)return false;',
-    '  if(cls.indexOf("monaco-")!==-1||cls.indexOf("cm-")!==-1||cls.indexOf("xterm")!==-1||cls.indexOf("ProseMirror")!==-1||cls.indexOf("CodeMirror")!==-1){',
-    '    return EDITOR_CLS_RE.test(cls);',
-    '  }',
-    '  return false;}',
+    // 只走正则一条路径：正则里的每个类名（monaco-* / cm-editor / cm-s-default / CodeMirror /
+    // xterm / ProseMirror）都带前缀或完整写出，正则命中即包含原 indexOf 预筛的全部情形，
+    // 预筛只是重复表达同一语义（已用 50 万组类名验证两者结果完全一致）。
+    '  return EDITOR_CLS_RE.test(cls);}',
     'function isRejectEl(el){',
     '  if(!el||el.nodeType!==1)return false;',
     '  if(SKIP_TAGS[el.tagName]||el.ownerSVGElement)return true;',
@@ -440,6 +424,12 @@ const TRANSLATOR_BODY = [
     '    var v=dict[core];',
     '    return (start===0&&end===len)?v:(s.slice(0,start)+v+s.slice(end));',
     '  }',
+    // 归一化兜底：精确未命中且该写法确实需要归一化时才构造归一化键，
+    // 全小写 + 无尾部标点的串直接跳过，不为每个 miss 付构造字符串的成本。
+    '  if(NORM!==null&&needsNorm(core)){',
+    '    var nv=normLookup(core);',
+    '    if(nv!==null)return (start===0&&end===len)?nv:(s.slice(0,start)+nv+s.slice(end));',
+    '  }',
     '  var bucket=RC.byChar[core.charAt(0)];',
     '  if(bucket){',
     '    for(var i=0;i<bucket.length;i++){',
@@ -461,27 +451,46 @@ const TRANSLATOR_BODY = [
     '  missCurr.add(core);',
     '  return null;}',
     'var nodeMap=new WeakMap();',
+    'var dataRev=0;',    'var BREAK_COOLDOWN=1000;',
+    // 冷却中的节点到期后必须主动重试：MutationObserver 只在 DOM 变更时触发，
+    // 节点一旦不再被改写就再没有机会被翻译，会永久停在英文。
+    'var cooldownQueue=[];var cooldownTimer=null;',
+    'function enqueueCooldown(n,until){',
+    '  cooldownQueue.push([n,until]);',
+    '  if(cooldownTimer!==null)return;',
+    '  cooldownTimer=setTimeout(drainCooldown,BREAK_COOLDOWN+50);}',
+    'function drainCooldown(){',
+    '  cooldownTimer=null;var list=cooldownQueue;cooldownQueue=[];',
+    '  var now=Date.now();var again=[];',
+    '  for(var i=0;i<list.length;i++){var n=list[i][0],until=list[i][1];',
+    '    if(!n||n.nodeType!==3)continue;',
+    '    if(until>now){again.push([n,until]);continue;}',
+    '    try{trNodeFast(n);}catch(e){}}',
+    '  if(again.length){cooldownQueue=again;cooldownTimer=setTimeout(drainCooldown,BREAK_COOLDOWN+50);}}',
     'function trRaw(n){',
     '  var val=n.nodeValue;if(!val||val.length===0||isAllSpace(val))return;',
     '  var rec=nodeMap.get(n);',
-    '  if(rec){if(rec.broken)return;if(val===rec.val)return;}',
-    '  var zh=tr(val);',
     '  var now=Date.now();',
+    // 熔断只冷却固定时长：冷却期满自动重试，避免个别节点被永久钉死在英文
+    '  if(rec){if(rec.brokenUntil>now)return;if(val===rec.val)return;}',
+    '  var zh=tr(val);',
     '  if(zh===null||zh===val){',
-    '    if(rec){rec.val=val;rec.unhit=true;}else{nodeMap.set(n,{val:val,count:0,ts:now,broken:false,unhit:true});}',
+    '    if(rec){rec.val=val;rec.unhit=true;}else{nodeMap.set(n,{val:val,count:0,ts:now,brokenUntil:0,unhit:true});}',
     '    return;',
     '  }',
     '  if(rec){',
-    '    if(zh===rec.val&&now-rec.ts<500){rec.count++;if(rec.count>2){rec.broken=true;return;}}',
+    '    if(zh===rec.val&&now-rec.ts<500){rec.count++;',
+    // 同一译文的反复回写超过 2 次即冷却 1 秒；冷却期内只读不写，框架持续回写时也不会打死主线程
+    '      if(rec.count>2){rec.brokenUntil=now+BREAK_COOLDOWN;rec.ts=now;rec.count=0;enqueueCooldown(n,rec.brokenUntil);return;}}',
     '    else{rec.count=1;rec.ts=now;}',
     '    rec.val=zh;rec.unhit=false;',
-    '  }else{rec={val:zh,count:1,ts:now,broken:false,unhit:false};nodeMap.set(n,rec);}',
+    '  }else{rec={val:zh,count:1,ts:now,brokenUntil:0,unhit:false};nodeMap.set(n,rec);}',
     '  n.nodeValue=zh;',
     '}',
     'function trNodeFast(n){',
     '  if(!n||n.nodeType!==3)return;',
     '  var rec=nodeMap.get(n);',
-    '  if(rec){if(rec.broken)return;if(n.nodeValue===rec.val)return;}',
+    '  if(rec){if(rec.brokenUntil>Date.now())return;if(n.nodeValue===rec.val)return;}',
     '  if(isComposing)return;',
     '  var p=n.parentElement||n.parentNode;if(!p||p.nodeType!==1)return;',
     '  if(isEditable(p))return;',
@@ -489,7 +498,13 @@ const TRANSLATOR_BODY = [
     '  trRaw(n);',
     '}',
     'var trNode=trNodeFast;',
-    'var twFilter={acceptNode:function(node){if(node.nodeType===1){return isRejectEl(node)?2:3;}return 1;}};',
+    // 只裁剪「文本与属性都绝缘」的子树；textarea 文本禁译但占位符要译，不能整棵剪掉
+    'var twFilter={acceptNode:function(node){',
+    '  if(node.nodeType!==1)return 1;',
+    '  if(!isRejectEl(node))return 1;',
+    '  var tag=node.tagName;',
+    '  if(tag==="TEXTAREA"||tag==="textarea")return 1;',
+    '  return 2;}};',
     'function trAttrsOnElement(el){',
     '  if(isSkipped(el,true))return;',
     '  for(var j=0;j<ATTRS.length;j++){',
@@ -497,25 +512,57 @@ const TRANSLATOR_BODY = [
     '    var nv=tr(val);if(nv!==null&&nv!==val){el.setAttribute(a,nv);}',
     '  }',
     '}',
-    'function walk(root){if(!root)return;',
-    '  if(root.nodeType===3){trNodeFast(root);return;}',
-    '  if(document.createTreeWalker&&!isSkipped(root,false)){',
-    '    var tw=document.createTreeWalker(root,5,twFilter);var budget=35;var n;',
-    '    while(budget>0&&(n=tw.nextNode())){trRaw(n);budget--;}',
-    '    if(budget===0){var next=tw.nextNode();if(next){',
-    '      var drain=function(startNode){var curr=startNode;var b=35;',
-    '        while(b>0&&curr){trRaw(curr);b--;if(b>0){curr=tw.nextNode();}}',
-    '        if(curr){var more=tw.nextNode();if(more){setTimeout(function(){drain(more);},16);}}};',
-    '      setTimeout(function(){drain(next);},16);',
+    'function hasTrAttrs(el){',
+    '  if(!el.hasAttributes||!el.hasAttributes())return false;',
+    '  for(var j=0;j<ATTRS.length;j++){if(el.hasAttribute(ATTRS[j]))return true;}',
+    '  return false;}',
+    'function walk(root){if(!root)return;var job=makeJob(root);',
+    '  if(job.done)return;',
+    // 同步阶段至少推进 MIN_SYNC 项：小改动（React 单行状态）必须绘制前完成，否则就是肉眼可见闪烁
+    '  var deadline=nowMs()+SLICE_MS;',
+    '  try{if(stepJob(job,deadline,MIN_SYNC))return;}catch(e){return;}',
+    // 同步部分用完时间片：剩余节点交给延迟队列，保证同帧小改动不被大扫描挤在后面
+    '  deferJob(job);}',
+    // 文本与属性在同一次遍历里共享 8ms 时间片：属性不再整段同步扫完，也不会被文本分支饿死
+    'var SLICE_MS=8,MIN_SYNC=64;',
+    'var nowMs=(typeof performance!=="undefined"&&performance.now)?function(){return performance.now();}:function(){return Date.now();};',
+    'var jobQueue=[],pumpTimer=null,pumping=false;',
+    'function makeJob(root){',
+    '  var job={root:root,tw:null,work:0};',
+    '  if(root.nodeType===3){trNodeFast(root);job.done=true;return job;}',
+    '  if(root.nodeType===1&&hasTrAttrs(root)){trAttrsOnElement(root);}',
+    '  if(document.createTreeWalker){job.tw=document.createTreeWalker(root,5,twFilter);}',
+    '  return job;}',
+    // minWork 用于同步阶段保证前进；续摊阶段传 0，让出更积极
+    'function stepJob(job,deadline,minWork){',
+    '  minWork=minWork||0;',
+    '  if(job.tw){var n;',
+    '    while(true){',
+    '      n=job.tw.nextNode();',
+    '      if(!n){job.tw=null;break;}',
+    '      if(n.nodeType===3){trNodeFast(n);}',
+    '      else if(n.nodeType===1&&hasTrAttrs(n)){trAttrsOnElement(n);}',
+    // 先做一项再判预算：保证每次都前进，超出最多一项且单项成本有界
+    '      if(++job.work>minWork&&nowMs()>deadline)return false;',
     '    }}',
-    '  }',
-    '  if(root.querySelectorAll&&!isSkipped(root,true)){',
-    '    if(root.matches&&root.matches(ATTR_SEL)){trAttrsOnElement(root);}',
-    '    var matched=root.querySelectorAll(ATTR_SEL);',
-    '    for(var m=0;m<matched.length;m++){trAttrsOnElement(matched[m]);}',
-    '  }}',
+    '  job.done=true;return true;}',
+    'function pump(){pumpTimer=null;pumping=true;',
+    '  var deadline=nowMs()+SLICE_MS;',
+    '  try{',
+    // 跨任务边界也判预算：上一个任务的最后一项可能已经用光时间片，不能再开新任务
+    '    while(jobQueue.length&&nowMs()<=deadline){',
+    '      if(!stepJob(jobQueue[0],deadline))break;',
+    '      jobQueue.shift();',
+    '    }',
+    '  }catch(e){jobQueue.shift();}',
+    '  pumping=false;',
+    '  if(jobQueue.length){pumpTimer=setTimeout(pump,0);}}',
+    'function deferJob(job){jobQueue.push(job);',
+    '  if(pumping||pumpTimer!==null)return;pumpTimer=setTimeout(pump,0);}',
     'var timer=null,pending=[];',
-    'function flush(){var list=pending;pending=[];for(var i=0;i<list.length;i++){try{walk(list[i]);}catch(e){}}}',
+    'function flush(){var list=pending;pending=[];',
+    '  for(var i=0;i<list.length;i++){var job=makeJob(list[i]);if(!job.done){jobQueue.push(job);}}',
+    '  if(jobQueue.length&&!pumping&&pumpTimer===null){pumpTimer=setTimeout(pump,0);}}',
     'function schedule(nodes){for(var i=0;i<nodes.length;i++){pending.push(nodes[i]);}',
     '  if(timer){clearTimeout(timer);}timer=setTimeout(flush,60);}',
     'var mo=new MutationObserver(function(muts){',
@@ -529,7 +576,10 @@ const TRANSLATOR_BODY = [
     'var rootEl=document.documentElement||document.body;',
     'mo.observe(rootEl,{childList:true,subtree:true,characterData:true});',
     'window.__antigravityZh={retranslate:function(){walk(document.body);var t=tr(document.title);if(t){document.title=t;}},',
-    '  setData:function(nd){if(!nd){return;}D=nd;dict=nd.dict||{};missCurr.clear();missPrev.clear();nodeMap=new WeakMap();RC=compileRules(nd.rules);try{walk(document.body);}catch(e){}}};',
+    // rev 为可选词典版本号：多窗口并发热载时，慢窗口的旧 payload 不得覆盖新 payload
+    '  setData:function(nd,rev){if(!nd){return;}',
+    '    if(rev>0){if(rev<=dataRev){return;}dataRev=rev;}',
+    '    D=nd;dict=nd.dict||{};missCurr.clear();missPrev.clear();normHit.clear();nodeMap=new WeakMap();cooldownQueue=[];if(cooldownTimer!==null){clearTimeout(cooldownTimer);cooldownTimer=null;}RC=compileRules(nd.rules);NORM=NE.compileNorm(dict,null);try{walk(document.body);}catch(e){}}};',
     'walk(document.body);var t0=tr(document.title);if(t0){document.title=t0;}'
 ].join('\n');
 // Subagent 运行时长原生动态显示模块 2.0 (Zero-Flicker, Persistence & Adaptive Scheduling)
@@ -676,13 +726,17 @@ const SUBAGENT_TIMER_BODY = [
 ].join('\n');
 function buildScript(dic) {
     return '(function(){if(window.__antigravityZh){window.__antigravityZh.retranslate();return;}' +
-        TRANSLATOR_BODY.replace('__DATA__', JSON.stringify(dic)) + '\n' +
+        TRANSLATOR_BODY.replace('__DATA__', JSON.stringify(dic)).replace('__NORM__', NORM_SRC) + '\n' +
         SUBAGENT_TIMER_BODY +
         '})()';
 }
 // 已注册窗口与词典监视状态（模块级，多窗口共享）
 const registeredWindows = new Set();
 let watchStarted = false;
+// 词典版本号：热载推送时递增，页面侧据此丢弃迟到的旧 payload。
+// 必须与 sync-dict.js 的 CDP 推送处于同一量级（都用毫秒时间戳），
+// 否则较小的一方会被页面永久判为陈旧而丢弃。
+let dictRev = 0;
 // 词典热载：文件变更后把新词典推送到所有已注册窗口
 function pushDictionaryToWindows() {
     let dic;
@@ -692,11 +746,67 @@ function pushDictionaryToWindows() {
     catch (e) {
         return;
     }
-    const js = 'window.__antigravityZh&&window.__antigravityZh.setData(' + JSON.stringify(dic) + ')';
+    // 与其他推送源（sync-dict.js 用 Date.now()）保持同一时间尺度，
+    // 并保证即使同一毫秒内连续推送也严格递增。
+    dictRev = Math.max(Date.now(), dictRev + 1);
+    const js = 'window.__antigravityZh&&window.__antigravityZh.setData(' + JSON.stringify(dic) + ',' + dictRev + ')';
     for (const w of registeredWindows) {
-        if (w && !w.isDestroyed()) {
-            w.webContents.executeJavaScript(js, true).catch(() => { });
+        if (!w || w.isDestroyed()) {
+            registeredWindows.delete(w);
+            continue;
         }
+        w.webContents.executeJavaScript(js, true).catch(() => { });
+    }
+}
+// fs.watch 不可用时的兜底：轮询词典 mtime
+function startMtimePoll(dicPath, onChange) {
+    let last = 0;
+    try {
+        last = fs.statSync(dicPath).mtimeMs;
+    }
+    catch (e) {
+        return;
+    }
+    const timer = setInterval(() => {
+        let m = 0;
+        try {
+            m = fs.statSync(dicPath).mtimeMs;
+        }
+        catch (e) {
+            return;
+        }
+        if (m !== last) {
+            last = m;
+            onChange();
+        }
+    }, 500);
+    if (timer.unref) {
+        timer.unref();
+    }
+}
+function startDictionaryWatch() {
+    const dicPath = path.join(__dirname, 'cockpit-zh.json');
+    let reloadTimer = null;
+    const onChange = () => {
+        if (reloadTimer) {
+            clearTimeout(reloadTimer);
+        }
+        reloadTimer = setTimeout(pushDictionaryToWindows, 200);
+    };
+    try {
+        const watcher = fs.watch(dicPath, onChange);
+        // FSWatcher 的 error 是异步事件，外层 try/catch 接不住，未处理会直接终止主进程
+        watcher.on('error', () => {
+            try {
+                watcher.close();
+            }
+            catch (e) { }
+            startMtimePoll(dicPath, onChange);
+        });
+    }
+    catch (e) {
+        // 词典监视失败不影响基础翻译功能，降级为轮询
+        startMtimePoll(dicPath, onChange);
     }
 }
 /**
@@ -705,6 +815,9 @@ function pushDictionaryToWindows() {
  */
 function attachWebTranslator(win) {
     registeredWindows.add(win);
+    if (typeof win.once === 'function') {
+        win.once('closed', () => { registeredWindows.delete(win); });
+    }
     win.webContents.on('did-finish-load', () => {
         if (win.isDestroyed()) {
             return;
@@ -721,18 +834,6 @@ function attachWebTranslator(win) {
     });
     if (!watchStarted) {
         watchStarted = true;
-        try {
-            const dicPath = path.join(__dirname, 'cockpit-zh.json');
-            let reloadTimer = null;
-            fs.watch(dicPath, () => {
-                if (reloadTimer) {
-                    clearTimeout(reloadTimer);
-                }
-                reloadTimer = setTimeout(pushDictionaryToWindows, 200);
-            });
-        }
-        catch (e) {
-            // 词典监视失败不影响基础翻译功能
-        }
+        startDictionaryWatch();
     }
 }

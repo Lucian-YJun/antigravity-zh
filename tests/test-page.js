@@ -104,6 +104,33 @@ const flush = () => new Promise(r => setTimeout(r, 0)); // 让微任务（Mutati
   const oldStill = d.getElementById('host').lastElementChild.textContent;
   check('旧词条在新词典下保持英文', oldStill === 'View Usage');
 
+  // 6b. setData 版本号保护：多窗口并发热载时，迟到的旧 payload 不得覆盖新 payload
+  w.__antigravityZh.setData({ dict: { 'Rev Two': '第二版' }, rules: [] }, 2);
+  const revEl = d.createElement('div');
+  revEl.textContent = 'Rev Two';
+  d.getElementById('host').appendChild(revEl);
+  await flush();
+  check('setData 带版本号：新版本词典正常生效', revEl.textContent === '第二版');
+
+  w.__antigravityZh.setData({ dict: { 'Rev Two': '旧版覆盖' }, rules: [] }, 1);
+  const staleEl = d.createElement('div');
+  staleEl.textContent = 'Rev Two';
+  d.getElementById('host').appendChild(staleEl);
+  await flush();
+  check('setData 带版本号：更旧版本被忽略，陈旧 payload 不覆盖当前词典',
+    staleEl.textContent === '第二版' && revEl.textContent === '第二版');
+
+  // 向后兼容：不传 rev 时行为与旧版一致（sync-dict.js 只说一个参数）
+  w.__antigravityZh.setData({ dict: { 'Rev Two': '第三版' }, rules: [] });
+  const noRevEl = d.createElement('div');
+  noRevEl.textContent = 'Rev Two';
+  d.getElementById('host').appendChild(noRevEl);
+  await flush();
+  check('setData 不带版本号：向后兼容，正常替换词典', noRevEl.textContent === '第三版');
+
+  // 恢复默认词典，后续用例不受影响
+  w.__antigravityZh.setData(JSON.parse(fs.readFileSync(path.join(SRC, 'cockpit-zh.json'), 'utf-8')));
+
   // 7. 规则路径：字面首字符 → 索引桶匹配（firstChars 优化后行为不变）
   w.__antigravityZh.setData({ dict: {}, rules: [['^Permanently delete (.+?)\\.?$', '永久删除 $1。']] });
   const rule1 = d.createElement('div');
@@ -288,7 +315,7 @@ const flush = () => new Promise(r => setTimeout(r, 0)); // 让微任务（Mutati
   await flush();
   check('/boost 最终状态流转同帧汉化', boostStatus.textContent === '已完成');
 
-  // 18. 双重防重入闭环 + 短周期振荡熔断器（React 受控纠偏极端场景）
+  // 18. 双重防重入闭环 + 有界冷却熔断器（React 受控纠偏极端场景）
   const oscEl = d.createElement('span');
   oscEl.textContent = 'Settings';
   d.getElementById('host').appendChild(oscEl);
@@ -303,12 +330,21 @@ const flush = () => new Promise(r => setTimeout(r, 0)); // 让微任务（Mutati
   // 模拟 React 受控纠偏第 2 次纠偏（500ms 内累积超 2 次）：短周期振荡熔断器触发生效
   oscEl.firstChild.nodeValue = 'Settings';
   await flush();
-  check('振荡测试：短周期高频振荡触发熔断器（放弃修改保留原文）', oscEl.textContent === 'Settings');
 
-  // 熔断后持久绝缘状态：后续即便再次传入，翻译器彻底放弃对此节点的修改，绝不死锁
-  oscEl.firstChild.nodeValue = 'Settings';
-  await flush();
-  check('振荡测试：熔断后保持绝缘，彻底杜绝递归风暴与死锁', oscEl.textContent === 'Settings');
+  // 熔断只是一段冷却期：期间框架持续回写也只读不写，杜绝递归风暴，但冷却期满必须能自愈。
+  // 只回写 4 次（约 480ms）：熔断在第 3 次触发，检查点必须稳落在 1000ms 冷却窗内，
+  // 否则定时器漂移会让冷却提前到期，断言变成偶发失败。
+  for (let i = 0; i < 4; i++) {
+    oscEl.firstChild.nodeValue = 'Settings';
+    await new Promise(r => setTimeout(r, 120));
+  }
+  check('振荡测试：高频回写触发熔断，冷却期内持续回写保持原文且不反复改写 DOM', oscEl.textContent === 'Settings');
+
+  // 冷却期满（熔断 1000ms 后）自动重试，节点不会被永久钉死在英文。
+  // 关键：这里不能再改写 nodeValue —— 一旦改写，MutationObserver 会顺带触发翻译，
+  // 就测不出「冷却到期后无人重试」这个缺陷了。
+  await new Promise(r => setTimeout(r, 1300));
+  check('振荡测试：冷却期满无需外部改写即自动重试并自愈为中文，不会被永久钉死', oscEl.textContent === '设置');
 
   // 正常间隔（>= 500ms）更新不触发熔断
   const normalEl = d.createElement('span');
@@ -409,7 +445,7 @@ const flush = () => new Promise(r => setTimeout(r, 0)); // 让微任务（Mutati
   check('TreeWalker 剪枝：同容器兄弟节点免检直传正常汉化', twBox.querySelector('.normal-sibling').textContent === '文件');
   check('TreeWalker 剪枝：<math> 数学公式容器整树剪枝保持原样', twBox.querySelector('math').textContent === 'File');
 
-  // 23. 两级联动预算切片（单容器深度遍历 35 步预算）
+  // 23. 单容器深度遍历的时间片切片（文本与属性共享 8ms 预算）
   const singleContainer = d.createElement('div');
   const deepSpans = [];
   for (let i = 0; i < 70; i++) {
@@ -418,16 +454,38 @@ const flush = () => new Promise(r => setTimeout(r, 0)); // 让微任务（Mutati
     singleContainer.appendChild(s);
     deepSpans.push(s);
   }
-  // 单个容器插入（addedNodes.length === 1，不走顶层 >30 分流，走单容器 35 步预算切片）
+  // 单个容器插入（addedNodes.length === 1，不走顶层 >30 分流，走单容器时间片切片）
   d.getElementById('host').appendChild(singleContainer);
   await flush(); // 微任务落地（当前首帧）
 
-  check('单容器切片：首帧完成前 35 步预算汉化', deepSpans[0].textContent === '文件' && deepSpans[34].textContent === '文件');
-  check('单容器切片：超出 35 步的深层节点首帧平滑交割暂未阻塞', deepSpans[35].textContent === 'File' && deepSpans[69].textContent === 'File');
+  check('单容器切片：首帧即从头部开始汉化', deepSpans[0].textContent === '文件');
 
-  // 等待宏任务分批消化
+  // 等待宏任务续摊消化
   await new Promise(r => setTimeout(r, 300));
-  check('单容器切片：宏任务分批交割平滑消化完毕', deepSpans[35].textContent === '文件' && deepSpans[69].textContent === '文件');
+  check('单容器切片：宏任务续摊后全部消化完毕', deepSpans.every(s => s.textContent === '文件'));
+
+
+  // 23b. 时间片内的文本与属性扫描都不被饿死，且隔离判断在大扫描下依然生效
+  const mixedContainer = d.createElement('div');
+  const attrSpans = [];
+  for (let i = 0; i < 40; i++) {
+    const s = d.createElement('span');
+    s.setAttribute('title', 'Settings');
+    s.textContent = 'File';
+    mixedContainer.appendChild(s);
+    attrSpans.push(s);
+  }
+  const mixedCode = d.createElement('code');
+  mixedCode.textContent = 'File';
+  mixedContainer.appendChild(mixedCode);
+  d.getElementById('host').appendChild(mixedContainer);
+  await new Promise(r => setTimeout(r, 300));
+
+  check('共享预算：大批量节点的属性扫描与文本扫描同样译完，不被文本分支饿死',
+    attrSpans.every(s => s.getAttribute('title') === '设置' && s.textContent === '文件'));
+  check('共享预算：大扫描路径下 <code> 隔离判定依然生效（文本分支不绕过 isSkipped）',
+    mixedCode.textContent === 'File');
+
 
   // 24. 极端边界与容错鲁棒性
   const detachedNode = d.createTextNode('File');
@@ -492,7 +550,7 @@ const flush = () => new Promise(r => setTimeout(r, 0)); // 让微任务（Mutati
   await flush();
   check('IME 护盾脱困：compositioncancel 后自动解除输入锁正常汉化', imeRecoverEl.textContent === '关闭');
 
-  // 27. 三级跨帧预算切片测试（单容器 105 个节点，分三帧宏任务平滑消化）
+  // 27. 跨帧时间片续摊（单容器 105 个节点，超出单帧预算的部分用宏任务接力）
   const tripleContainer = d.createElement('div');
   const tripSpans = [];
   for (let i = 0; i < 105; i++) {
@@ -504,17 +562,10 @@ const flush = () => new Promise(r => setTimeout(r, 0)); // 让微任务（Mutati
   d.getElementById('host').appendChild(tripleContainer);
   await flush(); // 首帧微任务
 
-  check('三级切片：首帧完成前 35 步预算汉化', tripSpans[0].textContent === '文件' && tripSpans[34].textContent === '文件');
-  check('三级切片：超出 35 步的深层节点首帧平滑交割', tripSpans[35].textContent === 'File' && tripSpans[104].textContent === 'File');
-
-  // 等待第 1 次 16ms 宏任务交割
-  await new Promise(r => setTimeout(r, 20));
-  check('三级切片：第二帧消化至 70 步', tripSpans[35].textContent === '文件' && tripSpans[69].textContent === '文件');
-  check('三级切片：超出 70 步的节点仍保持平滑交割', tripSpans[70].textContent === 'File' || tripSpans[104].textContent === '文件');
-
-  // 等待第 2 次 16ms 宏任务交割
+  // 剩余节点由宏任务续摊完成，任何时刻都有进展
   await new Promise(r => setTimeout(r, 50));
-  check('三级切片：第三帧全部 105 步消化完毕', tripSpans[70].textContent === '文件' && tripSpans[104].textContent === '文件');
+  check('跨帧切片：105 个节点首帧有推进且最终全部消化完毕',
+    tripSpans[0].textContent === '文件' && tripSpans.every(s => s.textContent === '文件'));
 
   // 28. /plan 介绍及相关斜杠命令与模式汉化验证
   w.__antigravityZh.setData(JSON.parse(fs.readFileSync(path.join(SRC, 'cockpit-zh.json'), 'utf-8')));
