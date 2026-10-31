@@ -14,11 +14,50 @@ fs.copyFileSync(path.join(SRC, 'cockpit-zh.json'), path.join(SIM, 'cockpit-zh.js
 const zh = require(path.join(SIM, 'zh-i18n.js'));
 
 let pass = 0, fail = 0;
-function check(name, cond) {
+// 失败时输出诊断：getter 形式让断言失败时把实际值打出来，
+// 否则只能看到"某条挂了"却不知道当时 DOM 是什么状态。
+function check(name, cond, detail) {
   if (cond) { pass++; console.log('PASS  ' + name); }
-  else { fail++; console.log('FAIL  ' + name); }
+  else {
+    fail++;
+    const d = typeof detail === 'function' ? (() => { try { return detail(); } catch (e) { return '读取失败: ' + e.message; } })() : detail;
+    console.log('FAIL  ' + name + (d !== undefined ? '  -> 实际: ' + JSON.stringify(d) : ''));
+  }
 }
 const flush = () => new Promise(r => setTimeout(r, 0)); // 让微任务（MutationObserver）落地
+
+// 引擎按 8ms 时间片分批推进，大批量节点要跨多轮宏任务才译完。
+// 固定等待时长在负载高时会不够，导致偶发失败——这里改成轮询到条件成立。
+// 超时给得足够宽松：并发跑多个测试进程时，jsdom 的定时器会被系统调度显著拖慢
+// （实测 8 并发下同样的批次要 8s 才推进完），超时太紧会把「慢」误判成「错」。
+// 判断一组容器里的待译节点是否都已译完：只扫这些容器的后代，
+// 不碰整页（整页有大量本就不该翻译的英文，如对话标题、代码）。
+function box8Quiet(containers) {
+  for (const c of containers) {
+    if (!c) continue;
+    const all = c.getElementsByTagName('*');
+    for (let i = 0; i < all.length; i++) {
+      const el = all[i];
+      if (el.children.length) continue;
+      const t = el.textContent.trim();
+      if (t && /^[A-Za-z]/.test(t)) return false;
+    }
+  }
+  return true;
+}
+
+async function waitFor(cond, timeoutMs = 15000, label = '') {
+  const start = Date.now();
+  let delay = 1;
+  while (Date.now() - start < timeoutMs) {
+    if (cond()) return true;
+    // 轮询间隔从 1ms 起步逐步放大：条件通常很快满足，固定 10ms 会让
+    // 整个套件平白多出几十秒；而负载高时逐步退避也不至于空转。
+    await new Promise(r => setTimeout(r, delay));
+    delay = Math.min(delay * 2, 40);
+  }
+  return false;
+}
 
 (async () => {
   const dom = new JSDOM(`<!DOCTYPE html><html><body>
@@ -46,6 +85,10 @@ const flush = () => new Promise(r => setTimeout(r, 0)); // 让微任务（Mutati
   d.body.appendChild(s);
 
   // 1. 初始全页翻译
+  // 注意：初次注入时 walk(document.body) 是同步执行的，但整页节点多时
+  // 同步阶段会用尽 8ms 时间片，剩余节点转入延迟队列。这里等的是「初始整页跑完」，
+  // 与后面「小改动必须同帧完成」是两件事，不要混为一谈。
+  await waitFor(() => d.getElementById('static').textContent === '命令面板');
   check('静态文字已翻译', d.getElementById('static').textContent === '命令面板');
   check('placeholder 属性已翻译', d.getElementById('search').getAttribute('placeholder') === '搜索任务...');
 
@@ -75,7 +118,9 @@ const flush = () => new Promise(r => setTimeout(r, 0)); // 让微任务（Mutati
   await flush();
   const immediate = bigSpans[0].textContent === '置顶';
   check('大批量改动先延迟（绘制时仍为英文）', !immediate);
-  await new Promise(r => setTimeout(r, 150));
+  // 走的是 60ms 延迟通道 + 分片推进，高负载下会明显超过 150ms，
+  // 用条件轮询代替死等，避免把「慢」误判成「错」。
+  await waitFor(() => bigSpans.every(s => s.textContent === '置顶'));
   check('大批量改动延迟后完成翻译', bigSpans[0].textContent === '置顶' && bigSpans[34].textContent === '置顶');
 
   // 5. 动态状态（characterData）走同帧即时汉化（微任务落地，零闪烁）
@@ -85,7 +130,8 @@ const flush = () => new Promise(r => setTimeout(r, 0)); // 让微任务（Mutati
   await flush();
   typing.firstChild.nodeValue = 'Conversation';
   await flush();
-  check('动态状态（characterData）同帧即时汉化成功', typing.textContent === '对话');
+  check('动态状态（characterData）同帧即时汉化成功', typing.textContent === '对话',
+    () => typing.textContent);
 
   // 6. setData 热更新：换新词典后新词条生效
   w.__antigravityZh.setData({ dict: { 'Brand New Thing': '全新事物' }, rules: [] });
@@ -1026,6 +1072,11 @@ const flush = () => new Promise(r => setTimeout(r, 0)); // 让微任务（Mutati
   d.getElementById('host').appendChild(boxPic7);
   d.getElementById('host').appendChild(boxPic8);
   d.getElementById('host').appendChild(boxPic9);
+  // boxPic6~9 一次性插入数百个文本节点，引擎按 8ms 时间片跨多轮宏任务推进。
+  // 这里原本没有任何等待就断言，负载高时会成片假失败。
+  // 必须等到「这批里所有待译节点都译完」，不能只看某一个样本——
+  // 样本所属 box 译完不代表同批其它 box 也译完了。
+  await waitFor(() => box8Quiet([boxPic6, boxPic7, boxPic8, boxPic9]));
 
   const boxPic10 = d.createElement('div');
   boxPic10.innerHTML = `
@@ -1073,22 +1124,37 @@ const flush = () => new Promise(r => setTimeout(r, 0)); // 让微任务（Mutati
   `;
   d.getElementById('host').appendChild(boxPic10);
   await flush();
-  await new Promise(r => setTimeout(r, 100));
+  // 这批节点量大（6 个 box、数百个文本节点），引擎按时间片分批推进，
+  // 必须等整批都译完再断言，否则会给出一批假失败。
+  await waitFor(() => box8Quiet([boxPic1, boxPic2, boxPic3, boxPic4, boxPic5, boxPic10]));
 
   // 图 1 断言
-  check('截图1：Sort Projects 汉化', d.getElementById('test-sort-projects').textContent === '项目排序');
-  check('截图1：sort projects 小写首字母汉化', d.getElementById('test-sort-projects-lower').textContent === '项目排序');
-  check('截图1：Sort Projects: 冒号形式汉化', d.getElementById('test-sort-projects-colon').textContent === '项目排序');
-  check('截图1：Custom Order 汉化', d.getElementById('test-custom-order').textContent === '自定义排序');
-  check('截图1：custom order 小写汉化', d.getElementById('test-custom-order-lower').textContent === '自定义排序');
-  check('截图1：Auto Pin 汉化', d.getElementById('test-auto-pin').textContent === '自动置顶');
-  check('截图1：auto pin 小写汉化', d.getElementById('test-auto-pin-lower').textContent === '自动置顶');
-  check('截图1：Auto-Pin 连字符汉化', d.getElementById('test-auto-pin-hyphen').textContent === '自动置顶');
-  check('截图1：Archived Only 汉化', d.getElementById('test-archived-only').textContent === '仅已归档');
-  check('截图1：archived only 小写汉化', d.getElementById('test-archived-only-lower').textContent === '仅已归档');
-  check('截图1：Mark All as Read 汉化', d.getElementById('test-mark-all-read').textContent === '全部标记为已读');
-  check('截图1：Mark All As Read Title Case 汉化', d.getElementById('test-mark-all-read-title').textContent === '全部标记为已读');
-  check('截图1：mark all as read 小写汉化', d.getElementById('test-mark-all-read-lower').textContent === '全部标记为已读');
+  check('截图1：Sort Projects 汉化', d.getElementById('test-sort-projects').textContent === '项目排序',
+    () => d.getElementById('test-sort-projects') && d.getElementById('test-sort-projects').textContent);
+  check('截图1：sort projects 小写首字母汉化', d.getElementById('test-sort-projects-lower').textContent === '项目排序',
+    () => d.getElementById('test-sort-projects-lower') && d.getElementById('test-sort-projects-lower').textContent);
+  check('截图1：Sort Projects: 冒号形式汉化', d.getElementById('test-sort-projects-colon').textContent === '项目排序',
+    () => d.getElementById('test-sort-projects-colon') && d.getElementById('test-sort-projects-colon').textContent);
+  check('截图1：Custom Order 汉化', d.getElementById('test-custom-order').textContent === '自定义排序',
+    () => d.getElementById('test-custom-order') && d.getElementById('test-custom-order').textContent);
+  check('截图1：custom order 小写汉化', d.getElementById('test-custom-order-lower').textContent === '自定义排序',
+    () => d.getElementById('test-custom-order-lower') && d.getElementById('test-custom-order-lower').textContent);
+  check('截图1：Auto Pin 汉化', d.getElementById('test-auto-pin').textContent === '自动置顶',
+    () => d.getElementById('test-auto-pin') && d.getElementById('test-auto-pin').textContent);
+  check('截图1：auto pin 小写汉化', d.getElementById('test-auto-pin-lower').textContent === '自动置顶',
+    () => d.getElementById('test-auto-pin-lower') && d.getElementById('test-auto-pin-lower').textContent);
+  check('截图1：Auto-Pin 连字符汉化', d.getElementById('test-auto-pin-hyphen').textContent === '自动置顶',
+    () => d.getElementById('test-auto-pin-hyphen') && d.getElementById('test-auto-pin-hyphen').textContent);
+  check('截图1：Archived Only 汉化', d.getElementById('test-archived-only').textContent === '仅已归档',
+    () => d.getElementById('test-archived-only') && d.getElementById('test-archived-only').textContent);
+  check('截图1：archived only 小写汉化', d.getElementById('test-archived-only-lower').textContent === '仅已归档',
+    () => d.getElementById('test-archived-only-lower') && d.getElementById('test-archived-only-lower').textContent);
+  check('截图1：Mark All as Read 汉化', d.getElementById('test-mark-all-read').textContent === '全部标记为已读',
+    () => d.getElementById('test-mark-all-read') && d.getElementById('test-mark-all-read').textContent);
+  check('截图1：Mark All As Read Title Case 汉化', d.getElementById('test-mark-all-read-title').textContent === '全部标记为已读',
+    () => d.getElementById('test-mark-all-read-title') && d.getElementById('test-mark-all-read-title').textContent);
+  check('截图1：mark all as read 小写汉化', d.getElementById('test-mark-all-read-lower').textContent === '全部标记为已读',
+    () => d.getElementById('test-mark-all-read-lower') && d.getElementById('test-mark-all-read-lower').textContent);
 
   // 图 2 断言
   check('截图2：Collapse All Folders 汉化', d.getElementById('test-collapse-all-folders').textContent === '折叠所有文件夹');
@@ -1120,16 +1186,26 @@ const flush = () => new Promise(r => setTimeout(r, 0)); // 让微任务（Mutati
 
   // 图 4 断言
   check('截图4：Search automations... placeholder 汉化', d.getElementById('test-search-automations-ph').getAttribute('placeholder') === '搜索自动化...');
-  check('截图4：Search automations... 文本节点汉化', d.getElementById('test-search-automations-text').textContent === '搜索自动化...');
-  check('截图4：Search Automations... Title Case 汉化', d.getElementById('test-search-automations-title').textContent === '搜索自动化...');
-  check('截图4：Search automations 无点号精准汉化', d.getElementById('test-search-automations-nodot').textContent === '搜索自动化');
-  check('截图4：Search Automations Title Case 无点号汉化', d.getElementById('test-search-automations-title-nodot').textContent === '搜索自动化');
-  check('截图4：No automations configured. 完整句汉化', d.getElementById('test-no-automations').textContent === '尚未配置自动化。');
-  check('截图4：No automations configured 无标点汉化', d.getElementById('test-no-automations-nodot').textContent === '尚未配置自动化');
-  check('截图4：No Automations Configured. Title Case 句号汉化', d.getElementById('test-no-automations-title').textContent === '尚未配置自动化。');
-  check('截图4：No Automations Configured Title Case 无标点汉化', d.getElementById('test-no-automations-title-nodot').textContent === '尚未配置自动化');
-  check('截图4：no automations configured. 小写汉化', d.getElementById('test-no-automations-lower').textContent === '尚未配置自动化。');
-  check('截图4：no automations configured 小写无标点汉化', d.getElementById('test-no-automations-lower-nodot').textContent === '尚未配置自动化');
+  check('截图4：Search automations... 文本节点汉化', d.getElementById('test-search-automations-text').textContent === '搜索自动化...',
+    () => d.getElementById('test-search-automations-text') && d.getElementById('test-search-automations-text').textContent);
+  check('截图4：Search Automations... Title Case 汉化', d.getElementById('test-search-automations-title').textContent === '搜索自动化...',
+    () => d.getElementById('test-search-automations-title') && d.getElementById('test-search-automations-title').textContent);
+  check('截图4：Search automations 无点号精准汉化', d.getElementById('test-search-automations-nodot').textContent === '搜索自动化',
+    () => d.getElementById('test-search-automations-nodot') && d.getElementById('test-search-automations-nodot').textContent);
+  check('截图4：Search Automations Title Case 无点号汉化', d.getElementById('test-search-automations-title-nodot').textContent === '搜索自动化',
+    () => d.getElementById('test-search-automations-title-nodot') && d.getElementById('test-search-automations-title-nodot').textContent);
+  check('截图4：No automations configured. 完整句汉化', d.getElementById('test-no-automations').textContent === '尚未配置自动化。',
+    () => d.getElementById('test-no-automations') && d.getElementById('test-no-automations').textContent);
+  check('截图4：No automations configured 无标点汉化', d.getElementById('test-no-automations-nodot').textContent === '尚未配置自动化',
+    () => d.getElementById('test-no-automations-nodot') && d.getElementById('test-no-automations-nodot').textContent);
+  check('截图4：No Automations Configured. Title Case 句号汉化', d.getElementById('test-no-automations-title').textContent === '尚未配置自动化。',
+    () => d.getElementById('test-no-automations-title') && d.getElementById('test-no-automations-title').textContent);
+  check('截图4：No Automations Configured Title Case 无标点汉化', d.getElementById('test-no-automations-title-nodot').textContent === '尚未配置自动化',
+    () => d.getElementById('test-no-automations-title-nodot') && d.getElementById('test-no-automations-title-nodot').textContent);
+  check('截图4：no automations configured. 小写汉化', d.getElementById('test-no-automations-lower').textContent === '尚未配置自动化。',
+    () => d.getElementById('test-no-automations-lower') && d.getElementById('test-no-automations-lower').textContent);
+  check('截图4：no automations configured 小写无标点汉化', d.getElementById('test-no-automations-lower-nodot').textContent === '尚未配置自动化',
+    () => d.getElementById('test-no-automations-lower-nodot') && d.getElementById('test-no-automations-lower-nodot').textContent);
 
   // 图 5 断言
   check('截图5：Reopen Closed Tab 汉化', d.getElementById('test-reopen-tab').textContent === '重新打开关闭的标签页');
@@ -1147,65 +1223,122 @@ const flush = () => new Promise(r => setTimeout(r, 0)); // 让微任务（Mutati
 
   // 38. 新增 4 张待补全截图专项断言
   // 新截图 1 断言: 删除对话确认弹窗
-  check('新截图1：Delete Conversation 标题汉化', d.getElementById('test-del-conv-title').textContent === '删除对话');
-  check('新截图1：Delete conversation 句首大写汉化', d.getElementById('test-del-conv-title-sentence').textContent === '删除对话');
-  check('新截图1：delete conversation 小写汉化', d.getElementById('test-del-conv-title-lower').textContent === '删除对话');
-  check('新截图1：Delete Conversation. 标题带句号汉化', d.getElementById('test-del-conv-title-dot').textContent === '删除对话。');
-  check('新截图1：Delete Conversation… 标题Unicode省略号汉化', d.getElementById('test-del-conv-title-ellipsis-char').textContent === '删除对话...');
-  check('新截图1：Delete Conversation: 冒号形式汉化', d.getElementById('test-del-conv-colon').textContent === '删除对话：');
-  check('新截图1：Delete Conversation... 省略号形式汉化', d.getElementById('test-del-conv-ellipsis').textContent === '删除对话...');
-  check('新截图1：Delete Conversation (快捷键) 汉化', d.getElementById('test-del-conv-shortcut').textContent === '删除对话 (Ctrl+Shift+D)');
-  check('新截图1：提示完整句（句号保真）汉化', d.getElementById('test-del-conv-prompt-full').textContent === '确定要删除此对话吗？此操作无法撤销。');
-  check('新截图1：提示完整句（无句号）汉化', d.getElementById('test-del-conv-prompt-nodot').textContent === '确定要删除此对话吗？此操作无法撤销。');
-  check('新截图1：提示小写完整句（句号保真）汉化', d.getElementById('test-del-conv-prompt-lower-full').textContent === '确定要删除此对话吗？此操作无法撤销。');
-  check('新截图1：提示小写完整句（无句号）汉化', d.getElementById('test-del-conv-prompt-lower-nodot').textContent === '确定要删除此对话吗？此操作无法撤销。');
-  check('新截图1：提示完整句（Title Case 带句号）汉化', d.getElementById('test-del-conv-prompt-title-full').textContent === '确定要删除此对话吗？此操作无法撤销。');
-  check('新截图1：提示完整句（Title Case 无句号）汉化', d.getElementById('test-del-conv-prompt-title-nodot').textContent === '确定要删除此对话吗？此操作无法撤销。');
-  check('新截图1：拆分子问句（问号）汉化', d.getElementById('test-del-conv-q').textContent === '确定要删除此对话吗？');
-  check('新截图1：拆分子问句（无标点）汉化', d.getElementById('test-del-conv-q-nodot').textContent === '确定要删除此对话吗');
-  check('新截图1：拆分子问句（小写）汉化', d.getElementById('test-del-conv-q-lower').textContent === '确定要删除此对话吗？');
-  check('新截图1：拆分子问句（Title Case 问号）汉化', d.getElementById('test-del-conv-q-title').textContent === '确定要删除此对话吗？');
-  check('新截图1：拆分后句（句号）汉化', d.getElementById('test-del-conv-undone').textContent === '此操作无法撤销。');
-  check('新截图1：拆分后句（无句号）汉化', d.getElementById('test-del-conv-undone-nodot').textContent === '此操作无法撤销');
-  check('新截图1：拆分后句（小写句号）汉化', d.getElementById('test-del-conv-undone-lower').textContent === '此操作无法撤销。');
-  check('新截图1：拆分后句（小写无句号）汉化', d.getElementById('test-del-conv-undone-lower-nodot').textContent === '此操作无法撤销');
-  check('新截图1：拆分后句（Title Case 句号）汉化', d.getElementById('test-del-conv-undone-title').textContent === '此操作无法撤销。');
-  check('新截图1：拆分后句（Title Case 无句号）汉化', d.getElementById('test-del-conv-undone-title-nodot').textContent === '此操作无法撤销');
+  check('新截图1：Delete Conversation 标题汉化', d.getElementById('test-del-conv-title').textContent === '删除对话',
+    () => d.getElementById('test-del-conv-title') && d.getElementById('test-del-conv-title').textContent);
+  check('新截图1：Delete conversation 句首大写汉化', d.getElementById('test-del-conv-title-sentence').textContent === '删除对话',
+    () => d.getElementById('test-del-conv-title-sentence') && d.getElementById('test-del-conv-title-sentence').textContent);
+  check('新截图1：delete conversation 小写汉化', d.getElementById('test-del-conv-title-lower').textContent === '删除对话',
+    () => d.getElementById('test-del-conv-title-lower') && d.getElementById('test-del-conv-title-lower').textContent);
+  check('新截图1：Delete Conversation. 标题带句号汉化', d.getElementById('test-del-conv-title-dot').textContent === '删除对话。',
+    () => d.getElementById('test-del-conv-title-dot') && d.getElementById('test-del-conv-title-dot').textContent);
+  check('新截图1：Delete Conversation… 标题Unicode省略号汉化', d.getElementById('test-del-conv-title-ellipsis-char').textContent === '删除对话...',
+    () => d.getElementById('test-del-conv-title-ellipsis-char') && d.getElementById('test-del-conv-title-ellipsis-char').textContent);
+  check('新截图1：Delete Conversation: 冒号形式汉化', d.getElementById('test-del-conv-colon').textContent === '删除对话：',
+    () => d.getElementById('test-del-conv-colon') && d.getElementById('test-del-conv-colon').textContent);
+  check('新截图1：Delete Conversation... 省略号形式汉化', d.getElementById('test-del-conv-ellipsis').textContent === '删除对话...',
+    () => d.getElementById('test-del-conv-ellipsis') && d.getElementById('test-del-conv-ellipsis').textContent);
+  check('新截图1：Delete Conversation (快捷键) 汉化', d.getElementById('test-del-conv-shortcut').textContent === '删除对话 (Ctrl+Shift+D)',
+    () => d.getElementById('test-del-conv-shortcut') && d.getElementById('test-del-conv-shortcut').textContent);
+  check('新截图1：提示完整句（句号保真）汉化', d.getElementById('test-del-conv-prompt-full').textContent === '确定要删除此对话吗？此操作无法撤销。',
+    () => d.getElementById('test-del-conv-prompt-full') && d.getElementById('test-del-conv-prompt-full').textContent);
+  check('新截图1：提示完整句（无句号）汉化', d.getElementById('test-del-conv-prompt-nodot').textContent === '确定要删除此对话吗？此操作无法撤销。',
+    () => d.getElementById('test-del-conv-prompt-nodot') && d.getElementById('test-del-conv-prompt-nodot').textContent);
+  check('新截图1：提示小写完整句（句号保真）汉化', d.getElementById('test-del-conv-prompt-lower-full').textContent === '确定要删除此对话吗？此操作无法撤销。',
+    () => d.getElementById('test-del-conv-prompt-lower-full') && d.getElementById('test-del-conv-prompt-lower-full').textContent);
+  check('新截图1：提示小写完整句（无句号）汉化', d.getElementById('test-del-conv-prompt-lower-nodot').textContent === '确定要删除此对话吗？此操作无法撤销。',
+    () => d.getElementById('test-del-conv-prompt-lower-nodot') && d.getElementById('test-del-conv-prompt-lower-nodot').textContent);
+  check('新截图1：提示完整句（Title Case 带句号）汉化', d.getElementById('test-del-conv-prompt-title-full').textContent === '确定要删除此对话吗？此操作无法撤销。',
+    () => d.getElementById('test-del-conv-prompt-title-full') && d.getElementById('test-del-conv-prompt-title-full').textContent);
+  check('新截图1：提示完整句（Title Case 无句号）汉化', d.getElementById('test-del-conv-prompt-title-nodot').textContent === '确定要删除此对话吗？此操作无法撤销。',
+    () => d.getElementById('test-del-conv-prompt-title-nodot') && d.getElementById('test-del-conv-prompt-title-nodot').textContent);
+  check('新截图1：拆分子问句（问号）汉化', d.getElementById('test-del-conv-q').textContent === '确定要删除此对话吗？',
+    () => d.getElementById('test-del-conv-q') && d.getElementById('test-del-conv-q').textContent);
+  check('新截图1：拆分子问句（无标点）汉化', d.getElementById('test-del-conv-q-nodot').textContent === '确定要删除此对话吗',
+    () => d.getElementById('test-del-conv-q-nodot') && d.getElementById('test-del-conv-q-nodot').textContent);
+  check('新截图1：拆分子问句（小写）汉化', d.getElementById('test-del-conv-q-lower').textContent === '确定要删除此对话吗？',
+    () => d.getElementById('test-del-conv-q-lower') && d.getElementById('test-del-conv-q-lower').textContent);
+  check('新截图1：拆分子问句（Title Case 问号）汉化', d.getElementById('test-del-conv-q-title').textContent === '确定要删除此对话吗？',
+    () => d.getElementById('test-del-conv-q-title') && d.getElementById('test-del-conv-q-title').textContent);
+  check('新截图1：拆分后句（句号）汉化', d.getElementById('test-del-conv-undone').textContent === '此操作无法撤销。',
+    () => d.getElementById('test-del-conv-undone') && d.getElementById('test-del-conv-undone').textContent);
+  check('新截图1：拆分后句（无句号）汉化', d.getElementById('test-del-conv-undone-nodot').textContent === '此操作无法撤销',
+    () => d.getElementById('test-del-conv-undone-nodot') && d.getElementById('test-del-conv-undone-nodot').textContent);
+  check('新截图1：拆分后句（小写句号）汉化', d.getElementById('test-del-conv-undone-lower').textContent === '此操作无法撤销。',
+    () => d.getElementById('test-del-conv-undone-lower') && d.getElementById('test-del-conv-undone-lower').textContent);
+  check('新截图1：拆分后句（小写无句号）汉化', d.getElementById('test-del-conv-undone-lower-nodot').textContent === '此操作无法撤销',
+    () => d.getElementById('test-del-conv-undone-lower-nodot') && d.getElementById('test-del-conv-undone-lower-nodot').textContent);
+  check('新截图1：拆分后句（Title Case 句号）汉化', d.getElementById('test-del-conv-undone-title').textContent === '此操作无法撤销。',
+    () => d.getElementById('test-del-conv-undone-title') && d.getElementById('test-del-conv-undone-title').textContent);
+  check('新截图1：拆分后句（Title Case 无句号）汉化', d.getElementById('test-del-conv-undone-title-nodot').textContent === '此操作无法撤销',
+    () => d.getElementById('test-del-conv-undone-title-nodot') && d.getElementById('test-del-conv-undone-title-nodot').textContent);
 
   // 新截图 1 全方位覆盖断言：换行符、CRLF、连续空格、<br>、子 <p>、子 <div>、内部空格、can not
-  check('新截图1：换行符 \\n 弹窗内容汉化', d.getElementById('test-del-conv-newline').textContent === '确定要删除此对话吗？此操作无法撤销。');
-  check('新截图1：CRLF \\r\\n 弹窗内容汉化', d.getElementById('test-del-conv-crlf').textContent === '确定要删除此对话吗？此操作无法撤销。');
-  check('新截图1：换行带缩进空格 弹窗内容汉化', d.getElementById('test-del-conv-newline-spaces').textContent === '确定要删除此对话吗？此操作无法撤销。');
-  check('新截图1：空格后换行 弹窗内容汉化', d.getElementById('test-del-conv-spaces-newline').textContent === '确定要删除此对话吗？此操作无法撤销。');
-  check('新截图1：双换行符 \\n\\n 弹窗内容汉化', d.getElementById('test-del-conv-double-newline').textContent === '确定要删除此对话吗？此操作无法撤销。');
-  check('新截图1：连续空格 弹窗内容汉化', d.getElementById('test-del-conv-multi-spaces').textContent === '确定要删除此对话吗？此操作无法撤销。');
-  check('新截图1：<br> 拆分子节点 弹窗内容汉化', d.getElementById('test-del-conv-br').textContent === '确定要删除此对话吗？此操作无法撤销。');
-  check('新截图1：子 <p> 拆分 弹窗内容汉化', d.getElementById('test-del-conv-p').textContent === '确定要删除此对话吗？此操作无法撤销。');
-  check('新截图1：子 <div> 拆分 弹窗内容汉化', d.getElementById('test-del-conv-div').textContent === '确定要删除此对话吗？此操作无法撤销。');
-  check('新截图1：子元素含内部多余空白 弹窗内容汉化', d.getElementById('test-del-conv-nested-spaces').textContent.replace(/\s+/g, ' ').trim() === '确定要删除此对话吗？ 此操作无法撤销。');
-  check('新截图1：can not 变体 弹窗内容汉化', d.getElementById('test-del-conv-can-not').textContent === '确定要删除此对话吗？此操作无法撤销。');
-  check('新截图1：DELETE CONVERSATION 大写标题汉化', d.getElementById('test-del-conv-title-upper').textContent === '删除对话');
-  check('新截图1：DELETE CONVERSATION. 大写带句号汉化', d.getElementById('test-del-conv-title-upper-dot').textContent === '删除对话。');
-  check('新截图1：DELETE CONVERSATION: 大写冒号汉化', d.getElementById('test-del-conv-title-upper-colon').textContent === '删除对话：');
-  check('新截图1：DELETE CONVERSATION? 大写问号汉化', d.getElementById('test-del-conv-title-upper-q').textContent === '删除对话？');
-  check('新截图1：Delete Conversation [快捷键] 中括号汉化', d.getElementById('test-del-conv-bracket-shortcut').textContent === '删除对话 [Ctrl+Shift+D]');
-  check('新截图1：全大写完整句（句号）汉化', d.getElementById('test-del-conv-upper-full').textContent === '确定要删除此对话吗？此操作无法撤销。');
-  check('新截图1：全大写完整句（无句号）汉化', d.getElementById('test-del-conv-upper-nodot').textContent === '确定要删除此对话吗？此操作无法撤销。');
-  check('新截图1：无问号直接换行弹窗汉化', d.getElementById('test-del-conv-no-q-newline').textContent === '确定要删除此对话吗？此操作无法撤销。');
-  check('新截图1：点号分隔弹窗汉化', d.getElementById('test-del-conv-dot-separator').textContent === '确定要删除此对话吗？此操作无法撤销。');
-  check('新截图1：冒号分隔弹窗汉化', d.getElementById('test-del-conv-colon-separator').textContent === '确定要删除此对话吗？此操作无法撤销。');
-  check('新截图1：Tab 分隔符弹窗汉化', d.getElementById('test-del-conv-tab-separator').textContent === '确定要删除此对话吗？此操作无法撤销。');
-  check('新截图1：换行加多空格缩进弹窗汉化', d.getElementById('test-del-conv-indent-newline').textContent === '确定要删除此对话吗？此操作无法撤销。');
-  check('新截图1：感叹号结尾弹窗汉化', d.getElementById('test-del-conv-exclamation').textContent === '确定要删除此对话吗？此操作无法撤销。');
-  check('新截图1：省略号结尾弹窗汉化', d.getElementById('test-del-conv-ellipsis-end').textContent === '确定要删除此对话吗？此操作无法撤销。');
-  check('新截图1：嵌套 span 分段弹窗汉化', d.getElementById('test-del-conv-span').textContent === '确定要删除此对话吗？此操作无法撤销。');
-  check('新截图1：外层空白/换行包裹弹窗汉化', d.getElementById('test-del-conv-outer-whitespace').textContent.trim() === '确定要删除此对话吗？此操作无法撤销。');
-  check('新截图1：后句带感叹号独立汉化', d.getElementById('test-del-conv-undone-exclamation').textContent === '此操作无法撤销！');
-  check('新截图1：后句带省略号独立汉化', d.getElementById('test-del-conv-undone-ellipsis').textContent === '此操作无法撤销...');
-  check('新截图1：后句全大写带句号独立汉化', d.getElementById('test-del-conv-undone-upper').textContent === '此操作无法撤销。');
-  check('新截图1：后句全大写无句号独立汉化', d.getElementById('test-del-conv-undone-upper-nodot').textContent === '此操作无法撤销');
-  check('新截图1：前句全大写带问号独立汉化', d.getElementById('test-del-conv-q-upper').textContent === '确定要删除此对话吗？');
-  check('新截图1：前句全大写无标点独立汉化', d.getElementById('test-del-conv-q-upper-nodot').textContent === '确定要删除此对话吗');
+  check('新截图1：换行符 \\n 弹窗内容汉化', d.getElementById('test-del-conv-newline').textContent === '确定要删除此对话吗？此操作无法撤销。',
+    () => d.getElementById('test-del-conv-newline') && d.getElementById('test-del-conv-newline').textContent);
+  check('新截图1：CRLF \\r\\n 弹窗内容汉化', d.getElementById('test-del-conv-crlf').textContent === '确定要删除此对话吗？此操作无法撤销。',
+    () => d.getElementById('test-del-conv-crlf') && d.getElementById('test-del-conv-crlf').textContent);
+  check('新截图1：换行带缩进空格 弹窗内容汉化', d.getElementById('test-del-conv-newline-spaces').textContent === '确定要删除此对话吗？此操作无法撤销。',
+    () => d.getElementById('test-del-conv-newline-spaces') && d.getElementById('test-del-conv-newline-spaces').textContent);
+  check('新截图1：空格后换行 弹窗内容汉化', d.getElementById('test-del-conv-spaces-newline').textContent === '确定要删除此对话吗？此操作无法撤销。',
+    () => d.getElementById('test-del-conv-spaces-newline') && d.getElementById('test-del-conv-spaces-newline').textContent);
+  check('新截图1：双换行符 \\n\\n 弹窗内容汉化', d.getElementById('test-del-conv-double-newline').textContent === '确定要删除此对话吗？此操作无法撤销。',
+    () => d.getElementById('test-del-conv-double-newline') && d.getElementById('test-del-conv-double-newline').textContent);
+  check('新截图1：连续空格 弹窗内容汉化', d.getElementById('test-del-conv-multi-spaces').textContent === '确定要删除此对话吗？此操作无法撤销。',
+    () => d.getElementById('test-del-conv-multi-spaces') && d.getElementById('test-del-conv-multi-spaces').textContent);
+  check('新截图1：<br> 拆分子节点 弹窗内容汉化', d.getElementById('test-del-conv-br').textContent === '确定要删除此对话吗？此操作无法撤销。',
+    () => d.getElementById('test-del-conv-br') && d.getElementById('test-del-conv-br').textContent);
+  check('新截图1：子 <p> 拆分 弹窗内容汉化', d.getElementById('test-del-conv-p').textContent === '确定要删除此对话吗？此操作无法撤销。',
+    () => d.getElementById('test-del-conv-p') && d.getElementById('test-del-conv-p').textContent);
+  check('新截图1：子 <div> 拆分 弹窗内容汉化', d.getElementById('test-del-conv-div').textContent === '确定要删除此对话吗？此操作无法撤销。',
+    () => d.getElementById('test-del-conv-div') && d.getElementById('test-del-conv-div').textContent);
+  check('新截图1：子元素含内部多余空白 弹窗内容汉化', d.getElementById('test-del-conv-nested-spaces').textContent.replace(/\s+/g, ' ').trim() === '确定要删除此对话吗？ 此操作无法撤销。',
+    () => d.getElementById('test-del-conv-nested-spaces') && d.getElementById('test-del-conv-nested-spaces').textContent);
+  check('新截图1：can not 变体 弹窗内容汉化', d.getElementById('test-del-conv-can-not').textContent === '确定要删除此对话吗？此操作无法撤销。',
+    () => d.getElementById('test-del-conv-can-not') && d.getElementById('test-del-conv-can-not').textContent);
+  check('新截图1：DELETE CONVERSATION 大写标题汉化', d.getElementById('test-del-conv-title-upper').textContent === '删除对话',
+    () => d.getElementById('test-del-conv-title-upper') && d.getElementById('test-del-conv-title-upper').textContent);
+  check('新截图1：DELETE CONVERSATION. 大写带句号汉化', d.getElementById('test-del-conv-title-upper-dot').textContent === '删除对话。',
+    () => d.getElementById('test-del-conv-title-upper-dot') && d.getElementById('test-del-conv-title-upper-dot').textContent);
+  check('新截图1：DELETE CONVERSATION: 大写冒号汉化', d.getElementById('test-del-conv-title-upper-colon').textContent === '删除对话：',
+    () => d.getElementById('test-del-conv-title-upper-colon') && d.getElementById('test-del-conv-title-upper-colon').textContent);
+  check('新截图1：DELETE CONVERSATION? 大写问号汉化', d.getElementById('test-del-conv-title-upper-q').textContent === '删除对话？',
+    () => d.getElementById('test-del-conv-title-upper-q') && d.getElementById('test-del-conv-title-upper-q').textContent);
+  check('新截图1：Delete Conversation [快捷键] 中括号汉化', d.getElementById('test-del-conv-bracket-shortcut').textContent === '删除对话 [Ctrl+Shift+D]',
+    () => d.getElementById('test-del-conv-bracket-shortcut') && d.getElementById('test-del-conv-bracket-shortcut').textContent);
+  check('新截图1：全大写完整句（句号）汉化', d.getElementById('test-del-conv-upper-full').textContent === '确定要删除此对话吗？此操作无法撤销。',
+    () => d.getElementById('test-del-conv-upper-full') && d.getElementById('test-del-conv-upper-full').textContent);
+  check('新截图1：全大写完整句（无句号）汉化', d.getElementById('test-del-conv-upper-nodot').textContent === '确定要删除此对话吗？此操作无法撤销。',
+    () => d.getElementById('test-del-conv-upper-nodot') && d.getElementById('test-del-conv-upper-nodot').textContent);
+  check('新截图1：无问号直接换行弹窗汉化', d.getElementById('test-del-conv-no-q-newline').textContent === '确定要删除此对话吗？此操作无法撤销。',
+    () => d.getElementById('test-del-conv-no-q-newline') && d.getElementById('test-del-conv-no-q-newline').textContent);
+  check('新截图1：点号分隔弹窗汉化', d.getElementById('test-del-conv-dot-separator').textContent === '确定要删除此对话吗？此操作无法撤销。',
+    () => d.getElementById('test-del-conv-dot-separator') && d.getElementById('test-del-conv-dot-separator').textContent);
+  check('新截图1：冒号分隔弹窗汉化', d.getElementById('test-del-conv-colon-separator').textContent === '确定要删除此对话吗？此操作无法撤销。',
+    () => d.getElementById('test-del-conv-colon-separator') && d.getElementById('test-del-conv-colon-separator').textContent);
+  check('新截图1：Tab 分隔符弹窗汉化', d.getElementById('test-del-conv-tab-separator').textContent === '确定要删除此对话吗？此操作无法撤销。',
+    () => d.getElementById('test-del-conv-tab-separator') && d.getElementById('test-del-conv-tab-separator').textContent);
+  check('新截图1：换行加多空格缩进弹窗汉化', d.getElementById('test-del-conv-indent-newline').textContent === '确定要删除此对话吗？此操作无法撤销。',
+    () => d.getElementById('test-del-conv-indent-newline') && d.getElementById('test-del-conv-indent-newline').textContent);
+  check('新截图1：感叹号结尾弹窗汉化', d.getElementById('test-del-conv-exclamation').textContent === '确定要删除此对话吗？此操作无法撤销。',
+    () => d.getElementById('test-del-conv-exclamation') && d.getElementById('test-del-conv-exclamation').textContent);
+  check('新截图1：省略号结尾弹窗汉化', d.getElementById('test-del-conv-ellipsis-end').textContent === '确定要删除此对话吗？此操作无法撤销。',
+    () => d.getElementById('test-del-conv-ellipsis-end') && d.getElementById('test-del-conv-ellipsis-end').textContent);
+  check('新截图1：嵌套 span 分段弹窗汉化', d.getElementById('test-del-conv-span').textContent === '确定要删除此对话吗？此操作无法撤销。',
+    () => d.getElementById('test-del-conv-span') && d.getElementById('test-del-conv-span').textContent);
+  check('新截图1：外层空白/换行包裹弹窗汉化', d.getElementById('test-del-conv-outer-whitespace').textContent.trim() === '确定要删除此对话吗？此操作无法撤销。',
+    () => d.getElementById('test-del-conv-outer-whitespace') && d.getElementById('test-del-conv-outer-whitespace').textContent);
+  check('新截图1：后句带感叹号独立汉化', d.getElementById('test-del-conv-undone-exclamation').textContent === '此操作无法撤销！',
+    () => d.getElementById('test-del-conv-undone-exclamation') && d.getElementById('test-del-conv-undone-exclamation').textContent);
+  check('新截图1：后句带省略号独立汉化', d.getElementById('test-del-conv-undone-ellipsis').textContent === '此操作无法撤销...',
+    () => d.getElementById('test-del-conv-undone-ellipsis') && d.getElementById('test-del-conv-undone-ellipsis').textContent);
+  check('新截图1：后句全大写带句号独立汉化', d.getElementById('test-del-conv-undone-upper').textContent === '此操作无法撤销。',
+    () => d.getElementById('test-del-conv-undone-upper') && d.getElementById('test-del-conv-undone-upper').textContent);
+  check('新截图1：后句全大写无句号独立汉化', d.getElementById('test-del-conv-undone-upper-nodot').textContent === '此操作无法撤销',
+    () => d.getElementById('test-del-conv-undone-upper-nodot') && d.getElementById('test-del-conv-undone-upper-nodot').textContent);
+  check('新截图1：前句全大写带问号独立汉化', d.getElementById('test-del-conv-q-upper').textContent === '确定要删除此对话吗？',
+    () => d.getElementById('test-del-conv-q-upper') && d.getElementById('test-del-conv-q-upper').textContent);
+  check('新截图1：前句全大写无标点独立汉化', d.getElementById('test-del-conv-q-upper-nodot').textContent === '确定要删除此对话吗',
+    () => d.getElementById('test-del-conv-q-upper-nodot') && d.getElementById('test-del-conv-q-upper-nodot').textContent);
 
   // 新截图 2 断言: 权限设置面板与说明片段
   check('新截图2：Permission Settings 标题汉化', d.getElementById('test-perm-settings-title').textContent === '权限设置');
@@ -1268,30 +1401,54 @@ const flush = () => new Promise(r => setTimeout(r, 0)); // 让微任务（Mutati
   check('新截图4：Search customizations... placeholder 汉化', d.getElementById('test-search-custom-ph').getAttribute('placeholder') === '搜索自定义项...');
   check('新截图4：Search customizations placeholder 无点号汉化', d.getElementById('test-search-custom-ph-nodot').getAttribute('placeholder') === '搜索自定义项');
   check('新截图4：Search customizations… placeholder Unicode省略号汉化', d.getElementById('test-search-custom-ph-ellipsis-char').getAttribute('placeholder') === '搜索自定义项…');
-  check('新截图4：Search customizations... 文本节点汉化', d.getElementById('test-search-custom-text').textContent === '搜索自定义项...');
-  check('新截图4：Search Customizations... Title Case 汉化', d.getElementById('test-search-custom-title').textContent === '搜索自定义项...');
-  check('新截图4：Search customizations 无点号精准汉化', d.getElementById('test-search-custom-nodot').textContent === '搜索自定义项');
-  check('新截图4：Search Customizations Title Case 无点号汉化', d.getElementById('test-search-custom-title-nodot').textContent === '搜索自定义项');
-  check('新截图4：search customizations... 小写带省略号汉化', d.getElementById('test-search-custom-lower').textContent === '搜索自定义项...');
-  check('新截图4：search customizations 小写无标点汉化', d.getElementById('test-search-custom-lower-nodot').textContent === '搜索自定义项');
-  check('新截图4：Search customizations. 带句号汉化', d.getElementById('test-search-custom-dot').textContent === '搜索自定义项。');
-  check('新截图4：Search Customizations. Title Case 带句号汉化', d.getElementById('test-search-custom-title-dot').textContent === '搜索自定义项。');
-  check('新截图4：Search customizations… Unicode省略号汉化', d.getElementById('test-search-custom-ellipsis-char').textContent === '搜索自定义项…');
-  check('新截图4：Search Customizations… Title Case Unicode省略号汉化', d.getElementById('test-search-custom-title-ellipsis-char').textContent === '搜索自定义项…');
-  check('新截图4：No customizations configured. 句号汉化', d.getElementById('test-no-custom-configured').textContent === '尚未配置自定义项。');
-  check('新截图4：No customizations configured 无标点汉化', d.getElementById('test-no-custom-configured-nodot').textContent === '尚未配置自定义项');
-  check('新截图4：no customizations configured. 小写带句号汉化', d.getElementById('test-no-custom-configured-lower-dot').textContent === '尚未配置自定义项。');
-  check('新截图4：no customizations configured 小写无标点汉化', d.getElementById('test-no-custom-configured-lower-nodot').textContent === '尚未配置自定义项');
-  check('新截图4：No Customizations Configured. Title Case 句号汉化', d.getElementById('test-no-custom-configured-title').textContent === '尚未配置自定义项。');
-  check('新截图4：No Customizations Configured Title Case 无标点汉化', d.getElementById('test-no-custom-configured-title-nodot').textContent === '尚未配置自定义项');
-  check('新截图4：There are no customizations configured. 完整前缀汉化', d.getElementById('test-no-custom-there-are').textContent === '尚未配置自定义项。');
-  check('新截图4：there are no customizations configured. 小写前缀汉化', d.getElementById('test-no-custom-there-are-lower').textContent === '尚未配置自定义项。');
-  check('新截图4：No customizations available. 句号汉化', d.getElementById('test-no-custom-avail').textContent === '无可用自定义项。');
-  check('新截图4：No customizations available 无标点汉化', d.getElementById('test-no-custom-avail-nodot').textContent === '无可用自定义项');
-  check('新截图4：No Customizations Available. Title Case 句号汉化', d.getElementById('test-no-custom-avail-title').textContent === '无可用自定义项。');
-  check('新截图4：No Customizations Available Title Case 无标点汉化', d.getElementById('test-no-custom-avail-title-nodot').textContent === '无可用自定义项');
-  check('新截图4：No customizations found. 句号汉化', d.getElementById('test-no-custom-found').textContent === '未找到自定义项。');
-  check('新截图4：No customizations found 无标点汉化', d.getElementById('test-no-custom-found-nodot').textContent === '未找到自定义项');
+  check('新截图4：Search customizations... 文本节点汉化', d.getElementById('test-search-custom-text').textContent === '搜索自定义项...',
+    () => d.getElementById('test-search-custom-text') && d.getElementById('test-search-custom-text').textContent);
+  check('新截图4：Search Customizations... Title Case 汉化', d.getElementById('test-search-custom-title').textContent === '搜索自定义项...',
+    () => d.getElementById('test-search-custom-title') && d.getElementById('test-search-custom-title').textContent);
+  check('新截图4：Search customizations 无点号精准汉化', d.getElementById('test-search-custom-nodot').textContent === '搜索自定义项',
+    () => d.getElementById('test-search-custom-nodot') && d.getElementById('test-search-custom-nodot').textContent);
+  check('新截图4：Search Customizations Title Case 无点号汉化', d.getElementById('test-search-custom-title-nodot').textContent === '搜索自定义项',
+    () => d.getElementById('test-search-custom-title-nodot') && d.getElementById('test-search-custom-title-nodot').textContent);
+  check('新截图4：search customizations... 小写带省略号汉化', d.getElementById('test-search-custom-lower').textContent === '搜索自定义项...',
+    () => d.getElementById('test-search-custom-lower') && d.getElementById('test-search-custom-lower').textContent);
+  check('新截图4：search customizations 小写无标点汉化', d.getElementById('test-search-custom-lower-nodot').textContent === '搜索自定义项',
+    () => d.getElementById('test-search-custom-lower-nodot') && d.getElementById('test-search-custom-lower-nodot').textContent);
+  check('新截图4：Search customizations. 带句号汉化', d.getElementById('test-search-custom-dot').textContent === '搜索自定义项。',
+    () => d.getElementById('test-search-custom-dot') && d.getElementById('test-search-custom-dot').textContent);
+  check('新截图4：Search Customizations. Title Case 带句号汉化', d.getElementById('test-search-custom-title-dot').textContent === '搜索自定义项。',
+    () => d.getElementById('test-search-custom-title-dot') && d.getElementById('test-search-custom-title-dot').textContent);
+  check('新截图4：Search customizations… Unicode省略号汉化', d.getElementById('test-search-custom-ellipsis-char').textContent === '搜索自定义项…',
+    () => d.getElementById('test-search-custom-ellipsis-char') && d.getElementById('test-search-custom-ellipsis-char').textContent);
+  check('新截图4：Search Customizations… Title Case Unicode省略号汉化', d.getElementById('test-search-custom-title-ellipsis-char').textContent === '搜索自定义项…',
+    () => d.getElementById('test-search-custom-title-ellipsis-char') && d.getElementById('test-search-custom-title-ellipsis-char').textContent);
+  check('新截图4：No customizations configured. 句号汉化', d.getElementById('test-no-custom-configured').textContent === '尚未配置自定义项。',
+    () => d.getElementById('test-no-custom-configured') && d.getElementById('test-no-custom-configured').textContent);
+  check('新截图4：No customizations configured 无标点汉化', d.getElementById('test-no-custom-configured-nodot').textContent === '尚未配置自定义项',
+    () => d.getElementById('test-no-custom-configured-nodot') && d.getElementById('test-no-custom-configured-nodot').textContent);
+  check('新截图4：no customizations configured. 小写带句号汉化', d.getElementById('test-no-custom-configured-lower-dot').textContent === '尚未配置自定义项。',
+    () => d.getElementById('test-no-custom-configured-lower-dot') && d.getElementById('test-no-custom-configured-lower-dot').textContent);
+  check('新截图4：no customizations configured 小写无标点汉化', d.getElementById('test-no-custom-configured-lower-nodot').textContent === '尚未配置自定义项',
+    () => d.getElementById('test-no-custom-configured-lower-nodot') && d.getElementById('test-no-custom-configured-lower-nodot').textContent);
+  check('新截图4：No Customizations Configured. Title Case 句号汉化', d.getElementById('test-no-custom-configured-title').textContent === '尚未配置自定义项。',
+    () => d.getElementById('test-no-custom-configured-title') && d.getElementById('test-no-custom-configured-title').textContent);
+  check('新截图4：No Customizations Configured Title Case 无标点汉化', d.getElementById('test-no-custom-configured-title-nodot').textContent === '尚未配置自定义项',
+    () => d.getElementById('test-no-custom-configured-title-nodot') && d.getElementById('test-no-custom-configured-title-nodot').textContent);
+  check('新截图4：There are no customizations configured. 完整前缀汉化', d.getElementById('test-no-custom-there-are').textContent === '尚未配置自定义项。',
+    () => d.getElementById('test-no-custom-there-are') && d.getElementById('test-no-custom-there-are').textContent);
+  check('新截图4：there are no customizations configured. 小写前缀汉化', d.getElementById('test-no-custom-there-are-lower').textContent === '尚未配置自定义项。',
+    () => d.getElementById('test-no-custom-there-are-lower') && d.getElementById('test-no-custom-there-are-lower').textContent);
+  check('新截图4：No customizations available. 句号汉化', d.getElementById('test-no-custom-avail').textContent === '无可用自定义项。',
+    () => d.getElementById('test-no-custom-avail') && d.getElementById('test-no-custom-avail').textContent);
+  check('新截图4：No customizations available 无标点汉化', d.getElementById('test-no-custom-avail-nodot').textContent === '无可用自定义项',
+    () => d.getElementById('test-no-custom-avail-nodot') && d.getElementById('test-no-custom-avail-nodot').textContent);
+  check('新截图4：No Customizations Available. Title Case 句号汉化', d.getElementById('test-no-custom-avail-title').textContent === '无可用自定义项。',
+    () => d.getElementById('test-no-custom-avail-title') && d.getElementById('test-no-custom-avail-title').textContent);
+  check('新截图4：No Customizations Available Title Case 无标点汉化', d.getElementById('test-no-custom-avail-title-nodot').textContent === '无可用自定义项',
+    () => d.getElementById('test-no-custom-avail-title-nodot') && d.getElementById('test-no-custom-avail-title-nodot').textContent);
+  check('新截图4：No customizations found. 句号汉化', d.getElementById('test-no-custom-found').textContent === '未找到自定义项。',
+    () => d.getElementById('test-no-custom-found') && d.getElementById('test-no-custom-found').textContent);
+  check('新截图4：No customizations found 无标点汉化', d.getElementById('test-no-custom-found-nodot').textContent === '未找到自定义项',
+    () => d.getElementById('test-no-custom-found-nodot') && d.getElementById('test-no-custom-found-nodot').textContent);
 
   // 图 2 断言: 工作区工作树列表 (Previous Worktrees / Worktree)
   check('图2：Previous Worktrees 汉化', d.getElementById('test-prev-worktrees').textContent === '先前的工作树');
