@@ -558,7 +558,9 @@ function runInstall() {
             // 打补丁后的常态：app.asar 已改名成 .orig，它就是当前已装版本的原版
             sourceAsar = origPath;
         } else if (isBackupStaleFor(asarPath)) {
-            console.warn('⚠️ app.asar.orig 与当前 app.asar 不同源（客户端已更新），将改用当前 app.asar 解包。');
+            // 用户视角：说清为什么不用旧备份、有没有风险、要不要额外操作
+            console.log('💡 检测到 Antigravity 已更新，上次留下的英文备份属于旧版本，不会用它覆盖新版本。');
+            console.log('   本次将基于当前安装的最新版本重新打补丁，完成后会刷新备份。');
         } else {
             sourceAsar = origPath;
         }

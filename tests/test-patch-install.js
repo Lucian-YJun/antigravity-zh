@@ -160,8 +160,15 @@ check('① 部署后不残留中间目录', !fs.existsSync(path.join(resourcesDi
 // ---- ② 客户端更新后重新打补丁：必须部署新构建而非过期备份 ----
 fs.copyFileSync(buildV2, asarPath);
 r = runPatch([]);
+const updateOut = (r.stdout || '') + (r.stderr || '');
 check('② 客户端更新后重新打补丁退出码为 0', r.status === 0, (r.stderr || '') + (r.stdout || ''));
 check('② 部署的是新构建 v2-updated 而不是过期备份 v1-old', deployedBuild() === 'v2-updated', String(deployedBuild()));
+// 提示要说清「发现了更新、旧备份不会覆盖新版本、本次会用当前版本重建」
+check('② 提示说明了发现更新与旧备份不会被采用，且不暴露「不同源」等内部术语',
+  /检测到 Antigravity 已更新/.test(updateOut) &&
+  /不会用它覆盖新版本/.test(updateOut) &&
+  /基于当前安装的最新版本重新打补丁/.test(updateOut) &&
+  !/不同源/.test(updateOut), updateOut.slice(0, 300));
 check('② 备份已刷新为新版本（回滚仍能回到当前已装版本原版）',
   fs.existsSync(origPath) && sha256(origPath) === sha256(buildV2));
 check('② 溯源 meta 已刷新', (() => {
