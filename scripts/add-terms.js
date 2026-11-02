@@ -32,7 +32,7 @@ const dictArgIdx = args.indexOf('--dict');
 const dictPath = dictArgIdx >= 0 && args[dictArgIdx + 1]
     ? path.resolve(args[dictArgIdx + 1])
     : path.join(__dirname, '..', 'src', 'cockpit-zh.json');
-const file = args.find((a, i) => !a.startsWith('--') && i !== dictArgIdx + 1);
+const file = args.find((a, i) => !a.startsWith('--') && (dictArgIdx < 0 || i !== dictArgIdx + 1));
 
 if (!file) {
     console.error('用法: node scripts/add-terms.js <词条文件> [--dict <词典路径>] [--dry-run] [--force]');
