@@ -2,27 +2,19 @@
 
 /**
  * 人工提词条辅助：把截图里看到的英文原文批量转成词典条目。
- *
- * 用法：
- *   1. 从截图里把英文原文抄进一个 txt（每行一条，可带 "原文 => 译文"）
- *   2. node scripts/add-terms.js draft.txt --dry-run    先看会加哪些
- *   3. node scripts/add-terms.js draft.txt              真正写入并热同步
- *
- * 三种输入格式，可以混用：
- *   Search automations...              只给原文 → 自动生成占位译文待你补
- *   Search automations...= 搜索自动化... 等号后是译文（中英文等号都认）
- *   Search automations... => 搜索自动化...
- *
- * 设计取舍：
- * - 默认只补「词典里还没有的」原文，不覆盖你已有的译文；
- *   要覆盖加 --force。
- * - 写入前校验：空行/空译文/首尾空格/重复 key 全部拦下，
- *   因为 test-dict.js 对这些零容忍，脏数据会让整个套件红掉。
- * - 写完自动跑一次词典静态体检，再热同步到已安装副本。
+ * 委托至 scripts/lib/dict-manager.js 执行词条解析、校验与冗余检测。
  */
 
 const fs = require('fs');
 const path = require('path');
+const {
+    parseTermLine,
+    buildNormalizationIndex,
+    checkRedundancy,
+    validateDictionary,
+    readDictionary,
+    writeDictionary,
+} = require('./lib/dict-manager');
 
 const args = process.argv.slice(2);
 const isDryRun = args.includes('--dry-run');
@@ -39,38 +31,12 @@ if (!file) {
     process.exit(1);
 }
 
-const rawText = fs.readFileSync(dictPath, 'utf8');
-const data = JSON.parse(rawText);
+const data = readDictionary(dictPath);
 const dict = data.dict || {};
-
-// 解析：支持 "=" "=>" "：" 三种分隔符，取最靠前的一个
-function parseLine(line) {
-    if (!line.trim() || line.trim().startsWith('#')) return null;
-    // 首尾空格在原始行上就拦下：词典对首尾空格零容忍，
-    // 若先 trim 再切分，`  英文 = 译文` 会被"洗白"，脏 key 就混进词典了。
-    if (line !== line.trim()) return { invalid: true };
-    const seps = ['=>', '=', '：'];
-    let idx = -1, sepLen = 0;
-    for (const s of seps) {
-        const i = line.indexOf(s);
-        // 分隔符出现在第 0 位说明这一行没有原文（如 "= 只有译文"），视为非法
-        if (i === 0) return { invalid: true };
-        if (i > 0 && (idx < 0 || i < idx)) { idx = i; sepLen = s.length; }
-    }
-    if (idx < 0) return { src: line, dst: null };
-    const src = line.slice(0, idx).trim();
-    const dst = line.slice(idx + sepLen).trim();
-    if (!src || !dst) return { invalid: true };
-    return { src, dst };
-}
 
 const lines = fs.readFileSync(file, 'utf8').split(/\r?\n/);
 const added = [], skipped = [], invalid = [], redundant = [];
 
-// 用引擎自己的归一化逻辑判断「这条是否已经被现有词条覆盖」。
-// 引擎的查找顺序是精确匹配 → 归一化匹配，所以 Dashboard 已经在词典里时，
-// 再录 dashboard / dashboard. / DASHBOARD 都是纯冗余——这正是过去 1607 条
-// 膨胀到只剩 1033 条不同 key 的原因，光靠"精确重复"检查拦不住。
 let normKey = null;
 try {
     const NE = require(path.join(__dirname, '..', 'src', 'zh-i18n.js')).normEngine();
@@ -79,21 +45,10 @@ try {
     console.log('⚠️ 无法加载引擎归一化逻辑，本次跳过冗余检测：' + e.message);
 }
 
-// 归一化 key → 已存在的条目列表（只构建一次）
-function buildNormIndex() {
-    const idx = new Map();
-    if (!normKey) return idx;
-    for (const k of Object.keys(dict)) {
-        const n = normKey(k);
-        if (!idx.has(n)) idx.set(n, []);
-        idx.get(n).push(k);
-    }
-    return idx;
-}
-const normIndex = buildNormIndex();
+const normIndex = buildNormalizationIndex(dict, normKey);
 
 for (const line of lines) {
-    const item = parseLine(line);
+    const item = parseTermLine(line);
     if (!item) continue;
     if (item.invalid) { invalid.push(line); continue; }
 
@@ -102,15 +57,10 @@ for (const line of lines) {
 
     // 归一化后已被覆盖，且译文一致 → 加进去只是重复，默认不写
     if (normKey && !isForce) {
-        const n = normKey(item.src);
-        const hits = (normIndex.get(n) || []).filter(k => k !== item.src);
-        if (hits.length) {
-            // 只给原文时更危险：占位符会成为精确匹配，反过来遮蔽归一化命中的正确译文，
-            // 所以只要归一化后已经有条目，就不该再写入。
-            if (item.dst === null || hits.some(k => dict[k] === item.dst)) {
-                redundant.push([item.src, hits[0]]);
-                continue;
-            }
+        const red = checkRedundancy(item.src, item.dst, dict, normIndex, normKey);
+        if (red.isRedundant) {
+            redundant.push([item.src, red.existingKey]);
+            continue;
         }
     }
 
@@ -122,8 +72,7 @@ for (const line of lines) {
         dict[item.src] = item.dst;
         added.push([item.src, item.dst]);
     }
-    // 同一批文件里也去重：否则 Foo 和 FOO 会双双入库，
-    // 上一轮 96 条新词里有 25 条就是这么产生的。
+    // 同一批文件里也去重
     if (normKey) {
         const n2 = normKey(item.src);
         if (!normIndex.has(n2)) normIndex.set(n2, []);
@@ -162,20 +111,15 @@ if (!added.length) {
     process.exit(0);
 }
 
-fs.writeFileSync(dictPath, JSON.stringify(data, null, 2) + '\n', 'utf8');
+writeDictionary(dictPath, data);
 console.log(`\n✅ 已写入 ${path.relative(process.cwd(), dictPath)}`);
 
 // 写脏了会让 test-dict 整片红，先自检
 const isDefaultDict = dictPath === path.join(__dirname, '..', 'src', 'cockpit-zh.json');
 if (!isDefaultDict) {
     // 沙箱词典：test-dict.js 固定校验真实词典，这里就地做同等检查
-    const problems = [];
-    const written = JSON.parse(fs.readFileSync(dictPath, 'utf8'));
-    for (const [k, v] of Object.entries(written.dict || {})) {
-        if (k === '' || v === '') problems.push(`空 key 或空值: ${JSON.stringify(k)}`);
-        if (k !== k.trim()) problems.push(`key 首尾空格: ${JSON.stringify(k)}`);
-        if (typeof v === 'string' && v !== v.trim()) problems.push(`值首尾空格: ${JSON.stringify(k)}`);
-    }
+    const written = readDictionary(dictPath);
+    const problems = validateDictionary(written.dict || {});
     if (problems.length) {
         console.error('❌ 词典体检失败：\n' + problems.slice(0, 10).join('\n'));
         process.exit(1);

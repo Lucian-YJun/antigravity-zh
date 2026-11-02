@@ -1492,6 +1492,101 @@ async function waitFor(cond, timeoutMs = 15000, label = '') {
   check('图3：Local Checkouts... 复数带省略号汉化', d.getElementById('test-local-checkouts-ellipsis').textContent === '本地检出...');
   check('图3：Local Checkouts (2) 复数带计数汉化', d.getElementById('test-local-checkouts-count').textContent === '本地检出 (2)');
 
+  // TreeWalker 根节点优化专项校验 (Requirement R3)
+  // 1. 监控翻译引擎调用的 createTreeWalker(root, 5, twFilter) 与 Filter 检查节点
+  //    验证引擎在绝缘根节点上直接剪枝（不创建 TreeWalker），且在正常容器遍历时绝不把 root 本身交给 Filter 检查
+  const walkerRoots = [];
+  const inspectedByFilter = [];
+  const origCreateTw = d.createTreeWalker;
+  d.createTreeWalker = function(root, whatToShow, filter) {
+    if (whatToShow === 5) {
+      walkerRoots.push(root);
+      const wrappedFilter = {
+        acceptNode: function(node) {
+          inspectedByFilter.push(node);
+          return (filter && typeof filter.acceptNode === 'function') ? filter.acceptNode(node) : 1;
+        }
+      };
+      return origCreateTw.call(d, root, whatToShow, wrappedFilter);
+    }
+    return origCreateTw.call(d, root, whatToShow, filter);
+  };
+
+  // 用例 1: 直接挂载带 placeholder 的 <textarea> 根节点
+  // - placeholder 属性正常汉化为 '设置'（根属性处理未被提前跳过）
+  // - 内部文本 'File' 绝不被汉化（textarea 文本保护）
+  // - 属性处理后直接剪枝，绝不为 <textarea> 根节点创建 TreeWalker
+  const directTextarea = d.createElement('textarea');
+  directTextarea.setAttribute('placeholder', 'Settings');
+  directTextarea.textContent = 'File';
+  d.getElementById('host').appendChild(directTextarea);
+  await flush();
+
+  check('TreeWalker 根优化：直接挂载 <textarea> placeholder 属性正常汉化', directTextarea.getAttribute('placeholder') === '设置',
+    () => directTextarea.getAttribute('placeholder'));
+  check('TreeWalker 根优化：直接挂载 <textarea> 内部文本绝对不被汉化', directTextarea.textContent === 'File',
+    () => directTextarea.textContent);
+  check('TreeWalker 根优化：<textarea> 根节点属性处理后不创建 TreeWalker', walkerRoots.indexOf(directTextarea) === -1,
+    () => walkerRoots.map(r => r.tagName + (r.className ? '.' + r.className : '')));
+
+  // 用例 2: 直接挂载 Monaco 编辑器与 Pre 代码块作为根节点
+  // - 容器子树完全绝缘，内部 span 保持 'File'
+  // - 根节点直接剪枝，绝不为绝缘根节点创建 TreeWalker（避免子树全量下钻开销）
+  const directMonaco = d.createElement('div');
+  directMonaco.className = 'monaco-editor';
+  const twMonacoInner = d.createElement('div');
+  twMonacoInner.className = 'view-line';
+  const twMonacoSpan = d.createElement('span');
+  twMonacoSpan.textContent = 'File';
+  twMonacoInner.appendChild(twMonacoSpan);
+  directMonaco.appendChild(twMonacoInner);
+  d.getElementById('host').appendChild(directMonaco);
+  await flush();
+
+  check('TreeWalker 根优化：直接挂载 monaco-editor 根容器绝缘不汉化', twMonacoSpan.textContent === 'File',
+    () => twMonacoSpan.textContent);
+  check('TreeWalker 根优化：monaco-editor 根容器跳过 TreeWalker 创建', walkerRoots.indexOf(directMonaco) === -1,
+    () => walkerRoots.map(r => r.tagName + (r.className ? '.' + r.className : '')));
+
+  const directPre = d.createElement('pre');
+  const twPreCode = d.createElement('code');
+  const twPreSpan = d.createElement('span');
+  twPreSpan.textContent = 'File';
+  twPreCode.appendChild(twPreSpan);
+  directPre.appendChild(twPreCode);
+  d.getElementById('host').appendChild(directPre);
+  await flush();
+
+  check('TreeWalker 根优化：直接挂载 pre 根容器绝缘不汉化', twPreSpan.textContent === 'File',
+    () => twPreSpan.textContent);
+  check('TreeWalker 根优化：pre 根容器跳过 TreeWalker 创建', walkerRoots.indexOf(directPre) === -1,
+    () => walkerRoots.map(r => r.tagName + (r.className ? '.' + r.className : '')));
+
+  // 用例 3: 正常容器挂载（含 title 属性与子节点）
+  // - 根节点的 title 属性正常汉化为 '设置'
+  // - 子节点 span 文本正常汉化为 '文件'
+  // - 正常容器按需创建 TreeWalker 遍历子孙
+  // - TreeWalker 遍历过程绝不检查根节点本身（根节点不进入 filter/nextNode）
+  const directContainer = d.createElement('div');
+  directContainer.setAttribute('title', 'Settings');
+  const twChildSpan = d.createElement('span');
+  twChildSpan.textContent = 'File';
+  directContainer.appendChild(twChildSpan);
+  d.getElementById('host').appendChild(directContainer);
+  await flush();
+
+  check('TreeWalker 根优化：正常容器根属性正常汉化', directContainer.getAttribute('title') === '设置',
+    () => directContainer.getAttribute('title'));
+  check('TreeWalker 根优化：正常容器子节点正常汉化', twChildSpan.textContent === '文件',
+    () => twChildSpan.textContent);
+  check('TreeWalker 根优化：正常容器按需创建 TreeWalker', walkerRoots.indexOf(directContainer) !== -1,
+    () => walkerRoots.map(r => r.tagName + (r.className ? '.' + r.className : '')));
+  check('TreeWalker 根优化：TreeWalker 遍历不检查根节点本身', inspectedByFilter.indexOf(directContainer) === -1,
+    () => inspectedByFilter.map(n => n.tagName || n.nodeName));
+
+  // 恢复原始 createTreeWalker
+  d.createTreeWalker = origCreateTw;
+
   console.log(`\n页面翻译器: ${pass} 通过, ${fail} 失败`);
   fs.rmSync(SIM, { recursive: true, force: true });
   process.exit(fail ? 1 : 0);

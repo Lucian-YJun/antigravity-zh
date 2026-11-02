@@ -1,0 +1,196 @@
+use std::collections::HashMap;
+use std::fs;
+use std::path::{Path, PathBuf};
+use aho_corasick::{AhoCorasick, MatchKind};
+
+use crate::error::ReplacerError;
+use crate::rules::{load_rules_from_file, load_rules_from_str, ReplacementRule, ReplacementSummary};
+
+/// Multi-pattern string replacement engine utilizing the Aho-Corasick automaton.
+pub struct StringReplacer {
+    rules: Vec<ReplacementRule>,
+    automaton: AhoCorasick,
+}
+
+impl StringReplacer {
+    /// Constructs a replacer from a list of replacement rules.
+    pub fn new(rules: Vec<ReplacementRule>) -> Result<Self, ReplacerError> {
+        if rules.is_empty() {
+            return Err(ReplacerError::EmptyRules);
+        }
+
+        let patterns: Vec<&str> = rules.iter().map(|r| r.search.as_str()).collect();
+        let automaton = AhoCorasick::builder()
+            .match_kind(MatchKind::LeftmostFirst)
+            .build(&patterns)?;
+
+        Ok(Self { rules, automaton })
+    }
+
+    /// Loads replacement rules from a JSON file and builds the automaton.
+    pub fn from_json_file<P: AsRef<Path>>(path: P) -> Result<Self, ReplacerError> {
+        let rules = load_rules_from_file(path)?;
+        Self::new(rules)
+    }
+
+    /// Loads replacement rules from a JSON string and builds the automaton.
+    pub fn from_json_str(json: &str) -> Result<Self, ReplacerError> {
+        let rules = load_rules_from_str(json)?;
+        Self::new(rules)
+    }
+
+    /// Returns a reference to the active rules.
+    pub fn rules(&self) -> &[ReplacementRule] {
+        &self.rules
+    }
+
+    /// Performs single-pass replacement across the input string.
+    /// Returns the modified string and the number of matches replaced.
+    pub fn apply(&self, input: &str) -> (String, usize) {
+        let mut count = 0;
+        let mut result = String::with_capacity(input.len());
+
+        self.automaton
+            .replace_all_with(input, &mut result, |mat, _, dst| {
+                count += 1;
+                let pattern_idx = mat.pattern().as_usize();
+                dst.push_str(&self.rules[pattern_idx].replace);
+                true
+            });
+
+        (result, count)
+    }
+
+    /// Applies replacements directly to a file on disk.
+    pub fn apply_to_file<P: AsRef<Path>>(
+        &self,
+        path: P,
+        scope: &str,
+        dry_run: bool,
+    ) -> Result<ReplacementSummary, ReplacerError> {
+        let target_path = path.as_ref();
+        if !target_path.exists() {
+            return Err(ReplacerError::TargetNotFound(target_path.to_path_buf()));
+        }
+
+        let content = fs::read_to_string(target_path)?;
+        let (replaced, match_count) = self.apply(&content);
+        let modified = match_count > 0;
+
+        if modified && !dry_run {
+            fs::write(target_path, replaced)?;
+        }
+
+        Ok(ReplacementSummary {
+            scope: scope.to_string(),
+            target_file: target_path.to_path_buf(),
+            total_rules: self.rules.len(),
+            matched_rules: match_count,
+            modified,
+        })
+    }
+}
+
+/// Batch replacer executing scoped replacements across an entire staging directory.
+pub struct BatchReplacer {
+    rules_dir: PathBuf,
+    scope_targets: HashMap<String, String>,
+}
+
+impl BatchReplacer {
+    /// Creates a new batch replacer targeting the provided native rules directory.
+    pub fn new<P: AsRef<Path>>(rules_dir: P) -> Self {
+        Self {
+            rules_dir: rules_dir.as_ref().to_path_buf(),
+            scope_targets: Self::default_targets(),
+        }
+    }
+
+    /// Returns the canonical target map matching `src/native/*.replacements.json`.
+    pub fn default_targets() -> HashMap<String, String> {
+        let mut targets = HashMap::new();
+        targets.insert("utils".to_string(), "dist/utils.js".to_string());
+        targets.insert("menu".to_string(), "dist/menu.js".to_string());
+        targets.insert("main".to_string(), "dist/main.js".to_string());
+        targets.insert("tray".to_string(), "dist/tray.js".to_string());
+        targets.insert("updater".to_string(), "dist/updater.js".to_string());
+        targets.insert("ipchandlers".to_string(), "dist/ipcHandlers.js".to_string());
+        targets.insert(
+            "wizard".to_string(),
+            "dist/ideInstall/wizardHtml.js".to_string(),
+        );
+        targets
+    }
+
+    /// Adds or updates a target mapping.
+    pub fn add_target(&mut self, scope: &str, relative_target: &str) {
+        self.scope_targets
+            .insert(scope.to_string(), relative_target.to_string());
+    }
+
+    /// Executes batch replacement across all configured scopes against `staging_dir`.
+    pub fn execute_batch<P: AsRef<Path>>(
+        &self,
+        staging_dir: P,
+        dry_run: bool,
+    ) -> Result<Vec<ReplacementSummary>, ReplacerError> {
+        let staging_root = staging_dir.as_ref();
+        let mut summaries = Vec::new();
+
+        for (scope, rel_path) in &self.scope_targets {
+            let target_file = staging_root.join(rel_path);
+            let rules_file = self
+                .rules_dir
+                .join(format!("{}.replacements.json", scope));
+
+            if !rules_file.exists() {
+                continue;
+            }
+
+            if !target_file.exists() {
+                continue;
+            }
+
+            let replacer = StringReplacer::from_json_file(&rules_file)?;
+            let summary = replacer.apply_to_file(&target_file, scope, dry_run)?;
+            summaries.push(summary);
+        }
+
+        Ok(summaries)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_single_pass_aho_corasick_replacement() {
+        let rules = vec![
+            ReplacementRule::new("apple", "pomme"),
+            ReplacementRule::new("banana", "banane"),
+            ReplacementRule::new("orange", "orange"),
+        ];
+
+        let replacer = StringReplacer::new(rules).unwrap();
+        let input = "I have an apple, a banana, and an orange.";
+        let (output, count) = replacer.apply(input);
+
+        assert_eq!(count, 3);
+        assert_eq!(output, "I have an pomme, a banane, and an orange.");
+    }
+
+    #[test]
+    fn test_leftmost_longest_precedence() {
+        let rules = vec![
+            ReplacementRule::new("test", "A"),
+            ReplacementRule::new("testing", "B"),
+        ];
+
+        let replacer = StringReplacer::new(rules).unwrap();
+        let (output, count) = replacer.apply("We are testing now.");
+
+        assert_eq!(count, 1);
+        assert_eq!(output, "We are Aing now."); // LeftmostFirst selects "test"
+    }
+}
