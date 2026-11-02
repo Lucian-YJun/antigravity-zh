@@ -1259,7 +1259,11 @@
     "Task Logs": "任务日志",
     "Search all skills on Agent Market…": "在 Agent 市场搜索所有技能…",
     "Searching Agent Market...": "正在搜索 Agent 市场...",
-    "Agent Market Search Results": "Agent 市场搜索结果"
+    "Agent Market Search Results": "Agent 市场搜索结果",
+    "Visit": "请访问",
+    "Legal Help": "法律帮助",
+    "to ask for content changes for legal reasons.": "即可申请出于法律原因的内容变更。",
+    "Visit Legal Help to ask for content changes for legal reasons.": "如需出于法律原因申请内容变更，请访问法律帮助。"
   },
   "rules": [
     [
