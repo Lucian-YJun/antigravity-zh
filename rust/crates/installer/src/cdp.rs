@@ -167,28 +167,42 @@ impl CdpClient {
 
         Ok(success_count)
     }
+
+    /// Decodes HTTP chunked transfer-encoded bytes into a UTF-8 String.
+    pub fn decode_chunked_body(raw_body: &[u8]) -> Result<String, InstallerError> {
+        decode_chunked_body(raw_body)
+    }
 }
 
-fn decode_chunked_body(raw_body: &str) -> Result<String, InstallerError> {
-    let mut decoded = String::new();
+pub fn decode_chunked_body(raw_body: &[u8]) -> Result<String, InstallerError> {
+    let mut decoded = Vec::new();
     let mut remainder = raw_body;
 
     loop {
-        // Strip leading CRLF if present between chunks
-        if remainder.starts_with("\r\n") {
+        // Strip leading CRLF or LF if present between chunks
+        if remainder.starts_with(b"\r\n") {
             remainder = &remainder[2..];
-        } else if remainder.starts_with('\n') {
+        } else if remainder.starts_with(b"\n") {
             remainder = &remainder[1..];
         }
         if remainder.is_empty() {
             break;
         }
 
-        // Find CRLF at the end of chunk-size line
-        let line_end = remainder
-            .find("\r\n")
-            .ok_or_else(|| InstallerError::Env("Malformed chunk: missing CRLF after size".into()))?;
-        let size_str = remainder[..line_end].trim();
+        // Find newline at the end of chunk-size line
+        let newline_pos = remainder
+            .iter()
+            .position(|&b| b == b'\n')
+            .ok_or_else(|| InstallerError::Env("Malformed chunk: missing newline after size".into()))?;
+        let size_bytes = if newline_pos > 0 && remainder[newline_pos - 1] == b'\r' {
+            &remainder[..newline_pos - 1]
+        } else {
+            &remainder[..newline_pos]
+        };
+
+        let size_str = std::str::from_utf8(size_bytes)
+            .map_err(|e| InstallerError::Env(format!("Invalid chunk size encoding: {}", e)))?
+            .trim();
         // Ignore chunk extensions after semicolon if any
         let hex_size = size_str.split(';').next().unwrap_or("").trim();
         let chunk_size = usize::from_str_radix(hex_size, 16)
@@ -199,7 +213,7 @@ fn decode_chunked_body(raw_body: &str) -> Result<String, InstallerError> {
             break;
         }
 
-        let chunk_start = line_end + 2;
+        let chunk_start = newline_pos + 1;
         if chunk_start + chunk_size > remainder.len() {
             return Err(InstallerError::Env(format!(
                 "Truncated chunk: expected {} bytes, available {}",
@@ -209,11 +223,12 @@ fn decode_chunked_body(raw_body: &str) -> Result<String, InstallerError> {
         }
 
         let chunk_data = &remainder[chunk_start..chunk_start + chunk_size];
-        decoded.push_str(chunk_data);
+        decoded.extend_from_slice(chunk_data);
         remainder = &remainder[chunk_start + chunk_size..];
     }
 
-    Ok(decoded)
+    Ok(String::from_utf8(decoded)
+        .unwrap_or_else(|e| String::from_utf8_lossy(e.as_bytes()).into_owned()))
 }
 
 fn http_get(port: u16, path: &str) -> Result<String, InstallerError> {
@@ -235,18 +250,19 @@ fn http_get(port: u16, path: &str) -> Result<String, InstallerError> {
     let mut response = Vec::new();
     stream.read_to_end(&mut response)?;
 
-    let resp_str = String::from_utf8_lossy(&response);
-    if let Some(pos) = resp_str.find("\r\n\r\n") {
-        let headers = &resp_str[..pos];
+    if let Some(pos) = response.windows(4).position(|w| w == b"\r\n\r\n") {
+        let headers_bytes = &response[..pos];
+        let headers = String::from_utf8_lossy(headers_bytes);
         if headers.starts_with("HTTP/1.1 200") || headers.starts_with("HTTP/1.0 200") {
-            let raw_body = &resp_str[pos + 4..];
+            let raw_body = &response[pos + 4..];
             let lower_headers = headers.to_ascii_lowercase();
             if lower_headers.contains("transfer-encoding: chunked")
                 || lower_headers.contains("transfer-encoding:\tchunked")
             {
                 return decode_chunked_body(raw_body);
             }
-            return Ok(raw_body.to_string());
+            return Ok(String::from_utf8(raw_body.to_vec())
+                .unwrap_or_else(|e| String::from_utf8_lossy(e.as_bytes()).into_owned()));
         }
     }
 

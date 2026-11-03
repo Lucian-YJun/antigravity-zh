@@ -293,3 +293,67 @@ fn test_source_assets_missing_guard_protects_disk() {
 
     let _ = fs::remove_dir_all(&tmp);
 }
+
+#[test]
+fn test_cdp_chunked_decode_multibyte_utf8_boundary_split() {
+    use antigravity_installer::cdp::decode_chunked_body;
+
+    // "你好世界！🚀" contains:
+    // '你': [0xE4, 0xBD, 0xA0] (3 bytes)
+    // '好': [0xE5, 0xA5, 0xBD] (3 bytes)
+    // '世': [0xE4, 0xB8, 0x96] (3 bytes)
+    // '界': [0xE7, 0x94, 0x8C] (3 bytes)
+    // '！': [0xEF, 0xBC, 0x81] (3 bytes)
+    // '🚀': [0xF0, 0x9F, 0x9A, 0x80] (4 bytes)
+    let full_text = "{\"message\": \"你好世界！🚀 - 自动化热载同步测试\"}";
+    let full_bytes = full_text.as_bytes();
+
+    // 1. Split across chunk 1 and chunk 2 right in the middle of 3-byte '好'
+    let hao_pos = full_text.find('好').expect("found '好'");
+    let split_pos_1 = hao_pos + 1; // 1st byte in chunk 1, 2nd & 3rd in chunk 2
+
+    let chunk1 = &full_bytes[..split_pos_1];
+    let chunk2 = &full_bytes[split_pos_1..];
+
+    let mut payload1 = Vec::new();
+    payload1.extend_from_slice(format!("{:x}\r\n", chunk1.len()).as_bytes());
+    payload1.extend_from_slice(chunk1);
+    payload1.extend_from_slice(b"\r\n");
+    payload1.extend_from_slice(format!("{:x}\r\n", chunk2.len()).as_bytes());
+    payload1.extend_from_slice(chunk2);
+    payload1.extend_from_slice(b"\r\n0\r\n\r\n");
+
+    let decoded1 = decode_chunked_body(&payload1).expect("decode chunk split inside 3-byte char");
+    assert_eq!(decoded1, full_text);
+
+    // 2. Split right in the middle of 4-byte emoji '🚀'
+    let rocket_pos = full_text.find('🚀').expect("found '🚀'");
+    let split_pos_2 = rocket_pos + 2; // 2 bytes in chunk 1, 2 bytes in chunk 2
+
+    let chunk_a = &full_bytes[..split_pos_2];
+    let chunk_b = &full_bytes[split_pos_2..];
+
+    let mut payload2 = Vec::new();
+    payload2.extend_from_slice(format!("{:x}\r\n", chunk_a.len()).as_bytes());
+    payload2.extend_from_slice(chunk_a);
+    payload2.extend_from_slice(b"\r\n");
+    payload2.extend_from_slice(format!("{:x}\r\n", chunk_b.len()).as_bytes());
+    payload2.extend_from_slice(chunk_b);
+    payload2.extend_from_slice(b"\r\n0\r\n\r\n");
+
+    let decoded2 = decode_chunked_body(&payload2).expect("decode chunk split inside 4-byte char");
+    assert_eq!(decoded2, full_text);
+
+    // 3. Pathological case: 1 byte per chunk (every multi-byte character is split byte-by-byte)
+    let mut pathological = Vec::new();
+    for &b in full_bytes {
+        pathological.extend_from_slice(b"1\r\n");
+        pathological.push(b);
+        pathological.extend_from_slice(b"\r\n");
+    }
+    pathological.extend_from_slice(b"0\r\n\r\n");
+
+    let decoded3 = decode_chunked_body(&pathological).expect("decode byte-by-byte chunks");
+    assert_eq!(decoded3, full_text);
+}
+

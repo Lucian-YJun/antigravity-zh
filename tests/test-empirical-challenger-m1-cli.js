@@ -643,6 +643,14 @@ runTest('INSTALL', 'install with missing source assets fails with exit code 1 an
   fs.rmSync(tmpSandbox, { recursive: true, force: true });
 });
 
+runTest('SYNC', 'sync with nonexistent --project-root fails early with code 1 and no panic', () => {
+  const nonExistDir = path.join(os.tmpdir(), `nonexistent_root_${Date.now()}`);
+  const res = runTool(DIST_BIN, ['sync', '--project-root', nonExistDir]);
+  assert.strictEqual(res.status, 1, `Expected code 1, got ${res.status}`);
+  assert(!res.panicked, 'Panic detected in sync with nonexistent project-root');
+  assert(res.stderr.includes('Specified project root does not exist') || res.stderr.includes('Error:'));
+});
+
 // ============================================================================
 // SUMMARY
 // ============================================================================

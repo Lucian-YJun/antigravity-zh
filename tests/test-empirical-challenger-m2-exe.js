@@ -279,7 +279,27 @@ console.log('\nGroup 3: Corrupted app.asar Stress Tests');
 // -----------------------------------------------------------------------------
 console.log('\nGroup 4: Fail-Safe Process Detection & Host Protection');
 
-{
+let hostIdeRunning = false;
+try {
+  const psCheck = spawnSync('powershell', [
+    '-NoProfile',
+    '-NonInteractive',
+    '-Command',
+    '(Get-Process -Name Antigravity -ErrorAction SilentlyContinue).Count',
+  ], {
+    encoding: 'utf8',
+    windowsHide: true,
+    timeout: 5000,
+  });
+  const procCount = parseInt((psCheck.stdout || '').trim(), 10);
+  hostIdeRunning = Number.isFinite(procCount) && procCount > 0;
+} catch {
+  hostIdeRunning = false;
+}
+
+if (!hostIdeRunning) {
+  console.log('  ⚠️ [SKIP] Host Antigravity IDE is not running. Skipping Group 4 running-process protection tests.');
+} else {
   const { tempDir, localAppData, resourcesDir, appRoot } = createSandbox();
   try {
     fs.mkdirSync(resourcesDir, { recursive: true });

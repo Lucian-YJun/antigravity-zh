@@ -207,6 +207,15 @@ fn run_install(
 ) -> Result<(), CliError> {
     println!("{}", "==> Antigravity Chinese Localization Installer".bold().cyan());
 
+    if let Some(root) = project_root {
+        if !root.exists() {
+            return Err(CliError::Execution(format!(
+                "Specified project root does not exist: {}",
+                root.display()
+            )));
+        }
+    }
+
     // 1. Resolve source assets FIRST. Fail early before touching disk if assets are missing.
     let assets = env::resolve_source_assets(project_root)?;
     if !assets.native_patches_dir.is_dir()
@@ -369,18 +378,21 @@ fn run_sync(
     dict_path: Option<&Path>,
     project_root: Option<&Path>,
 ) -> Result<(), CliError> {
-    let active_port = match port {
-        Some(p) => p,
-        None => CdpClient::detect_port().ok_or_else(|| {
-            CliError::Execution("Could not detect active DevTools port. Is Antigravity running?".into())
-        })?,
-    };
-
-    println!("Connecting to CDP on port {}", active_port);
+    if let Some(root) = project_root {
+        if !root.exists() {
+            return Err(CliError::Execution(format!(
+                "Specified project root does not exist: {}",
+                root.display()
+            )));
+        }
+    }
 
     let target_dict = if let Some(dict) = dict_path {
         dict.to_path_buf()
-    } else if let Ok(assets) = env::resolve_source_assets(project_root) {
+    } else if let Some(root) = project_root {
+        let assets = env::resolve_source_assets(Some(root))?;
+        assets.source_dict
+    } else if let Ok(assets) = env::resolve_source_assets(None) {
         assets.source_dict
     } else {
         PathBuf::from("src/cockpit-zh.json")
@@ -392,6 +404,15 @@ fn run_sync(
             target_dict.display()
         )));
     }
+
+    let active_port = match port {
+        Some(p) => p,
+        None => CdpClient::detect_port().ok_or_else(|| {
+            CliError::Execution("Could not detect active DevTools port. Is Antigravity running?".into())
+        })?,
+    };
+
+    println!("Connecting to CDP on port {}", active_port);
 
     let count = CdpClient::sync_dictionary(&target_dict, active_port)?;
     println!("Synchronized dictionary to {} renderer target(s)", count);
