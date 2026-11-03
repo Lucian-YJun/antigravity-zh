@@ -40,6 +40,10 @@ pub enum Commands {
         /// Override path to Antigravity resources directory
         #[arg(long)]
         resources_dir: Option<PathBuf>,
+
+        /// Override path to localization source assets directory or project root
+        #[arg(long, visible_alias = "assets-dir")]
+        project_root: Option<PathBuf>,
     },
 
     /// Reverts patched installation back to original unmodified state
@@ -58,6 +62,10 @@ pub enum Commands {
         /// Path to dictionary JSON file
         #[arg(long)]
         dict: Option<PathBuf>,
+
+        /// Override path to localization source assets directory or project root
+        #[arg(long, visible_alias = "assets-dir")]
+        project_root: Option<PathBuf>,
     },
 
     /// Electron ASAR archive operations
@@ -162,11 +170,22 @@ impl Cli {
                 close,
                 relaunch,
                 resources_dir,
-            } => run_install(dry_run, close, relaunch, resources_dir.as_deref()),
+                project_root,
+            } => run_install(
+                dry_run,
+                close,
+                relaunch,
+                resources_dir.as_deref(),
+                project_root.as_deref(),
+            ),
 
             Commands::Revert { resources_dir } => run_revert(resources_dir.as_deref()),
 
-            Commands::Sync { port, dict } => run_sync(port, dict.as_deref()),
+            Commands::Sync {
+                port,
+                dict,
+                project_root,
+            } => run_sync(port, dict.as_deref(), project_root.as_deref()),
 
             Commands::Asar { sub } => run_asar(sub),
 
@@ -184,8 +203,21 @@ fn run_install(
     close: bool,
     relaunch: bool,
     resources_dir: Option<&Path>,
+    project_root: Option<&Path>,
 ) -> Result<(), CliError> {
     println!("{}", "==> Antigravity Chinese Localization Installer".bold().cyan());
+
+    // 1. Resolve source assets FIRST. Fail early before touching disk if assets are missing.
+    let assets = env::resolve_source_assets(project_root)?;
+    if !assets.native_patches_dir.is_dir()
+        || !assets.source_i18n.is_file()
+        || !assets.source_dict.is_file()
+    {
+        return Err(CliError::Execution(format!(
+            "Localization source assets not found or incomplete: native_patches={:?}, i18n={:?}, dict={:?}",
+            assets.native_patches_dir, assets.source_i18n, assets.source_dict
+        )));
+    }
 
     let res_dir = env::get_resources_dir(resources_dir)?;
     println!("Target resources: {}", res_dir.display());
@@ -264,7 +296,6 @@ fn run_install(
         stats.total_files, stats.total_bytes
     );
 
-    let assets = env::resolve_source_assets(None)?;
     println!("Applying native replacement rules from: {}", assets.native_patches_dir.display());
 
     let batch = BatchReplacer::new(&assets.native_patches_dir);
@@ -292,12 +323,8 @@ fn run_install(
 
     let deployer = Deployer::new(&res_dir);
     deployer.deploy_atomically(&temp_staging, |zh_kit_dir| {
-        if assets.source_i18n.exists() {
-            std::fs::copy(&assets.source_i18n, zh_kit_dir.join("zh-i18n.js"))?;
-        }
-        if assets.source_dict.exists() {
-            std::fs::copy(&assets.source_dict, zh_kit_dir.join("cockpit-zh.json"))?;
-        }
+        std::fs::copy(&assets.source_i18n, zh_kit_dir.join("zh-i18n.js"))?;
+        std::fs::copy(&assets.source_dict, zh_kit_dir.join("cockpit-zh.json"))?;
         println!("Localized assets deployed to {}", zh_kit_dir.display());
         Ok(())
     })?;
@@ -306,7 +333,11 @@ fn run_install(
 
     if relaunch {
         println!("Relaunching Antigravity IDE...");
-        let _ = ProcessManager::relaunch_antigravity(&res_dir);
+        match ProcessManager::relaunch_antigravity(&res_dir) {
+            Ok(true) => println!("{}", "Antigravity IDE successfully relaunched.".green()),
+            Ok(false) => eprintln!("{}", "Warning: Antigravity.exe not found to relaunch.".yellow()),
+            Err(err) => eprintln!("{}", format!("Warning: Failed to relaunch Antigravity IDE: {}", err).yellow()),
+        }
     }
 
     Ok(())
@@ -333,7 +364,11 @@ fn run_revert(resources_dir: Option<&Path>) -> Result<(), CliError> {
     Ok(())
 }
 
-fn run_sync(port: Option<u16>, dict_path: Option<&Path>) -> Result<(), CliError> {
+fn run_sync(
+    port: Option<u16>,
+    dict_path: Option<&Path>,
+    project_root: Option<&Path>,
+) -> Result<(), CliError> {
     let active_port = match port {
         Some(p) => p,
         None => CdpClient::detect_port().ok_or_else(|| {
@@ -343,10 +378,22 @@ fn run_sync(port: Option<u16>, dict_path: Option<&Path>) -> Result<(), CliError>
 
     println!("Connecting to CDP on port {}", active_port);
 
-    let default_dict = PathBuf::from("cockpit-zh.json");
-    let target_dict = dict_path.unwrap_or(&default_dict);
+    let target_dict = if let Some(dict) = dict_path {
+        dict.to_path_buf()
+    } else if let Ok(assets) = env::resolve_source_assets(project_root) {
+        assets.source_dict
+    } else {
+        PathBuf::from("src/cockpit-zh.json")
+    };
 
-    let count = CdpClient::sync_dictionary(target_dict, active_port)?;
+    if !target_dict.exists() {
+        return Err(CliError::Execution(format!(
+            "Dictionary file not found at {}. Use --dict <file> to specify dictionary location.",
+            target_dict.display()
+        )));
+    }
+
+    let count = CdpClient::sync_dictionary(&target_dict, active_port)?;
     println!("Synchronized dictionary to {} renderer target(s)", count);
     Ok(())
 }

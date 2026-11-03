@@ -126,15 +126,11 @@ impl CdpClient {
             .map_err(|e| InstallerError::Env(format!("Failed to parse dictionary JSON: {}", e)))?;
 
         // 1. Discover active targets from CDP HTTP endpoint
-        let raw_targets = match http_get(port, "/json") {
-            Ok(body) => body,
-            Err(_) => return Ok(0),
-        };
+        let raw_targets = http_get(port, "/json")
+            .map_err(|e| InstallerError::Env(format!("Failed to query CDP HTTP endpoint at port {}: {}", port, e)))?;
 
-        let targets: Vec<CdpTarget> = match serde_json::from_str(&raw_targets) {
-            Ok(t) => t,
-            Err(_) => return Ok(0),
-        };
+        let targets: Vec<CdpTarget> = serde_json::from_str(&raw_targets)
+            .map_err(|e| InstallerError::Env(format!("Failed to parse CDP /json targets: {}", e)))?;
 
         let matching_pages: Vec<CdpTarget> = targets
             .into_iter()
@@ -173,6 +169,53 @@ impl CdpClient {
     }
 }
 
+fn decode_chunked_body(raw_body: &str) -> Result<String, InstallerError> {
+    let mut decoded = String::new();
+    let mut remainder = raw_body;
+
+    loop {
+        // Strip leading CRLF if present between chunks
+        if remainder.starts_with("\r\n") {
+            remainder = &remainder[2..];
+        } else if remainder.starts_with('\n') {
+            remainder = &remainder[1..];
+        }
+        if remainder.is_empty() {
+            break;
+        }
+
+        // Find CRLF at the end of chunk-size line
+        let line_end = remainder
+            .find("\r\n")
+            .ok_or_else(|| InstallerError::Env("Malformed chunk: missing CRLF after size".into()))?;
+        let size_str = remainder[..line_end].trim();
+        // Ignore chunk extensions after semicolon if any
+        let hex_size = size_str.split(';').next().unwrap_or("").trim();
+        let chunk_size = usize::from_str_radix(hex_size, 16)
+            .map_err(|e| InstallerError::Env(format!("Invalid hex chunk size '{}': {}", hex_size, e)))?;
+
+        if chunk_size == 0 {
+            // Reached terminating 0 chunk
+            break;
+        }
+
+        let chunk_start = line_end + 2;
+        if chunk_start + chunk_size > remainder.len() {
+            return Err(InstallerError::Env(format!(
+                "Truncated chunk: expected {} bytes, available {}",
+                chunk_size,
+                remainder.len() - chunk_start
+            )));
+        }
+
+        let chunk_data = &remainder[chunk_start..chunk_start + chunk_size];
+        decoded.push_str(chunk_data);
+        remainder = &remainder[chunk_start + chunk_size..];
+    }
+
+    Ok(decoded)
+}
+
 fn http_get(port: u16, path: &str) -> Result<String, InstallerError> {
     let addr_str = format!("127.0.0.1:{}", port);
     let mut stream = TcpStream::connect_timeout(
@@ -196,7 +239,14 @@ fn http_get(port: u16, path: &str) -> Result<String, InstallerError> {
     if let Some(pos) = resp_str.find("\r\n\r\n") {
         let headers = &resp_str[..pos];
         if headers.starts_with("HTTP/1.1 200") || headers.starts_with("HTTP/1.0 200") {
-            return Ok(resp_str[pos + 4..].to_string());
+            let raw_body = &resp_str[pos + 4..];
+            let lower_headers = headers.to_ascii_lowercase();
+            if lower_headers.contains("transfer-encoding: chunked")
+                || lower_headers.contains("transfer-encoding:\tchunked")
+            {
+                return decode_chunked_body(raw_body);
+            }
+            return Ok(raw_body.to_string());
         }
     }
 
@@ -374,6 +424,7 @@ fn ws_evaluate(host: &str, port: u16, path: &str, code: &str) -> Result<bool, In
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::net::TcpListener;
 
     #[test]
     fn test_loopback_and_target_security_checks() {
@@ -489,6 +540,88 @@ mod tests {
 
         let updated = CdpClient::sync_dictionary(&dict_file, port).expect("sync dictionary");
         assert_eq!(updated, 1, "Should successfully synchronize 1 target");
+
+        handle.join().unwrap();
+        let _ = fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn test_cdp_sync_dictionary_chunked_response() {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let port = listener.local_addr().unwrap().port();
+
+        let handle = std::thread::spawn(move || {
+            // First connection: HTTP GET /json with chunked transfer encoding
+            let (mut stream, _) = listener.accept().unwrap();
+            let mut req_buf = [0u8; 1024];
+            let _ = stream.read(&mut req_buf).unwrap();
+
+            let targets_json = format!(
+                r#"[{{"type": "page", "url": "file:///C:/app/index.html", "webSocketDebuggerUrl": "ws://127.0.0.1:{}/devtools/page/chunked1"}}]"#,
+                port
+            );
+
+            // Send in two separate chunks
+            let half = targets_json.len() / 2;
+            let chunk1 = &targets_json[..half];
+            let chunk2 = &targets_json[half..];
+
+            let http_resp = format!(
+                "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nTransfer-Encoding: chunked\r\nConnection: close\r\n\r\n{:x}\r\n{}\r\n{:x}\r\n{}\r\n0\r\n\r\n",
+                chunk1.len(),
+                chunk1,
+                chunk2.len(),
+                chunk2
+            );
+            stream.write_all(http_resp.as_bytes()).unwrap();
+            drop(stream);
+
+            // Second connection: WebSocket to /devtools/page/chunked1
+            let (mut ws_stream, _) = listener.accept().unwrap();
+            let mut ws_req_buf = [0u8; 1024];
+            let n = ws_stream.read(&mut ws_req_buf).unwrap();
+            let ws_req_str = String::from_utf8_lossy(&ws_req_buf[..n]);
+            assert!(ws_req_str.contains("Upgrade: websocket"));
+
+            let ws_resp = "HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: s3pPLMBiTxaQ9kYGzzhZRbK+xOo=\r\n\r\n";
+            ws_stream.write_all(ws_resp.as_bytes()).unwrap();
+
+            // Read client's masked frame
+            let mut header = [0u8; 2];
+            ws_stream.read_exact(&mut header).unwrap();
+            let mut len = (header[1] & 0x7F) as usize;
+            if len == 126 {
+                let mut ext = [0u8; 2];
+                ws_stream.read_exact(&mut ext).unwrap();
+                len = u16::from_be_bytes(ext) as usize;
+            }
+            let mut mask = [0u8; 4];
+            ws_stream.read_exact(&mut mask).unwrap();
+            let mut payload = vec![0u8; len];
+            ws_stream.read_exact(&mut payload).unwrap();
+            for (i, b) in payload.iter_mut().enumerate() {
+                *b ^= mask[i % 4];
+            }
+
+            let payload_str = String::from_utf8_lossy(&payload);
+            assert!(payload_str.contains("Runtime.evaluate"));
+
+            let eval_resp = br#"{"id":999,"result":{"result":{"type":"boolean","value":true}}}"#;
+            let mut resp_frame = Vec::new();
+            resp_frame.push(0x81);
+            resp_frame.push(eval_resp.len() as u8);
+            resp_frame.extend_from_slice(eval_resp);
+            ws_stream.write_all(&resp_frame).unwrap();
+        });
+
+        let tmp = std::env::temp_dir().join(format!("cdp-dict-chunked-test-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&tmp);
+        fs::create_dir_all(&tmp).unwrap();
+        let dict_file = tmp.join("cockpit-zh.json");
+        fs::write(&dict_file, b"{\"dict\": {\"Hello\": \"\xE4\xBD\xA0\xE5\xA5\xBD\"}}").unwrap();
+
+        let updated = CdpClient::sync_dictionary(&dict_file, port).expect("sync dictionary chunked");
+        assert_eq!(updated, 1, "Should successfully synchronize 1 target over chunked HTTP");
 
         handle.join().unwrap();
         let _ = fs::remove_dir_all(&tmp);

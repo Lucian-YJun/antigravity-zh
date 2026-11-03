@@ -38,6 +38,12 @@ const { spawnSync, execFileSync } = require('child_process');
 const exePath = path.join(__dirname, '..', 'dist', 'Antigravity-zh-patch.exe');
 const rootDir = path.join(__dirname, '..');
 
+if (!fs.existsSync(exePath)) {
+  console.log('⚠️ [SKIP] Target binary not found (dist/Antigravity-zh-patch.exe).');
+  console.log('   Run `npm run build:exe` before executing M2 EXE empirical stress test suite.');
+  process.exit(0);
+}
+
 let pass = 0;
 let fail = 0;
 const results = [];

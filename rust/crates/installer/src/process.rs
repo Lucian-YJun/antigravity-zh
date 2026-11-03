@@ -1,3 +1,6 @@
+#[cfg(all(windows, not(target_pointer_width = "64")))]
+compile_error!("antigravity-installer Win32 PEB process inspection strictly requires a 64-bit target architecture (x86_64).");
+
 use std::collections::HashSet;
 use std::path::Path;
 use std::time::{Duration, Instant};
@@ -259,11 +262,16 @@ mod win32_impl {
                 return None;
             }
 
-            // In 64-bit Windows, ProcessParameters is at PEB + 0x20
+            // ProcessParameters and CommandLine offsets in PEB structure:
+            // In 64-bit Windows: ProcessParameters is at PEB + 0x20
+            // In 64-bit RTL_USER_PROCESS_PARAMETERS: CommandLine (UNICODE_STRING) is at offset 0x70
+            const PEB_PROCESS_PARAMS_OFFSET: usize = 0x20;
+            const RTL_PARAMS_CMDLINE_OFFSET: usize = 0x70;
+
             let mut proc_params_ptr: usize = 0;
             let ok = ReadProcessMemory(
                 handle,
-                (pbi.peb_base_address + 0x20) as *const std::ffi::c_void,
+                (pbi.peb_base_address + PEB_PROCESS_PARAMS_OFFSET) as *const std::ffi::c_void,
                 &mut proc_params_ptr as *mut _ as *mut std::ffi::c_void,
                 std::mem::size_of::<usize>(),
                 std::ptr::null_mut(),
@@ -272,11 +280,10 @@ mod win32_impl {
                 return None;
             }
 
-            // In 64-bit RTL_USER_PROCESS_PARAMETERS, CommandLine (UNICODE_STRING) is at offset 0x70
             let mut cmd_line_us: UnicodeString = std::mem::zeroed();
             let ok = ReadProcessMemory(
                 handle,
-                (proc_params_ptr + 0x70) as *const std::ffi::c_void,
+                (proc_params_ptr + RTL_PARAMS_CMDLINE_OFFSET) as *const std::ffi::c_void,
                 &mut cmd_line_us as *mut _ as *mut std::ffi::c_void,
                 std::mem::size_of::<UnicodeString>(),
                 std::ptr::null_mut(),

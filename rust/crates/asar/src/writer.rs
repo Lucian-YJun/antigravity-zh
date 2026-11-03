@@ -41,8 +41,11 @@ pub fn matches_unpack_glob(glob: &str, path: &str) -> bool {
         return true;
     }
 
-    // Extension glob fast path: e.g. "*.node" matches any file ending with ".node"
+    // Extension glob fast path: e.g. "*.node" or "**/*.node" matches any file ending with ".node"
     if norm_glob.starts_with("*.") && norm_path.ends_with(&norm_glob[1..]) {
+        return true;
+    }
+    if norm_glob.starts_with("**/*.") && norm_path.ends_with(&norm_glob[4..]) {
         return true;
     }
 
@@ -64,7 +67,12 @@ pub fn matches_unpack_glob(glob: &str, path: &str) -> bool {
             '*' => {
                 if chars.peek() == Some(&'*') {
                     chars.next();
-                    pattern.push_str(".*");
+                    if chars.peek() == Some(&'/') {
+                        chars.next();
+                        pattern.push_str("(?:.*/)?");
+                    } else {
+                        pattern.push_str(".*");
+                    }
                 } else if norm_glob.contains('/') {
                     pattern.push_str("[^/]*");
                 } else {

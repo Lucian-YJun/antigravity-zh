@@ -199,11 +199,19 @@ impl Deployer {
             // Step 5: Commit orig.tmp -> orig only if we backed up active asar
             if had_asar && asar_orig_tmp.exists() {
                 fs::rename(&asar_orig_tmp, &asar_orig)?;
+                let orig = asar_orig.clone();
+                let tmp = asar_orig_tmp.clone();
+                rollback_stack.push(Box::new(move || { let _ = fs::rename(orig, tmp); Ok(()) }));
             }
 
             // Step 6: Write backup metadata
             if let Some(ref meta) = backup_meta {
-                let _ = BackupManager::write_meta(&meta_file, meta);
+                BackupManager::write_meta(&meta_file, meta)?;
+                let meta_f = meta_file.clone();
+                rollback_stack.push(Box::new(move || {
+                    let _ = fs::remove_file(meta_f);
+                    Ok(())
+                }));
             }
 
             Ok(())

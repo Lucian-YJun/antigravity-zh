@@ -223,6 +223,13 @@ fn test_matches_unpack_glob_precision() {
     // Wildcard glob "build/**/*.node"
     assert!(matches_unpack_glob("build/**/*.node", "build/native/module.node"));
     assert!(!matches_unpack_glob("build/**/*.node", "src/module.node"));
+
+    // Glob "**/*.node" matches root-level and nested files matching minimatch semantics
+    assert!(matches_unpack_glob("**/*.node", "root.node"));
+    assert!(matches_unpack_glob("**/*.node", "sub/nested.node"));
+    assert!(matches_unpack_glob("**/*.node", "a/b/c/deep.node"));
+    assert!(!matches_unpack_glob("**/*.node", "root.node.bak"));
+    assert!(!matches_unpack_glob("**/*.node", "sub/nested.js"));
 }
 
 #[test]

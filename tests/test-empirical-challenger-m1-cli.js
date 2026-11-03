@@ -69,6 +69,12 @@ function runTest(suite, name, fn) {
 
 console.log('=== STARTING EMPIRICAL ADVERSARIAL STRESS TEST SUITE (M1 CLI) ===\n');
 
+if (!fs.existsSync(DIST_BIN) || !fs.existsSync(RELEASE_BIN)) {
+  console.log('⚠️ [SKIP] Target binaries not found (dist/antigravity-tool.exe or rust/target/release/antigravity-tool.exe).');
+  console.log('   Run `npm run build:rust` before executing M1 CLI empirical stress test suite.');
+  process.exit(0);
+}
+
 // ============================================================================
 // SUITE 1: BINARY EXISTENCE & PARITY
 // ============================================================================
@@ -607,6 +613,34 @@ runTest('REVERT', 'revert with nonexistent resources-dir reports error and exits
   assert.strictEqual(res.status, 1, `Expected code 1, got ${res.status}`);
   assert(!res.panicked, 'Panic detected in revert');
   assert(res.stderr.includes('Error:'));
+});
+
+runTest('INSTALL', 'install with missing source assets fails with exit code 1 and leaves disk untouched', () => {
+  const tmpSandbox = fs.mkdtempSync(path.join(os.tmpdir(), 'agy-cli-no-assets-'));
+  const resDir = path.join(tmpSandbox, 'resources');
+  fs.mkdirSync(resDir, { recursive: true });
+  const asarPath = path.join(resDir, 'app.asar');
+  const dummyPayload = Buffer.from('FAKE_ASAR_PAYLOAD_FOR_TEST');
+  fs.writeFileSync(asarPath, dummyPayload);
+  const beforeHash = crypto.createHash('sha256').update(dummyPayload).digest('hex');
+
+  const emptyAssetsDir = path.join(tmpSandbox, 'empty_assets');
+  fs.mkdirSync(emptyAssetsDir, { recursive: true });
+
+  const res = runTool(DIST_BIN, ['install', '--resources-dir', resDir, '--project-root', emptyAssetsDir]);
+  assert.strictEqual(res.status, 1, `Expected code 1, got ${res.status}`);
+  assert(!res.panicked, 'Panic detected');
+  assert(res.stderr.includes('Localization source assets not found') || res.stderr.includes('Error:'));
+
+  // Assert disk invariant: app.asar untouched, no backup, no app, no zh-patch
+  assert(fs.existsSync(asarPath), 'app.asar must remain on disk');
+  const afterHash = crypto.createHash('sha256').update(fs.readFileSync(asarPath)).digest('hex');
+  assert.strictEqual(afterHash, beforeHash, 'app.asar content must be 100% byte-for-byte unmodified');
+  assert(!fs.existsSync(path.join(resDir, 'app.asar.orig')), 'app.asar.orig must NOT be created');
+  assert(!fs.existsSync(path.join(resDir, 'app')), 'app directory must NOT be created');
+  assert(!fs.existsSync(path.join(resDir, 'zh-patch')), 'zh-patch directory must NOT be created');
+
+  fs.rmSync(tmpSandbox, { recursive: true, force: true });
 });
 
 // ============================================================================

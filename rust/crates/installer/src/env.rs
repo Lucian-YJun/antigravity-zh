@@ -73,60 +73,69 @@ pub struct SourceAssets {
 
 /// Resolves source assets (scripts, dictionary, native rule files) across project and runtime locations.
 pub fn resolve_source_assets(custom_root: Option<&Path>) -> Result<SourceAssets, InstallerError> {
-    let mut candidates = Vec::new();
-    if let Some(r) = custom_root {
-        candidates.push(r.to_path_buf());
-    }
-    if let Ok(exe) = std::env::current_exe() {
-        if let Some(parent) = exe.parent() {
-            candidates.push(parent.to_path_buf());
-        }
-    }
-    if let Ok(cwd) = std::env::current_dir() {
-        candidates.push(cwd.clone());
-        let mut cur = cwd;
-        for _ in 0..4 {
-            if let Some(parent) = cur.parent() {
-                candidates.push(parent.to_path_buf());
-                cur = parent.to_path_buf();
-            } else {
-                break;
+    let candidates = if let Some(r) = custom_root {
+        vec![r.to_path_buf()]
+    } else {
+        let mut list = Vec::new();
+        if let Ok(exe) = std::env::current_exe() {
+            if let Some(parent) = exe.parent() {
+                list.push(parent.to_path_buf());
             }
         }
-    }
+        if let Ok(cwd) = std::env::current_dir() {
+            list.push(cwd.clone());
+            let mut cur = cwd;
+            for _ in 0..4 {
+                if let Some(parent) = cur.parent() {
+                    list.push(parent.to_path_buf());
+                    cur = parent.to_path_buf();
+                } else {
+                    break;
+                }
+            }
+        }
+        list
+    };
 
     for dir in &candidates {
         let external_src = dir.join("src");
-        if external_src.join("native").exists() || external_src.join("zh-i18n.js").exists() {
-            let native = external_src.join("native");
-            let i18n = external_src.join("zh-i18n.js");
-            let dict = if dir.join("cockpit-zh.json").exists() {
-                dir.join("cockpit-zh.json")
-            } else {
-                external_src.join("cockpit-zh.json")
-            };
-            return Ok(SourceAssets {
-                source_i18n: i18n,
-                source_dict: dict,
-                native_patches_dir: native,
-            });
-        }
+        let has_external_src = external_src.is_dir();
 
-        if dir.join("native").exists() {
-            return Ok(SourceAssets {
-                source_i18n: dir.join("zh-i18n.js"),
-                source_dict: dir.join("cockpit-zh.json"),
-                native_patches_dir: dir.join("native"),
-            });
-        }
+        let native = if has_external_src && external_src.join("native").is_dir() {
+            external_src.join("native")
+        } else if dir.join("native").is_dir() {
+            dir.join("native")
+        } else {
+            continue;
+        };
+
+        let i18n = if has_external_src && external_src.join("zh-i18n.js").is_file() {
+            external_src.join("zh-i18n.js")
+        } else if dir.join("zh-i18n.js").is_file() {
+            dir.join("zh-i18n.js")
+        } else {
+            continue;
+        };
+
+        let dict = if dir.join("cockpit-zh.json").is_file() {
+            dir.join("cockpit-zh.json")
+        } else if has_external_src && external_src.join("cockpit-zh.json").is_file() {
+            external_src.join("cockpit-zh.json")
+        } else {
+            continue;
+        };
+
+        return Ok(SourceAssets {
+            source_i18n: i18n,
+            source_dict: dict,
+            native_patches_dir: native,
+        });
     }
 
-    let base = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
-    Ok(SourceAssets {
-        source_i18n: base.join("src").join("zh-i18n.js"),
-        source_dict: base.join("src").join("cockpit-zh.json"),
-        native_patches_dir: base.join("src").join("native"),
-    })
+    Err(InstallerError::Env(format!(
+        "Localization source assets not found or incomplete. Searched candidates: {:?}. Ensure 'src/native' (or 'native'), 'zh-i18n.js', and 'cockpit-zh.json' exist, or specify --project-root.",
+        candidates
+    )))
 }
 
 #[cfg(test)]
@@ -141,5 +150,74 @@ mod tests {
         assert_eq!(get_meta_path(res), res.join("app.asar.orig.meta.json"));
         assert_eq!(get_app_dir(res), res.join("app"));
         assert_eq!(get_zh_patch_dir(res), res.join("zh-patch"));
+    }
+
+    #[test]
+    fn test_resolve_source_assets_standard_layout() {
+        let tmp = std::env::temp_dir().join(format!("env-test-standard-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&tmp);
+        let src = tmp.join("src");
+        std::fs::create_dir_all(src.join("native")).unwrap();
+        std::fs::write(src.join("zh-i18n.js"), b"// i18n").unwrap();
+        std::fs::write(src.join("cockpit-zh.json"), b"{}").unwrap();
+
+        let assets = resolve_source_assets(Some(&tmp)).expect("should resolve standard assets");
+        assert_eq!(assets.native_patches_dir, src.join("native"));
+        assert_eq!(assets.source_i18n, src.join("zh-i18n.js"));
+        assert_eq!(assets.source_dict, src.join("cockpit-zh.json"));
+
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn test_resolve_source_assets_external_root_dict() {
+        let tmp = std::env::temp_dir().join(format!("env-test-ext-dict-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&tmp);
+        let src = tmp.join("src");
+        std::fs::create_dir_all(src.join("native")).unwrap();
+        std::fs::write(src.join("zh-i18n.js"), b"// i18n").unwrap();
+        // Place cockpit-zh.json at root of tmp instead of src
+        std::fs::write(tmp.join("cockpit-zh.json"), b"{}").unwrap();
+
+        let assets = resolve_source_assets(Some(&tmp)).expect("should resolve root dict override");
+        assert_eq!(assets.native_patches_dir, src.join("native"));
+        assert_eq!(assets.source_i18n, src.join("zh-i18n.js"));
+        assert_eq!(assets.source_dict, tmp.join("cockpit-zh.json"));
+
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn test_resolve_source_assets_flat_release_layout() {
+        let tmp = std::env::temp_dir().join(format!("env-test-flat-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(tmp.join("native")).unwrap();
+        std::fs::write(tmp.join("zh-i18n.js"), b"// i18n").unwrap();
+        std::fs::write(tmp.join("cockpit-zh.json"), b"{}").unwrap();
+
+        let assets = resolve_source_assets(Some(&tmp)).expect("should resolve flat assets");
+        assert_eq!(assets.native_patches_dir, tmp.join("native"));
+        assert_eq!(assets.source_i18n, tmp.join("zh-i18n.js"));
+        assert_eq!(assets.source_dict, tmp.join("cockpit-zh.json"));
+
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn test_resolve_source_assets_missing_fails() {
+        let tmp = std::env::temp_dir().join(format!("env-test-empty-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(&tmp).unwrap();
+
+        // Empty directory with no other candidates matching
+        let err = resolve_source_assets(Some(&tmp)).unwrap_err();
+        match err {
+            InstallerError::Env(msg) => {
+                assert!(msg.contains("not found or incomplete"));
+            }
+            other => panic!("Unexpected error type: {:?}", other),
+        }
+
+        let _ = std::fs::remove_dir_all(&tmp);
     }
 }

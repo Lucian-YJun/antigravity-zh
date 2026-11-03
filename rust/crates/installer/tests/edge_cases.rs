@@ -1,4 +1,4 @@
-use antigravity_installer::{is_sidecar_process, BackupManager, CdpClient, Deployer};
+use antigravity_installer::{env, is_sidecar_process, BackupManager, CdpClient, Deployer};
 use std::fs;
 
 #[test]
@@ -264,4 +264,32 @@ fn test_cdp_ipv6_loopback_handling() {
     assert!(CdpClient::is_valid_target_url("http://[::1]:9222/devtools/page/1"));
     assert!(CdpClient::is_valid_target_url("https://[::1]:3000/"));
     assert!(!CdpClient::is_valid_target_url("http://[2001:db8::1]:9222/page"));
+}
+
+#[test]
+fn test_source_assets_missing_guard_protects_disk() {
+    let tmp = std::env::temp_dir().join(format!("agy-test-no-assets-guard-{}", std::process::id()));
+    let _ = fs::remove_dir_all(&tmp);
+    fs::create_dir_all(&tmp).unwrap();
+
+    let res_dir = tmp.join("resources");
+    fs::create_dir_all(&res_dir).unwrap();
+    let asar_file = res_dir.join("app.asar");
+    fs::write(&asar_file, b"INITIAL_CLEAN_APP_ASAR").unwrap();
+
+    let empty_assets = tmp.join("empty_assets");
+    fs::create_dir_all(&empty_assets).unwrap();
+
+    // 1. Verify resolve_source_assets fails on empty assets directory
+    let res = env::resolve_source_assets(Some(&empty_assets));
+    assert!(res.is_err(), "resolve_source_assets must return Err when assets are missing");
+
+    // 2. Invariant: Disk was not modified
+    assert!(asar_file.exists());
+    assert_eq!(fs::read(&asar_file).unwrap(), b"INITIAL_CLEAN_APP_ASAR");
+    assert!(!res_dir.join("app.asar.orig").exists(), "app.asar.orig must not be created");
+    assert!(!res_dir.join("app").exists(), "app directory must not be created");
+    assert!(!res_dir.join("zh-patch").exists(), "zh-patch directory must not be created");
+
+    let _ = fs::remove_dir_all(&tmp);
 }
