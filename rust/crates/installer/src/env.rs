@@ -63,6 +63,72 @@ pub fn get_devtools_active_port_path() -> Option<PathBuf> {
     get_app_data().map(|roaming| roaming.join("Antigravity").join("DevToolsActivePort"))
 }
 
+/// Resolved source assets for localization installation.
+#[derive(Debug, Clone)]
+pub struct SourceAssets {
+    pub source_i18n: PathBuf,
+    pub source_dict: PathBuf,
+    pub native_patches_dir: PathBuf,
+}
+
+/// Resolves source assets (scripts, dictionary, native rule files) across project and runtime locations.
+pub fn resolve_source_assets(custom_root: Option<&Path>) -> Result<SourceAssets, InstallerError> {
+    let mut candidates = Vec::new();
+    if let Some(r) = custom_root {
+        candidates.push(r.to_path_buf());
+    }
+    if let Ok(exe) = std::env::current_exe() {
+        if let Some(parent) = exe.parent() {
+            candidates.push(parent.to_path_buf());
+        }
+    }
+    if let Ok(cwd) = std::env::current_dir() {
+        candidates.push(cwd.clone());
+        let mut cur = cwd;
+        for _ in 0..4 {
+            if let Some(parent) = cur.parent() {
+                candidates.push(parent.to_path_buf());
+                cur = parent.to_path_buf();
+            } else {
+                break;
+            }
+        }
+    }
+
+    for dir in &candidates {
+        let external_src = dir.join("src");
+        if external_src.join("native").exists() || external_src.join("zh-i18n.js").exists() {
+            let native = external_src.join("native");
+            let i18n = external_src.join("zh-i18n.js");
+            let dict = if dir.join("cockpit-zh.json").exists() {
+                dir.join("cockpit-zh.json")
+            } else {
+                external_src.join("cockpit-zh.json")
+            };
+            return Ok(SourceAssets {
+                source_i18n: i18n,
+                source_dict: dict,
+                native_patches_dir: native,
+            });
+        }
+
+        if dir.join("native").exists() {
+            return Ok(SourceAssets {
+                source_i18n: dir.join("zh-i18n.js"),
+                source_dict: dir.join("cockpit-zh.json"),
+                native_patches_dir: dir.join("native"),
+            });
+        }
+    }
+
+    let base = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+    Ok(SourceAssets {
+        source_i18n: base.join("src").join("zh-i18n.js"),
+        source_dict: base.join("src").join("cockpit-zh.json"),
+        native_patches_dir: base.join("src").join("native"),
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

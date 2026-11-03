@@ -49,6 +49,13 @@ impl AsarReader {
         &self.source_path
     }
 
+    /// Returns the associated `.unpacked` sibling directory for this archive.
+    pub fn unpacked_dir(&self) -> PathBuf {
+        let mut s = self.source_path.as_os_str().to_os_string();
+        s.push(".unpacked");
+        PathBuf::from(s)
+    }
+
     /// Lists all files contained within the archive.
     pub fn list_files(&self) -> Vec<FileEntryInfo> {
         self.header.list_entries()
@@ -57,9 +64,18 @@ impl AsarReader {
     /// Reads a file from the archive as a zero-copy byte slice.
     pub fn read_file(&self, internal_path: &str) -> Result<&[u8], AsarError> {
         match self.header.find_node(internal_path) {
+            Some(AsarNode::File { unpacked: true, .. }) => Err(AsarError::NotFound(format!(
+                "File '{}' is stored unpacked; use extract_file or read from .unpacked directory",
+                internal_path
+            ))),
             Some(AsarNode::File { size, offset, .. }) => {
-                let start = self.payload_base_offset + (*offset as usize);
-                let end = start + (*size as usize);
+                let off = offset.unwrap_or(0);
+                let start = self.payload_base_offset
+                    .checked_add(off as usize)
+                    .ok_or_else(|| AsarError::InvalidHeader("Start offset arithmetic overflow".into()))?;
+                let end = start
+                    .checked_add(*size as usize)
+                    .ok_or_else(|| AsarError::InvalidHeader("End offset arithmetic overflow".into()))?;
 
                 if end > self.mmap.len() {
                     return Err(AsarError::InvalidHeader(format!(
@@ -87,15 +103,42 @@ impl AsarReader {
         internal_path: &str,
         dest_path: P,
     ) -> Result<u64, AsarError> {
-        let data = self.read_file(internal_path)?;
-        let dest = dest_path.as_ref();
+        if Path::new(internal_path).components().any(|c| matches!(c, std::path::Component::ParentDir)) {
+            return Err(AsarError::InvalidPath(format!(
+                "Path traversal attempt blocked: {}",
+                internal_path
+            )));
+        }
 
+        let dest = dest_path.as_ref();
         if let Some(parent) = dest.parent() {
             fs::create_dir_all(parent)?;
         }
 
-        fs::write(dest, data)?;
-        Ok(data.len() as u64)
+        match self.header.find_node(internal_path) {
+            Some(AsarNode::File { unpacked: true, size, .. }) => {
+                let clean = internal_path.replace('\\', "/");
+                let unpacked_src = self.unpacked_dir().join(clean);
+                if !unpacked_src.exists() {
+                    return Err(AsarError::NotFound(format!(
+                        "Unpacked file missing at {}",
+                        unpacked_src.display()
+                    )));
+                }
+                fs::copy(&unpacked_src, dest)?;
+                Ok(*size)
+            }
+            Some(AsarNode::File { .. }) => {
+                let data = self.read_file(internal_path)?;
+                fs::write(dest, data)?;
+                Ok(data.len() as u64)
+            }
+            Some(AsarNode::Directory { .. }) => Err(AsarError::NotFound(format!(
+                "Path '{}' is a directory, not a file",
+                internal_path
+            ))),
+            None => Err(AsarError::NotFound(internal_path.to_string())),
+        }
     }
 
     /// Extracts all files in parallel to the specified target directory.
@@ -104,6 +147,17 @@ impl AsarReader {
         fs::create_dir_all(dest_root)?;
 
         let entries = self.list_files();
+
+        // Sanitize path components to prevent path traversal (Zip Slip)
+        for entry in &entries {
+            if entry.path.components().any(|c| matches!(c, std::path::Component::ParentDir)) {
+                return Err(AsarError::InvalidPath(format!(
+                    "Path traversal attempt blocked: {}",
+                    entry.path.display()
+                )));
+            }
+        }
+
         let mut dirs_to_create = HashSet::new();
 
         for entry in &entries {
@@ -120,31 +174,49 @@ impl AsarReader {
 
         let total_files = entries.len();
         let total_bytes: u64 = entries.iter().map(|e| e.size).sum();
+        let unpacked_base = self.unpacked_dir();
 
         // Parallel extraction using Rayon
         entries.par_iter().try_for_each(|entry| -> Result<(), AsarError> {
             let relative_str = entry.path.to_string_lossy();
             let target_file_path = dest_root.join(&entry.path);
 
-            let start = self.payload_base_offset + (entry.offset as usize);
-            let end = start + (entry.size as usize);
-
-            if end > self.mmap.len() {
-                return Err(AsarError::InvalidHeader(format!(
-                    "Entry '{}' bounds {}..{} exceed archive size {}",
-                    relative_str,
-                    start,
-                    end,
-                    self.mmap.len()
-                )));
-            }
-
-            let slice = &self.mmap[start..end];
             if let Some(p) = target_file_path.parent() {
                 fs::create_dir_all(p)?;
             }
 
-            fs::write(&target_file_path, slice)?;
+            if entry.unpacked {
+                let unpacked_src = unpacked_base.join(&entry.path);
+                if unpacked_src.exists() {
+                    fs::copy(&unpacked_src, &target_file_path)?;
+                } else {
+                    return Err(AsarError::NotFound(format!(
+                        "Unpacked file missing: {}",
+                        unpacked_src.display()
+                    )));
+                }
+            } else {
+                let start = self.payload_base_offset
+                    .checked_add(entry.offset as usize)
+                    .ok_or_else(|| AsarError::InvalidHeader("Start offset arithmetic overflow".into()))?;
+                let end = start
+                    .checked_add(entry.size as usize)
+                    .ok_or_else(|| AsarError::InvalidHeader("End offset arithmetic overflow".into()))?;
+
+                if end > self.mmap.len() {
+                    return Err(AsarError::InvalidHeader(format!(
+                        "Entry '{}' bounds {}..{} exceed archive size {}",
+                        relative_str,
+                        start,
+                        end,
+                        self.mmap.len()
+                    )));
+                }
+
+                let slice = &self.mmap[start..end];
+                fs::write(&target_file_path, slice)?;
+            }
+
             Ok(())
         })?;
 

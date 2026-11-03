@@ -32,7 +32,7 @@ fn test_asar_empty_file_serialization() {
     assert!(node1.is_some());
     if let Some(AsarNode::File { size, offset, executable, unpacked, .. }) = node1 {
         assert_eq!(*size, 0);
-        assert_eq!(*offset, 0);
+        assert_eq!(*offset, Some(0));
         assert_eq!(*executable, false);
         assert_eq!(*unpacked, false);
     } else {
@@ -43,7 +43,7 @@ fn test_asar_empty_file_serialization() {
     assert!(node2.is_some());
     if let Some(AsarNode::File { size, offset, executable, unpacked, .. }) = node2 {
         assert_eq!(*size, 0);
-        assert_eq!(*offset, 0);
+        assert_eq!(*offset, Some(0));
         assert_eq!(*executable, true);
         assert_eq!(*unpacked, false);
     } else {
@@ -165,4 +165,39 @@ fn test_asar_malformed_pickle_headers() {
         parse_header(&bad_json_buf),
         Err(AsarError::InvalidHeader(_))
     ));
+}
+
+#[test]
+fn test_asar_unpacked_pack_and_extract() {
+    let tmp = std::env::temp_dir().join(format!("asar-test-unpacked-{}", std::process::id()));
+    let src = tmp.join("src");
+    let asar_file = tmp.join("app.asar");
+    let dest = tmp.join("dest");
+
+    let _ = std::fs::remove_dir_all(&tmp);
+    std::fs::create_dir_all(src.join("sub")).unwrap();
+    std::fs::write(src.join("packed.txt"), b"packed data").unwrap();
+    std::fs::write(src.join("sub/binary.node"), b"native binary data").unwrap();
+
+    let opts = antigravity_asar::PackOptions {
+        unpack_globs: vec!["*.node".to_string()],
+    };
+    antigravity_asar::pack_dir(&src, &asar_file, Some(&opts)).expect("pack asar with unpack glob");
+
+    assert!(asar_file.exists());
+    let unpacked_dir = tmp.join("app.asar.unpacked");
+    assert!(unpacked_dir.exists(), "app.asar.unpacked directory should be created");
+    assert!(unpacked_dir.join("sub/binary.node").exists(), "unpacked binary should be copied");
+
+    let reader = antigravity_asar::AsarReader::open(&asar_file).expect("open asar");
+    let entries = reader.list_files();
+    let bin_entry = entries.iter().find(|e| e.path == std::path::Path::new("sub/binary.node")).expect("find binary entry");
+    assert!(bin_entry.unpacked, "binary entry should be marked unpacked");
+
+    let stats = reader.extract_all(&dest).expect("extract asar");
+    assert_eq!(stats.total_files, 2);
+    assert_eq!(std::fs::read(dest.join("packed.txt")).unwrap(), b"packed data");
+    assert_eq!(std::fs::read(dest.join("sub/binary.node")).unwrap(), b"native binary data");
+
+    let _ = std::fs::remove_dir_all(&tmp);
 }

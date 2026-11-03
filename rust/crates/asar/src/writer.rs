@@ -23,6 +23,44 @@ pub struct PackStats {
 }
 
 /// Packer that serializes directory contents into an ASAR archive.
+fn matches_unpack_glob(glob: &str, path: &str) -> bool {
+    if glob.is_empty() {
+        return false;
+    }
+    let norm_path = path.replace('\\', "/");
+    let norm_glob = glob.replace('\\', "/");
+    if norm_glob.starts_with("*.") && norm_path.ends_with(&norm_glob[1..]) {
+        return true;
+    }
+    if norm_path.contains(&norm_glob) {
+        return true;
+    }
+    let mut pattern = String::from("^");
+    for c in norm_glob.chars() {
+        match c {
+            '*' => pattern.push_str(".*"),
+            '?' => pattern.push('.'),
+            '.' | '(' | ')' | '+' | '|' | '^' | '$' | '@' | '%' | '[' | ']' | '{' | '}' | '\\' => {
+                pattern.push('\\');
+                pattern.push(c);
+            }
+            _ => pattern.push(c),
+        }
+    }
+    pattern.push('$');
+    regex::Regex::new(&pattern)
+        .map(|re| re.is_match(&norm_path))
+        .unwrap_or(false)
+}
+
+struct CollectedFile {
+    abs_path: PathBuf,
+    rel_str: String,
+    size: u64,
+    executable: bool,
+    unpacked: bool,
+}
+
 pub struct AsarWriter;
 
 impl AsarWriter {
@@ -39,7 +77,13 @@ impl AsarWriter {
             return Err(AsarError::NotFound(src_root.display().to_string()));
         }
 
-        let mut collected_files: Vec<(PathBuf, String, u64, bool)> = Vec::new();
+        let unpacked_dir = {
+            let mut s = output_path.as_os_str().to_os_string();
+            s.push(".unpacked");
+            PathBuf::from(s)
+        };
+
+        let mut collected_files: Vec<CollectedFile> = Vec::new();
         let mut directory_count = 0;
 
         // Traverse source directory deterministically
@@ -74,9 +118,23 @@ impl AsarWriter {
                 let is_unpacked = options
                     .unpack_globs
                     .iter()
-                    .any(|glob| rel_str.contains(glob));
+                    .any(|glob| matches_unpack_glob(glob, &rel_str));
 
-                collected_files.push((path.to_path_buf(), rel_str, size, is_unpacked || executable));
+                if is_unpacked {
+                    let target = unpacked_dir.join(rel_path);
+                    if let Some(parent) = target.parent() {
+                        fs::create_dir_all(parent)?;
+                    }
+                    fs::copy(path, &target)?;
+                }
+
+                collected_files.push(CollectedFile {
+                    abs_path: path.to_path_buf(),
+                    rel_str,
+                    size,
+                    executable,
+                    unpacked: is_unpacked,
+                });
             }
         }
 
@@ -84,9 +142,13 @@ impl AsarWriter {
         let mut header = AsarHeader::new();
         let mut current_offset: u64 = 0;
 
-        for (_abs_path, rel_str, size, executable) in &collected_files {
-            header.insert_file(rel_str, *size, current_offset, *executable, false)?;
-            current_offset += size;
+        for file in &collected_files {
+            if file.unpacked {
+                header.insert_file(&file.rel_str, file.size, None, file.executable, true)?;
+            } else {
+                header.insert_file(&file.rel_str, file.size, Some(current_offset), file.executable, false)?;
+                current_offset += file.size;
+            }
         }
 
         let header_bytes = serialize_header(&header)?;
@@ -105,9 +167,12 @@ impl AsarWriter {
         writer.write_all(&header_bytes)?;
 
         let mut buffer = vec![0u8; 64 * 1024];
-        for (abs_path, _rel_str, _size, _executable) in &collected_files {
-            let file = File::open(abs_path)?;
-            let mut reader = BufReader::new(file);
+        for file in &collected_files {
+            if file.unpacked {
+                continue;
+            }
+            let opened = File::open(&file.abs_path)?;
+            let mut reader = BufReader::new(opened);
 
             loop {
                 let n = reader.read(&mut buffer)?;

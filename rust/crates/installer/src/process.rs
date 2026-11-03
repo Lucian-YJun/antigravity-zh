@@ -56,11 +56,49 @@ mod win32_impl {
     };
     use windows_sys::Win32::System::Threading::{
         GetCurrentProcessId, OpenProcess, TerminateProcess,
-        PROCESS_TERMINATE,
+        PROCESS_TERMINATE, PROCESS_QUERY_INFORMATION, PROCESS_VM_READ,
     };
     use windows_sys::Win32::UI::WindowsAndMessaging::{
         EnumWindows, GetWindowThreadProcessId, IsWindowVisible, PostMessageW, WM_CLOSE,
     };
+
+    #[repr(C)]
+    struct ProcessBasicInformation {
+        exit_status: i32,
+        _pad1: u32,
+        peb_base_address: usize,
+        affinity_mask: usize,
+        base_priority: i32,
+        _pad2: u32,
+        unique_process_id: usize,
+        inherited_from_unique_process_id: usize,
+    }
+
+    #[repr(C)]
+    struct UnicodeString {
+        length: u16,
+        maximum_length: u16,
+        _pad: u32,
+        buffer: *const u16,
+    }
+
+    extern "system" {
+        fn ReadProcessMemory(
+            hprocess: HANDLE,
+            lpbaseaddress: *const std::ffi::c_void,
+            lpbuffer: *mut std::ffi::c_void,
+            nsize: usize,
+            lpnumberofbytesread: *mut usize,
+        ) -> BOOL;
+    }
+
+    type NtQueryInformationProcessFn = unsafe extern "system" fn(
+        HANDLE,
+        u32,
+        *mut std::ffi::c_void,
+        u32,
+        *mut u32,
+    ) -> i32;
 
     struct WindowEnumState {
         target_pid: u32,
@@ -177,6 +215,118 @@ mod win32_impl {
         }
     }
 
+    pub fn get_command_line_peb(pid: u32) -> Option<String> {
+        unsafe {
+            let handle = OpenProcess(
+                PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
+                FALSE,
+                pid,
+            );
+            if handle.is_null() || handle == INVALID_HANDLE_VALUE {
+                return None;
+            }
+
+            struct HandleGuard(HANDLE);
+            impl Drop for HandleGuard {
+                fn drop(&mut self) {
+                    unsafe {
+                        CloseHandle(self.0);
+                    }
+                }
+            }
+            let _guard = HandleGuard(handle);
+
+            let ntdll = windows_sys::Win32::System::LibraryLoader::GetModuleHandleA(b"ntdll.dll\0".as_ptr());
+            if ntdll.is_null() {
+                return None;
+            }
+            let proc = windows_sys::Win32::System::LibraryLoader::GetProcAddress(
+                ntdll,
+                b"NtQueryInformationProcess\0".as_ptr(),
+            )?;
+            let nt_query: NtQueryInformationProcessFn = std::mem::transmute(proc);
+
+            let mut pbi: ProcessBasicInformation = std::mem::zeroed();
+            let mut ret_len = 0u32;
+            let status = nt_query(
+                handle,
+                0, // ProcessBasicInformation
+                &mut pbi as *mut _ as *mut std::ffi::c_void,
+                std::mem::size_of::<ProcessBasicInformation>() as u32,
+                &mut ret_len,
+            );
+            if status != 0 || pbi.peb_base_address == 0 {
+                return None;
+            }
+
+            // In 64-bit Windows, ProcessParameters is at PEB + 0x20
+            let mut proc_params_ptr: usize = 0;
+            let ok = ReadProcessMemory(
+                handle,
+                (pbi.peb_base_address + 0x20) as *const std::ffi::c_void,
+                &mut proc_params_ptr as *mut _ as *mut std::ffi::c_void,
+                std::mem::size_of::<usize>(),
+                std::ptr::null_mut(),
+            );
+            if ok == FALSE || proc_params_ptr == 0 {
+                return None;
+            }
+
+            // In 64-bit RTL_USER_PROCESS_PARAMETERS, CommandLine (UNICODE_STRING) is at offset 0x70
+            let mut cmd_line_us: UnicodeString = std::mem::zeroed();
+            let ok = ReadProcessMemory(
+                handle,
+                (proc_params_ptr + 0x70) as *const std::ffi::c_void,
+                &mut cmd_line_us as *mut _ as *mut std::ffi::c_void,
+                std::mem::size_of::<UnicodeString>(),
+                std::ptr::null_mut(),
+            );
+            if ok == FALSE || cmd_line_us.length == 0 || cmd_line_us.buffer.is_null() {
+                return None;
+            }
+
+            let num_chars = (cmd_line_us.length / 2) as usize;
+            if num_chars > 32768 {
+                return None;
+            }
+            let mut buf = vec![0u16; num_chars];
+            let ok = ReadProcessMemory(
+                handle,
+                cmd_line_us.buffer as *const std::ffi::c_void,
+                buf.as_mut_ptr() as *mut std::ffi::c_void,
+                cmd_line_us.length as usize,
+                std::ptr::null_mut(),
+            );
+            if ok == FALSE {
+                return None;
+            }
+
+            Some(String::from_utf16_lossy(&buf))
+        }
+    }
+
+    pub fn get_command_line_powershell(pid: u32) -> Option<String> {
+        let script = format!(
+            "[Console]::OutputEncoding=[System.Text.Encoding]::UTF8; (Get-CimInstance Win32_Process -Filter \"ProcessId = {}\").CommandLine",
+            pid
+        );
+        let output = std::process::Command::new("powershell")
+            .args(["-NoProfile", "-NonInteractive", "-Command", &script])
+            .output()
+            .ok()?;
+        if output.status.success() {
+            let s = String::from_utf8_lossy(&output.stdout).trim().to_string();
+            if !s.is_empty() {
+                return Some(s);
+            }
+        }
+        None
+    }
+
+    pub fn get_command_line(pid: u32) -> Option<String> {
+        get_command_line_peb(pid).or_else(|| get_command_line_powershell(pid))
+    }
+
     pub fn current_pid() -> u32 {
         unsafe { GetCurrentProcessId() }
     }
@@ -193,8 +343,8 @@ impl ProcessManager {
             for (pid, parent_pid, exe_name) in snapshot {
                 if exe_name.eq_ignore_ascii_case("Antigravity.exe") {
                     let has_window = win32_impl::has_visible_window(pid);
-                    // On Windows, command line can be retrieved or sidecar inferred
-                    let is_sidecar = is_sidecar_process(has_window, None);
+                    let cmdline = win32_impl::get_command_line(pid);
+                    let is_sidecar = is_sidecar_process(has_window, cmdline.as_deref());
 
                     results.push(ProcessInfo {
                         pid,
@@ -202,7 +352,7 @@ impl ProcessManager {
                         exe_name,
                         has_window,
                         is_sidecar,
-                        command_line: None,
+                        command_line: cmdline,
                     });
                 }
             }
@@ -328,11 +478,35 @@ impl ProcessManager {
             )));
         }
 
-        std::process::Command::new(path)
-            .spawn()
-            .map_err(InstallerError::Io)?;
+        let mut cmd = std::process::Command::new(path);
+        if let Some(parent) = path.parent() {
+            cmd.current_dir(parent);
+        }
+        #[cfg(windows)]
+        {
+            use std::os::windows::process::CommandExt;
+            const DETACHED_PROCESS: u32 = 0x00000008;
+            cmd.creation_flags(DETACHED_PROCESS);
+        }
+
+        cmd.spawn().map_err(InstallerError::Io)?;
 
         Ok(())
+    }
+
+    /// Automatically relaunches Antigravity IDE given its resources directory.
+    pub fn relaunch_antigravity(resources_dir: &Path) -> Result<bool, InstallerError> {
+        let exe_path = resources_dir
+            .parent()
+            .map(|p| p.join("Antigravity.exe"))
+            .unwrap_or_else(|| std::path::PathBuf::from("Antigravity.exe"));
+
+        if exe_path.exists() {
+            Self::relaunch(&exe_path)?;
+            Ok(true)
+        } else {
+            Ok(false)
+        }
     }
 }
 
@@ -368,5 +542,13 @@ mod tests {
         // Unrecognized args -> fail safe, not a sidecar
         assert!(!is_sidecar_process(false, Some("Antigravity.exe --unknown")));
         assert!(!is_sidecar_process(false, None));
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn test_current_process_command_line_retrieval() {
+        let cur_pid = std::process::id();
+        let cmd = win32_impl::get_command_line(cur_pid);
+        assert!(cmd.is_some(), "Should retrieve command line for current process");
     }
 }

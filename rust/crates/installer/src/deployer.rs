@@ -199,6 +199,8 @@ impl Deployer {
 
     /// Reverts patched installation back to the original backup.
     pub fn revert(&self) -> Result<(), InstallerError> {
+        self.recover_interrupted_deploy()?;
+
         let app_dir = env::get_app_dir(&self.resources_dir);
         let zh_dir = env::get_zh_patch_dir(&self.resources_dir);
         let asar_file = env::get_app_asar_path(&self.resources_dir);
@@ -211,20 +213,28 @@ impl Deployer {
             ));
         }
 
+        // Check if backup is stale compared to the current asar file (e.g. upstream updated)
+        let backup_is_stale = asar_orig.exists()
+            && asar_file.exists()
+            && BackupManager::is_backup_stale(&meta_file, &asar_file);
+
+        // Restore original asar archive if not stale
+        if asar_orig.exists() && !backup_is_stale {
+            if asar_file.exists() {
+                fs::remove_file(&asar_file)?;
+            }
+            fs::rename(&asar_orig, &asar_file)?;
+        } else if backup_is_stale {
+            // Do not downgrade an updated client with stale backup
+            let _ = fs::remove_file(&asar_orig);
+        }
+
         // Remove patched directory trees
         if app_dir.exists() {
             fs::remove_dir_all(&app_dir)?;
         }
         if zh_dir.exists() {
             fs::remove_dir_all(&zh_dir)?;
-        }
-
-        // Restore original asar archive
-        if asar_orig.exists() {
-            if asar_file.exists() {
-                fs::remove_file(&asar_file)?;
-            }
-            fs::rename(&asar_orig, &asar_file)?;
         }
 
         // Remove stale metadata

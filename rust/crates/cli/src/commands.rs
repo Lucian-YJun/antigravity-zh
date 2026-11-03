@@ -182,7 +182,7 @@ impl Cli {
 fn run_install(
     dry_run: bool,
     close: bool,
-    _relaunch: bool,
+    relaunch: bool,
     resources_dir: Option<&Path>,
 ) -> Result<(), CliError> {
     println!("{}", "==> Antigravity Chinese Localization Installer".bold().cyan());
@@ -190,32 +190,55 @@ fn run_install(
     let res_dir = env::get_resources_dir(resources_dir)?;
     println!("Target resources: {}", res_dir.display());
 
-    if ProcessManager::is_ide_running()? {
-        if close {
-            println!("Requesting graceful IDE shutdown...");
-            let closed = ProcessManager::graceful_close(12)?;
-            if !closed {
+    if !dry_run {
+        if ProcessManager::is_ide_running()? {
+            if close {
+                println!("Requesting graceful IDE shutdown...");
+                let closed = ProcessManager::graceful_close(12)?;
+                if !closed {
+                    return Err(CliError::Execution(
+                        "Antigravity IDE is still running. Please close it manually.".into(),
+                    ));
+                }
+            } else {
                 return Err(CliError::Execution(
-                    "Antigravity IDE is still running. Please close it manually.".into(),
+                    "Antigravity IDE is currently active. Close it or pass --close.".into(),
                 ));
             }
-        } else {
-            return Err(CliError::Execution(
-                "Antigravity IDE is currently active. Close it or pass --close.".into(),
-            ));
         }
+
+        let killed = ProcessManager::kill_residual_sidecars()?;
+        if killed > 0 {
+            println!("Cleaned up {} residual sidecar process(es)", killed);
+        }
+
+        let deployer = Deployer::new(&res_dir);
+        let _ = deployer.recover_interrupted_deploy();
+    } else {
+        println!("{}", "[Preview Mode] IDE checks and process terminations skipped.".yellow());
     }
 
-    let killed = ProcessManager::kill_residual_sidecars()?;
-    if killed > 0 {
-        println!("Cleaned up {} residual sidecar process(es)", killed);
-    }
+    let asar_file = env::get_app_asar_path(&res_dir);
+    let asar_orig = env::get_app_asar_orig_path(&res_dir);
+    let meta_file = env::get_meta_path(&res_dir);
 
-    let source_asar = env::get_app_asar_path(&res_dir);
+    let source_asar = if asar_orig.exists() {
+        if !asar_file.exists() {
+            asar_orig
+        } else if BackupManager::is_backup_stale(&meta_file, &asar_file) {
+            println!("Detected upstream update; previous backup is stale. Re-patching latest version...");
+            asar_file
+        } else {
+            asar_orig
+        }
+    } else {
+        asar_file
+    };
+
     if !source_asar.exists() {
         return Err(CliError::Execution(format!(
-            "Missing source archive: {}",
-            source_asar.display()
+            "Missing source archive: neither app.asar nor app.asar.orig found at {}",
+            res_dir.display()
         )));
     }
 
@@ -231,16 +254,50 @@ fn run_install(
         stats.total_files, stats.total_bytes
     );
 
-    if !dry_run {
-        let deployer = Deployer::new(&res_dir);
-        deployer.deploy_atomically(&temp_staging, |_zh_kit_dir| {
-            println!("Prepared localized assets");
-            Ok(())
-        })?;
-        println!("{}", "Installation completed successfully!".green().bold());
-    } else {
+    let assets = env::resolve_source_assets(None)?;
+    println!("Applying native replacement rules from: {}", assets.native_patches_dir.display());
+
+    let batch = BatchReplacer::new(&assets.native_patches_dir);
+    let summaries = batch.execute_batch(&temp_staging, dry_run)?;
+    let total_matched: usize = summaries.iter().map(|s| s.matched_rules).sum();
+    println!(
+        "Native rules applied: {} matches across {} scopes",
+        total_matched,
+        summaries.len()
+    );
+    for s in &summaries {
+        println!(
+            "  [{}] {}: {}/{} matches",
+            s.scope,
+            s.target_file.display(),
+            s.matched_rules,
+            s.total_rules
+        );
+    }
+
+    if dry_run {
         println!("{}", "Dry run complete - no changes committed.".yellow());
         let _ = std::fs::remove_dir_all(&temp_staging);
+        return Ok(());
+    }
+
+    let deployer = Deployer::new(&res_dir);
+    deployer.deploy_atomically(&temp_staging, |zh_kit_dir| {
+        if assets.source_i18n.exists() {
+            std::fs::copy(&assets.source_i18n, zh_kit_dir.join("zh-i18n.js"))?;
+        }
+        if assets.source_dict.exists() {
+            std::fs::copy(&assets.source_dict, zh_kit_dir.join("cockpit-zh.json"))?;
+        }
+        println!("Localized assets deployed to {}", zh_kit_dir.display());
+        Ok(())
+    })?;
+
+    println!("{}", "Installation completed successfully!".green().bold());
+
+    if relaunch {
+        println!("Relaunching Antigravity IDE...");
+        let _ = ProcessManager::relaunch_antigravity(&res_dir);
     }
 
     Ok(())
@@ -249,6 +306,17 @@ fn run_install(
 fn run_revert(resources_dir: Option<&Path>) -> Result<(), CliError> {
     println!("{}", "==> Antigravity Localization Revert".bold().yellow());
     let res_dir = env::get_resources_dir(resources_dir)?;
+
+    if ProcessManager::is_ide_running()? {
+        return Err(CliError::Execution(
+            "Antigravity IDE is currently active. Close it before reverting.".into(),
+        ));
+    }
+
+    let killed = ProcessManager::kill_residual_sidecars()?;
+    if killed > 0 {
+        println!("Cleaned up {} residual sidecar process(es)", killed);
+    }
 
     let deployer = Deployer::new(&res_dir);
     deployer.revert()?;
