@@ -539,6 +539,7 @@ const TRANSLATOR_BODY = [
     '  var job={root:root,tw:null,work:0};',
     '  if(root.nodeType===3){trNodeFast(root);job.done=true;return job;}',
     '  if(root.nodeType===1&&hasTrAttrs(root)){trAttrsOnElement(root);}',
+    '  if(root.nodeType===1&&isRejectEl(root)){job.done=true;return job;}',
     '  if(document.createTreeWalker){job.tw=document.createTreeWalker(root,5,twFilter);}',
     '  return job;}',
     // minWork 用于同步阶段保证前进；续摊阶段传 0，让出更积极

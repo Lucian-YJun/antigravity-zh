@@ -1263,7 +1263,11 @@
     "Visit": "请访问",
     "Legal Help": "法律帮助",
     "to ask for content changes for legal reasons.": "即可申请出于法律原因的内容变更。",
-    "Visit Legal Help to ask for content changes for legal reasons.": "如需出于法律原因申请内容变更，请访问法律帮助。"
+    "Visit Legal Help to ask for content changes for legal reasons.": "如需出于法律原因申请内容变更，请访问法律帮助。",
+    "Search Projects": "搜索项目",
+    "This Computer": "此电脑",
+    "Failed to save project branch": "保存项目分支失败",
+    "Failed to checkout commit": "检出提交失败"
   },
   "rules": [
     [

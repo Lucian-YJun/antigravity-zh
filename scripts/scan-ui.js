@@ -1,7 +1,9 @@
 // 扫描真实界面里所有「仍是纯英文」的用户可见文本
 const http = require('http');
 const path = require('path');
-const WebSocket = require(path.join(__dirname, '..', 'node_modules', 'ws'));
+const { loadWebSocket } = require('./lib/cdp-client');
+
+const WebSocket = loadWebSocket() || require(path.join(__dirname, '..', 'node_modules', 'ws'));
 
 const port = process.argv[2];
 const pageIndex = +(process.argv[3] || 0);
@@ -90,7 +92,11 @@ function evalOn(port, pageIndex) {
   });
 }
 
-(async () => {
-  const r = await evalOn(port, pageIndex);
-  console.log(JSON.stringify(r, null, 2));
-})();
+if (require.main === module) {
+  (async () => {
+    const r = await evalOn(port, pageIndex);
+    console.log(JSON.stringify(r, null, 2));
+  })();
+}
+
+module.exports = { evalOn, SCAN_EXPR };

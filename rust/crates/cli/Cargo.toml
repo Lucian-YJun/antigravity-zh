@@ -1,0 +1,18 @@
+[package]
+name = "antigravity-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "antigravity-tool"
+path = "src/main.rs"
+
+[dependencies]
+clap.workspace = true
+colored.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+antigravity-asar.workspace = true
+antigravity-replacer.workspace = true
+antigravity-installer.workspace = true

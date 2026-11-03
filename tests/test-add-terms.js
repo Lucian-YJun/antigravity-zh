@@ -127,6 +127,8 @@ function run(input, dictPath, extra = []) {
     run(makeInput(['DryRun = 干跑']), d, ['--dry-run']);
     check('dry-run：不修改词典文件', fs.readFileSync(d, 'utf8') === before);
     check('dry-run：不写入条目', !('DryRun' in readDict(d)));
+    const rNoDict = spawnSync(process.execPath, [script, makeInput(['DryRun = 干跑']), '--dry-run'], { encoding: 'utf8' });
+    check('dry-run：不带 --dict 时也能正确识别输入文件', rNoDict.status === 0, rNoDict.stdout || rNoDict.stderr);
 }
 {
     const d = makeDict({});
