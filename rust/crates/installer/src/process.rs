@@ -204,7 +204,7 @@ mod win32_impl {
             let mut process_id: u32 = 0;
             GetWindowThreadProcessId(hwnd, &mut process_id);
 
-            if process_id == target_pid && IsWindowVisible(hwnd) != FALSE {
+            if process_id == target_pid {
                 PostMessageW(hwnd, WM_CLOSE, 0, 0);
             }
             TRUE
@@ -479,6 +479,9 @@ impl ProcessManager {
         }
 
         let mut cmd = std::process::Command::new(path);
+        cmd.stdin(std::process::Stdio::null())
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null());
         if let Some(parent) = path.parent() {
             cmd.current_dir(parent);
         }

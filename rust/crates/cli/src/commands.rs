@@ -247,6 +247,16 @@ fn run_install(
         std::fs::remove_dir_all(&temp_staging)?;
     }
 
+    struct StagingGuard(PathBuf);
+    impl Drop for StagingGuard {
+        fn drop(&mut self) {
+            if self.0.exists() {
+                let _ = std::fs::remove_dir_all(&self.0);
+            }
+        }
+    }
+    let _staging_guard = StagingGuard(temp_staging.clone());
+
     println!("Unpacking archive: {}", source_asar.display());
     let stats = extract_all(&source_asar, &temp_staging)?;
     println!(
@@ -277,7 +287,6 @@ fn run_install(
 
     if dry_run {
         println!("{}", "Dry run complete - no changes committed.".yellow());
-        let _ = std::fs::remove_dir_all(&temp_staging);
         return Ok(());
     }
 

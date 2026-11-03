@@ -1,4 +1,4 @@
-use antigravity_asar::{parse_header, serialize_header, AsarError, AsarHeader, AsarNode};
+use antigravity_asar::{matches_unpack_glob, parse_header, serialize_header, AsarError, AsarHeader, AsarNode};
 
 #[test]
 fn test_asar_empty_archive_roundtrip() {
@@ -201,3 +201,64 @@ fn test_asar_unpacked_pack_and_extract() {
 
     let _ = std::fs::remove_dir_all(&tmp);
 }
+
+#[test]
+fn test_matches_unpack_glob_precision() {
+    // Glob "test" must not match substring "latest.js"
+    assert!(!matches_unpack_glob("test", "dist/latest.js"));
+    assert!(!matches_unpack_glob("test", "test_file.js"));
+    assert!(matches_unpack_glob("test", "test"));
+    assert!(matches_unpack_glob("test", "test/file.js"));
+
+    // Glob "*.node" matches any file ending with .node
+    assert!(matches_unpack_glob("*.node", "a.node"));
+    assert!(matches_unpack_glob("*.node", "sub/dir/native.node"));
+    assert!(!matches_unpack_glob("*.node", "native.node.bak"));
+    assert!(!matches_unpack_glob("*.node", "native.js"));
+
+    // Directory glob "node_modules"
+    assert!(matches_unpack_glob("node_modules", "node_modules/pkg/index.js"));
+    assert!(!matches_unpack_glob("node_modules", "my_node_modules.js"));
+
+    // Wildcard glob "build/**/*.node"
+    assert!(matches_unpack_glob("build/**/*.node", "build/native/module.node"));
+    assert!(!matches_unpack_glob("build/**/*.node", "src/module.node"));
+}
+
+#[test]
+fn test_asar_unpacked_fallback_from_orig() {
+    let tmp = std::env::temp_dir().join(format!("asar-test-orig-fallback-{}", std::process::id()));
+    let src = tmp.join("src");
+    let asar_file = tmp.join("app.asar");
+    let asar_orig = tmp.join("app.asar.orig");
+    let dest = tmp.join("dest");
+
+    let _ = std::fs::remove_dir_all(&tmp);
+    std::fs::create_dir_all(src.join("native")).unwrap();
+    std::fs::write(src.join("bundle.js"), b"bundle payload").unwrap();
+    std::fs::write(src.join("native/addon.node"), b"addon payload").unwrap();
+
+    let opts = antigravity_asar::PackOptions {
+        unpack_globs: vec!["*.node".to_string()],
+    };
+    antigravity_asar::pack_dir(&src, &asar_file, Some(&opts)).expect("pack asar");
+
+    // Simulate patch installation: app.asar renamed to app.asar.orig,
+    // while app.asar.unpacked remains named app.asar.unpacked
+    std::fs::rename(&asar_file, &asar_orig).expect("rename asar to orig");
+    assert!(!asar_file.exists());
+    assert!(asar_orig.exists());
+    assert!(tmp.join("app.asar.unpacked").exists());
+    assert!(!tmp.join("app.asar.orig.unpacked").exists());
+
+    // AsarReader opening app.asar.orig should fall back to app.asar.unpacked
+    let reader = antigravity_asar::AsarReader::open(&asar_orig).expect("open orig asar");
+    let stats = reader.extract_all(&dest).expect("extract all from orig asar");
+
+    assert_eq!(stats.total_files, 2);
+    assert_eq!(std::fs::read(dest.join("bundle.js")).unwrap(), b"bundle payload");
+    assert_eq!(std::fs::read(dest.join("native/addon.node")).unwrap(), b"addon payload");
+
+    let _ = std::fs::remove_dir_all(&tmp);
+}
+

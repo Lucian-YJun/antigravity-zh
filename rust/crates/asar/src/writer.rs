@@ -22,24 +22,62 @@ pub struct PackStats {
     pub total_archive_size: u64,
 }
 
-/// Packer that serializes directory contents into an ASAR archive.
-fn matches_unpack_glob(glob: &str, path: &str) -> bool {
+/// Determines if a relative path matches the given unpack glob pattern.
+pub fn matches_unpack_glob(glob: &str, path: &str) -> bool {
     if glob.is_empty() {
         return false;
     }
     let norm_path = path.replace('\\', "/");
     let norm_glob = glob.replace('\\', "/");
+
+    // Exact match
+    if norm_path == norm_glob {
+        return true;
+    }
+
+    // Directory prefix match: e.g. "node_modules" matches "node_modules/..."
+    let dir_prefix = format!("{}/", norm_glob.trim_end_matches('/'));
+    if norm_path.starts_with(&dir_prefix) {
+        return true;
+    }
+
+    // Extension glob fast path: e.g. "*.node" matches any file ending with ".node"
     if norm_glob.starts_with("*.") && norm_path.ends_with(&norm_glob[1..]) {
         return true;
     }
-    if norm_path.contains(&norm_glob) {
-        return true;
-    }
+
+    let file_name = Path::new(&norm_path)
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or(&norm_path);
+
+    let target_to_match = if norm_glob.contains('/') {
+        norm_path.as_str()
+    } else {
+        file_name
+    };
+
     let mut pattern = String::from("^");
-    for c in norm_glob.chars() {
+    let mut chars = norm_glob.chars().peekable();
+    while let Some(c) = chars.next() {
         match c {
-            '*' => pattern.push_str(".*"),
-            '?' => pattern.push('.'),
+            '*' => {
+                if chars.peek() == Some(&'*') {
+                    chars.next();
+                    pattern.push_str(".*");
+                } else if norm_glob.contains('/') {
+                    pattern.push_str("[^/]*");
+                } else {
+                    pattern.push_str(".*");
+                }
+            }
+            '?' => {
+                if norm_glob.contains('/') {
+                    pattern.push_str("[^/]");
+                } else {
+                    pattern.push('.');
+                }
+            }
             '.' | '(' | ')' | '+' | '|' | '^' | '$' | '@' | '%' | '[' | ']' | '{' | '}' | '\\' => {
                 pattern.push('\\');
                 pattern.push(c);
@@ -48,8 +86,9 @@ fn matches_unpack_glob(glob: &str, path: &str) -> bool {
         }
     }
     pattern.push('$');
+
     regex::Regex::new(&pattern)
-        .map(|re| re.is_match(&norm_path))
+        .map(|re| re.is_match(target_to_match))
         .unwrap_or(false)
 }
 

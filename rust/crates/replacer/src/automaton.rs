@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 use aho_corasick::{AhoCorasick, MatchKind};
@@ -94,7 +94,7 @@ impl StringReplacer {
 /// Batch replacer executing scoped replacements across an entire staging directory.
 pub struct BatchReplacer {
     rules_dir: PathBuf,
-    scope_targets: HashMap<String, String>,
+    scope_targets: BTreeMap<String, String>,
 }
 
 impl BatchReplacer {
@@ -107,8 +107,8 @@ impl BatchReplacer {
     }
 
     /// Returns the canonical target map matching `src/native/*.replacements.json`.
-    pub fn default_targets() -> HashMap<String, String> {
-        let mut targets = HashMap::new();
+    pub fn default_targets() -> BTreeMap<String, String> {
+        let mut targets = BTreeMap::new();
         targets.insert("utils".to_string(), "dist/utils.js".to_string());
         targets.insert("menu".to_string(), "dist/menu.js".to_string());
         targets.insert("main".to_string(), "dist/main.js".to_string());

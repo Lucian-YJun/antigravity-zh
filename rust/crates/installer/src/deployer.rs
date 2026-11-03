@@ -32,36 +32,63 @@ impl Deployer {
         let asar_orig = env::get_app_asar_orig_path(&self.resources_dir);
         let asar_orig_tmp = self.resources_dir.join("app.asar.orig.tmp");
         let asar_orig_old = self.resources_dir.join("app.asar.orig.old");
+        let meta_file = env::get_meta_path(&self.resources_dir);
 
-        // Clean up partial staging directories
+        // 1. Recover asar: if neither asar_file nor asar_orig exists, restore from leftovers
+        if !asar_file.exists() && !asar_orig.exists() {
+            if asar_orig_tmp.exists() {
+                let _ = fs::rename(&asar_orig_tmp, &asar_orig);
+            } else if asar_orig_old.exists() {
+                let _ = fs::rename(&asar_orig_old, &asar_orig);
+            }
+        } else {
+            if !asar_file.exists() && asar_orig_tmp.exists() {
+                let _ = fs::rename(&asar_orig_tmp, &asar_file);
+            }
+            if !asar_orig.exists() && asar_orig_old.exists() {
+                let _ = fs::rename(&asar_orig_old, &asar_orig);
+            }
+        }
+
+        // 2. Recover directories: app and zh-patch
+        for (live, candidates) in [
+            (&app_dir, [&app_old, &app_new]),
+            (&zh_dir, [&zh_old, &zh_new]),
+        ] {
+            if !live.exists() {
+                for candidate in candidates {
+                    if candidate.exists() {
+                        let _ = fs::rename(candidate, live);
+                        break;
+                    }
+                }
+            }
+        }
+
+        // 3. Clean up residual intermediate directories and backup files
         if app_new.exists() {
             let _ = fs::remove_dir_all(&app_new);
         }
         if zh_new.exists() {
             let _ = fs::remove_dir_all(&zh_new);
         }
-
-        // Recover interrupted asar moves
-        if !asar_file.exists() && asar_orig_tmp.exists() {
-            fs::rename(&asar_orig_tmp, &asar_file)?;
-        }
-
-        if !asar_orig.exists() && asar_orig_old.exists() {
-            fs::rename(&asar_orig_old, &asar_orig)?;
-        }
-
-        // Recover app directory
-        if !app_dir.exists() && app_old.exists() {
-            fs::rename(&app_old, &app_dir)?;
-        } else if app_old.exists() {
+        if app_dir.exists() && app_old.exists() {
             let _ = fs::remove_dir_all(&app_old);
         }
-
-        // Recover zh-patch directory
-        if !zh_dir.exists() && zh_old.exists() {
-            fs::rename(&zh_old, &zh_dir)?;
-        } else if zh_old.exists() {
+        if zh_dir.exists() && zh_old.exists() {
             let _ = fs::remove_dir_all(&zh_old);
+        }
+        if asar_orig.exists() {
+            if asar_orig_tmp.exists() {
+                let _ = fs::remove_file(&asar_orig_tmp);
+            }
+            if asar_orig_old.exists() {
+                let _ = fs::remove_file(&asar_orig_old);
+            }
+        }
+
+        if !asar_orig.exists() && meta_file.exists() {
+            let _ = fs::remove_file(&meta_file);
         }
 
         Ok(())
@@ -90,11 +117,16 @@ impl Deployer {
         let asar_orig_old = self.resources_dir.join("app.asar.orig.old");
         let meta_file = env::get_meta_path(&self.resources_dir);
 
-        // Phase 1: Prepare staging in app.new
+        let had_asar = asar_file.exists();
+        let had_orig = asar_orig.exists();
+        let had_app = app_dir.exists();
+        let had_zh = zh_dir.exists();
+
+        // Phase 1: Prepare staging in app.new (supporting cross-device moves)
         if app_new.exists() {
             fs::remove_dir_all(&app_new)?;
         }
-        fs::rename(staging_dir, &app_new)?;
+        move_dir(staging_dir, &app_new)?;
 
         // Prepare localization kit in zh-patch.new
         if zh_new.exists() {
@@ -107,9 +139,11 @@ impl Deployer {
             return Err(e);
         }
 
-        // Phase 2: Compute backup metadata from source asar before rename
-        let backup_meta = if asar_file.exists() {
+        // Phase 2: Compute backup metadata
+        let backup_meta = if had_asar {
             Some(BackupManager::create_meta_from_source(&asar_file)?)
+        } else if had_orig && !meta_file.exists() {
+            Some(BackupManager::create_meta_from_source(&asar_orig)?)
         } else {
             None
         };
@@ -118,52 +152,52 @@ impl Deployer {
         let mut rollback_stack: Vec<Box<dyn FnOnce() -> std::io::Result<()>>> = Vec::new();
 
         let mut execute_transaction = || -> Result<(), InstallerError> {
-            // Step 1: Backup existing orig if present
-            if asar_orig.exists() {
-                fs::rename(&asar_orig, &asar_orig_old)?;
-                let orig = asar_orig.clone();
-                let old = asar_orig_old.clone();
-                rollback_stack.push(Box::new(move || fs::rename(old, orig)));
-            }
+            // Step 1: Backup existing orig if present AND we have a new active asar to commit
+            if had_asar {
+                if had_orig {
+                    fs::rename(&asar_orig, &asar_orig_old)?;
+                    let orig = asar_orig.clone();
+                    let old = asar_orig_old.clone();
+                    rollback_stack.push(Box::new(move || { let _ = fs::rename(old, orig); Ok(()) }));
+                }
 
-            // Step 2: Move active app.asar -> app.asar.orig.tmp
-            if asar_file.exists() {
+                // Step 2: Move active app.asar -> app.asar.orig.tmp
                 fs::rename(&asar_file, &asar_orig_tmp)?;
                 let orig_tmp = asar_orig_tmp.clone();
                 let asar = asar_file.clone();
-                rollback_stack.push(Box::new(move || fs::rename(orig_tmp, asar)));
+                rollback_stack.push(Box::new(move || { let _ = fs::rename(orig_tmp, asar); Ok(()) }));
             }
 
             // Step 3: Swap app folder
-            if app_dir.exists() {
+            if had_app {
                 fs::rename(&app_dir, &app_old)?;
                 let old = app_old.clone();
                 let app = app_dir.clone();
-                rollback_stack.push(Box::new(move || fs::rename(old, app)));
+                rollback_stack.push(Box::new(move || { let _ = fs::rename(old, app); Ok(()) }));
             }
             fs::rename(&app_new, &app_dir)?;
             {
                 let app = app_dir.clone();
                 let new = app_new.clone();
-                rollback_stack.push(Box::new(move || fs::rename(app, new)));
+                rollback_stack.push(Box::new(move || { let _ = fs::rename(app, new); Ok(()) }));
             }
 
             // Step 4: Swap zh-patch folder
-            if zh_dir.exists() {
+            if had_zh {
                 fs::rename(&zh_dir, &zh_old)?;
                 let old = zh_old.clone();
                 let zh = zh_dir.clone();
-                rollback_stack.push(Box::new(move || fs::rename(old, zh)));
+                rollback_stack.push(Box::new(move || { let _ = fs::rename(old, zh); Ok(()) }));
             }
             fs::rename(&zh_new, &zh_dir)?;
             {
                 let zh = zh_dir.clone();
                 let new = zh_new.clone();
-                rollback_stack.push(Box::new(move || fs::rename(zh, new)));
+                rollback_stack.push(Box::new(move || { let _ = fs::rename(zh, new); Ok(()) }));
             }
 
-            // Step 5: Commit orig.tmp -> orig
-            if asar_orig_tmp.exists() {
+            // Step 5: Commit orig.tmp -> orig only if we backed up active asar
+            if had_asar && asar_orig_tmp.exists() {
                 fs::rename(&asar_orig_tmp, &asar_orig)?;
             }
 
@@ -180,6 +214,12 @@ impl Deployer {
             while let Some(rollback_op) = rollback_stack.pop() {
                 let _ = rollback_op();
             }
+            if app_new.exists() {
+                let _ = fs::remove_dir_all(&app_new);
+            }
+            if zh_new.exists() {
+                let _ = fs::remove_dir_all(&zh_new);
+            }
             return Err(InstallerError::DeploymentRolledBack(err.to_string()));
         }
 
@@ -190,7 +230,7 @@ impl Deployer {
         if zh_old.exists() {
             let _ = fs::remove_dir_all(&zh_old);
         }
-        if asar_orig_old.exists() {
+        if had_asar && asar_orig_old.exists() {
             let _ = fs::remove_file(&asar_orig_old);
         }
 
@@ -207,7 +247,7 @@ impl Deployer {
         let asar_orig = env::get_app_asar_orig_path(&self.resources_dir);
         let meta_file = env::get_meta_path(&self.resources_dir);
 
-        if !asar_orig.exists() && !asar_file.exists() {
+        if !asar_orig.exists() && !asar_file.exists() && !app_dir.exists() && !zh_dir.exists() {
             return Err(InstallerError::Env(
                 "Neither app.asar nor app.asar.orig exists; cannot revert".into(),
             ));
@@ -244,4 +284,30 @@ impl Deployer {
 
         Ok(())
     }
+}
+
+fn move_dir<P: AsRef<Path>, Q: AsRef<Path>>(from: P, to: Q) -> Result<(), InstallerError> {
+    let from_p = from.as_ref();
+    let to_p = to.as_ref();
+    if fs::rename(from_p, to_p).is_ok() {
+        return Ok(());
+    }
+    copy_dir_all(from_p, to_p)?;
+    let _ = fs::remove_dir_all(from_p);
+    Ok(())
+}
+
+fn copy_dir_all(src: &Path, dst: &Path) -> Result<(), InstallerError> {
+    fs::create_dir_all(dst)?;
+    for entry in fs::read_dir(src)? {
+        let entry = entry?;
+        let ty = entry.file_type()?;
+        let dest = dst.join(entry.file_name());
+        if ty.is_dir() {
+            copy_dir_all(&entry.path(), &dest)?;
+        } else {
+            fs::copy(entry.path(), dest)?;
+        }
+    }
+    Ok(())
 }

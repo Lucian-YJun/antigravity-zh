@@ -53,18 +53,27 @@ impl CdpClient {
         if let Some(rest) = url.strip_prefix("plugin://") {
             return rest.starts_with("antigravity-");
         }
-        if let Some(rest) = url.strip_prefix("http://") {
-            let host_part = rest.split('/').next().unwrap_or("");
-            let host = host_part.split(':').next().unwrap_or("");
-            return Self::is_loopback(host);
-        }
-        if let Some(rest) = url.strip_prefix("https://") {
-            let host_part = rest.split('/').next().unwrap_or("");
-            let host = host_part.split(':').next().unwrap_or("");
-            return Self::is_loopback(host);
-        }
-        false
+        let rest = if let Some(r) = url.strip_prefix("http://") {
+            r
+        } else if let Some(r) = url.strip_prefix("https://") {
+            r
+        } else {
+            return false;
+        };
+
+        let host_part = rest.split('/').next().unwrap_or("");
+        let host = if host_part.starts_with('[') {
+            if let Some(end) = host_part.find(']') {
+                &host_part[..=end]
+            } else {
+                host_part
+            }
+        } else {
+            host_part.split(':').next().unwrap_or("")
+        };
+        Self::is_loopback(host)
     }
+
 
     /// Parses a WebSocket debugger URL into (host, port, path).
     pub fn parse_ws_url(url: &str) -> Option<(String, u16, String)> {
@@ -194,6 +203,42 @@ fn http_get(port: u16, path: &str) -> Result<String, InstallerError> {
     Err(InstallerError::Env("CDP HTTP non-200 or malformed response".into()))
 }
 
+struct WsReader<'a> {
+    stream: &'a mut TcpStream,
+    buffer: Vec<u8>,
+    cursor: usize,
+}
+
+impl<'a> WsReader<'a> {
+    fn new(stream: &'a mut TcpStream, initial: Vec<u8>) -> Self {
+        Self {
+            stream,
+            buffer: initial,
+            cursor: 0,
+        }
+    }
+
+    fn read_exact(&mut self, buf: &mut [u8]) -> std::io::Result<()> {
+        let mut needed = buf.len();
+        let mut out_offset = 0;
+
+        let available = self.buffer.len() - self.cursor;
+        if available > 0 {
+            let to_copy = available.min(needed);
+            buf[..to_copy].copy_from_slice(&self.buffer[self.cursor..self.cursor + to_copy]);
+            self.cursor += to_copy;
+            needed -= to_copy;
+            out_offset += to_copy;
+        }
+
+        if needed > 0 {
+            self.stream.read_exact(&mut buf[out_offset..])?;
+        }
+
+        Ok(())
+    }
+}
+
 fn ws_evaluate(host: &str, port: u16, path: &str, code: &str) -> Result<bool, InstallerError> {
     let addr_str = format!("{}:{}", host, port);
     let mut stream = TcpStream::connect_timeout(
@@ -213,21 +258,22 @@ fn ws_evaluate(host: &str, port: u16, path: &str, code: &str) -> Result<bool, In
 
     let mut buf = [0u8; 1024];
     let mut handshake_resp = Vec::new();
-    loop {
+    let end_of_headers = loop {
         let n = stream.read(&mut buf)?;
         if n == 0 {
             return Ok(false);
         }
         handshake_resp.extend_from_slice(&buf[..n]);
-        if handshake_resp.windows(4).any(|w| w == b"\r\n\r\n") {
-            break;
+        if let Some(pos) = handshake_resp.windows(4).position(|w| w == b"\r\n\r\n") {
+            break pos + 4;
         }
-    }
-
-    let handshake_str = String::from_utf8_lossy(&handshake_resp);
+    };
+    let handshake_str = String::from_utf8_lossy(&handshake_resp[..end_of_headers]);
     if !handshake_str.contains("101 Switching Protocols") && !handshake_str.contains("HTTP/1.1 101") {
         return Ok(false);
     }
+
+    let unconsumed = handshake_resp[end_of_headers..].to_vec();
 
     // 2. Format CDP Runtime.evaluate request
     let eval_payload = serde_json::json!({
@@ -262,47 +308,67 @@ fn ws_evaluate(host: &str, port: u16, path: &str, code: &str) -> Result<bool, In
     }
     stream.write_all(&frame)?;
 
-    // 4. Read response frame
-    let mut header = [0u8; 2];
-    stream.read_exact(&mut header)?;
-    let masked = (header[1] & 0x80) != 0;
-    let mut payload_len = (header[1] & 0x7F) as usize;
+    // 4. Read response frame(s) with WsReader
+    let mut reader = WsReader::new(&mut stream, unconsumed);
+    loop {
+        let mut header = [0u8; 2];
+        if reader.read_exact(&mut header).is_err() {
+            return Ok(false);
+        }
+        let opcode = header[0] & 0x0F;
+        let masked = (header[1] & 0x80) != 0;
+        let mut payload_len = (header[1] & 0x7F) as usize;
 
-    if payload_len == 126 {
-        let mut len_bytes = [0u8; 2];
-        stream.read_exact(&mut len_bytes)?;
-        payload_len = u16::from_be_bytes(len_bytes) as usize;
-    } else if payload_len == 127 {
-        let mut len_bytes = [0u8; 8];
-        stream.read_exact(&mut len_bytes)?;
-        payload_len = u64::from_be_bytes(len_bytes) as usize;
-    }
+        if payload_len == 126 {
+            let mut len_bytes = [0u8; 2];
+            reader.read_exact(&mut len_bytes)?;
+            payload_len = u16::from_be_bytes(len_bytes) as usize;
+        } else if payload_len == 127 {
+            let mut len_bytes = [0u8; 8];
+            reader.read_exact(&mut len_bytes)?;
+            payload_len = u64::from_be_bytes(len_bytes) as usize;
+        }
 
-    let mask = if masked {
-        let mut m = [0u8; 4];
-        stream.read_exact(&mut m)?;
-        Some(m)
-    } else {
-        None
-    };
+        let mask = if masked {
+            let mut m = [0u8; 4];
+            reader.read_exact(&mut m)?;
+            Some(m)
+        } else {
+            None
+        };
 
-    let mut body = vec![0u8; payload_len];
-    stream.read_exact(&mut body)?;
+        let mut body = vec![0u8; payload_len];
+        reader.read_exact(&mut body)?;
 
-    if let Some(m) = mask {
-        for (i, b) in body.iter_mut().enumerate() {
-            *b ^= m[i % 4];
+        if let Some(m) = mask {
+            for (i, b) in body.iter_mut().enumerate() {
+                *b ^= m[i % 4];
+            }
+        }
+
+        if opcode == 0x9 {
+            // Ping frame: reply with Pong frame (opcode 0xA)
+            let mut pong = vec![0x8A, 0x80];
+            let mask = [0x50, 0x4F, 0x4E, 0x47];
+            pong.extend_from_slice(&mask);
+            reader.stream.write_all(&pong)?;
+            continue;
+        }
+
+        if opcode == 0x8 {
+            // Close frame
+            return Ok(false);
+        }
+
+        if opcode == 0x1 {
+            // Text frame: check if this message responds to our eval request
+            if let Ok(val) = serde_json::from_slice::<serde_json::Value>(&body) {
+                if val.get("id").and_then(|id| id.as_i64()) == Some(999) {
+                    return Ok(val["result"]["result"]["value"].as_bool() == Some(true));
+                }
+            }
         }
     }
-
-    // 5. Parse response: check if result.result.value == true
-    if let Ok(val) = serde_json::from_slice::<serde_json::Value>(&body) {
-        if val["result"]["result"]["value"].as_bool() == Some(true) {
-            return Ok(true);
-        }
-    }
-
-    Ok(false)
 }
 
 #[cfg(test)]

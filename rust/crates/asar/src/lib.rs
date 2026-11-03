@@ -15,4 +15,4 @@ pub use extract::{extract_all, extract_file};
 pub use header::{parse_header, serialize_header, AsarHeader, AsarNode, FileEntryInfo, IntegrityMeta};
 pub use pack::pack_dir;
 pub use reader::{AsarReader, ExtractionStats};
-pub use writer::{AsarWriter, PackOptions, PackStats};
+pub use writer::{matches_unpack_glob, AsarWriter, PackOptions, PackStats};

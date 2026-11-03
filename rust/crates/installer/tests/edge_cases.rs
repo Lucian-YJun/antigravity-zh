@@ -1,4 +1,4 @@
-use antigravity_installer::{is_sidecar_process, BackupManager, CdpClient};
+use antigravity_installer::{is_sidecar_process, BackupManager, CdpClient, Deployer};
 use std::fs;
 
 #[test]
@@ -161,4 +161,107 @@ fn test_compute_sha256_boundaries() {
     assert_eq!(sha_1mb.len(), 64);
 
     let _ = fs::remove_dir_all(&tmp);
+}
+
+#[test]
+fn test_deployer_preserves_orig_when_reinstalling() {
+    let tmp = std::env::temp_dir().join(format!("agy-deployer-test-reinstall-{}", std::process::id()));
+    let _ = fs::remove_dir_all(&tmp);
+    fs::create_dir_all(&tmp).expect("create temp dir");
+
+    let orig_file = tmp.join("app.asar.orig");
+    fs::write(&orig_file, b"ORIGINAL_BACKUP_DATA").expect("write orig");
+    let meta = BackupManager::create_meta_from_source(&orig_file).expect("create meta");
+    BackupManager::write_meta(tmp.join("app.asar.orig.meta.json"), &meta).expect("write meta");
+
+    let staging = tmp.join("staging");
+    fs::create_dir_all(&staging).expect("create staging");
+    fs::write(staging.join("index.js"), b"console.log('patched');").expect("write staging file");
+
+    let deployer = Deployer::new(&tmp);
+    deployer
+        .deploy_atomically(&staging, |zh_kit| {
+            fs::write(zh_kit.join("zh-i18n.js"), b"// i18n")?;
+            fs::write(zh_kit.join("cockpit-zh.json"), b"{}")?;
+            Ok(())
+        })
+        .expect("deploy successfully");
+
+    // CRITICAL: app.asar.orig MUST NOT be deleted or moved!
+    assert!(orig_file.exists(), "app.asar.orig must remain intact");
+    assert_eq!(fs::read(&orig_file).unwrap(), b"ORIGINAL_BACKUP_DATA");
+    assert!(!tmp.join("app.asar.orig.old").exists(), "no leftover .old backup");
+    assert!(tmp.join("app").join("index.js").exists(), "app folder must be deployed");
+    assert!(tmp.join("zh-patch").join("zh-i18n.js").exists(), "zh-patch folder must be deployed");
+
+    let _ = fs::remove_dir_all(&tmp);
+}
+
+#[test]
+fn test_deployer_revert_stale_backup_protection() {
+    let tmp = std::env::temp_dir().join(format!("agy-deployer-test-revert-stale-{}", std::process::id()));
+    let _ = fs::remove_dir_all(&tmp);
+    fs::create_dir_all(&tmp).expect("create temp dir");
+
+    // Upstream updated app.asar to v2
+    let asar_file = tmp.join("app.asar");
+    fs::write(&asar_file, b"NEW_VERSION_2_PAYLOAD").expect("write asar");
+
+    // Old v1 backup left from previous patch
+    let orig_file = tmp.join("app.asar.orig");
+    fs::write(&orig_file, b"OLD_V1").expect("write orig");
+
+    // Metadata matching v1
+    let meta_file = tmp.join("app.asar.orig.meta.json");
+    let meta = BackupManager::create_meta_from_source(&orig_file).expect("create meta");
+    BackupManager::write_meta(&meta_file, &meta).expect("write meta");
+
+    // Patched dirs
+    let app_dir = tmp.join("app");
+    fs::create_dir_all(&app_dir).unwrap();
+    let zh_dir = tmp.join("zh-patch");
+    fs::create_dir_all(&zh_dir).unwrap();
+
+    let deployer = Deployer::new(&tmp);
+    deployer.revert().expect("revert successfully");
+
+    // Revert must NOT downgrade new app.asar with old v1 backup!
+    assert!(asar_file.exists());
+    assert_eq!(fs::read(&asar_file).unwrap(), b"NEW_VERSION_2_PAYLOAD");
+    assert!(!orig_file.exists(), "stale backup should be pruned");
+    assert!(!app_dir.exists(), "app dir should be removed");
+    assert!(!zh_dir.exists(), "zh-patch dir should be removed");
+
+    let _ = fs::remove_dir_all(&tmp);
+}
+
+#[test]
+fn test_deployer_revert_normal_restore() {
+    let tmp = std::env::temp_dir().join(format!("agy-deployer-test-revert-normal-{}", std::process::id()));
+    let _ = fs::remove_dir_all(&tmp);
+    fs::create_dir_all(&tmp).expect("create temp dir");
+
+    let orig_file = tmp.join("app.asar.orig");
+    fs::write(&orig_file, b"PRISTINE_ORIGINAL_ASAR").expect("write orig");
+
+    let app_dir = tmp.join("app");
+    fs::create_dir_all(&app_dir).unwrap();
+
+    let deployer = Deployer::new(&tmp);
+    deployer.revert().expect("revert successfully");
+
+    let asar_file = tmp.join("app.asar");
+    assert!(asar_file.exists(), "app.asar should be restored");
+    assert_eq!(fs::read(&asar_file).unwrap(), b"PRISTINE_ORIGINAL_ASAR");
+    assert!(!orig_file.exists(), "orig renamed to asar");
+    assert!(!app_dir.exists());
+
+    let _ = fs::remove_dir_all(&tmp);
+}
+
+#[test]
+fn test_cdp_ipv6_loopback_handling() {
+    assert!(CdpClient::is_valid_target_url("http://[::1]:9222/devtools/page/1"));
+    assert!(CdpClient::is_valid_target_url("https://[::1]:3000/"));
+    assert!(!CdpClient::is_valid_target_url("http://[2001:db8::1]:9222/page"));
 }

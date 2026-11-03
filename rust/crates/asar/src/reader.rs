@@ -50,10 +50,26 @@ impl AsarReader {
     }
 
     /// Returns the associated `.unpacked` sibling directory for this archive.
+    /// If the primary path does not exist and the archive ends with `.orig` (e.g. `app.asar.orig`),
+    /// automatically falls back to checking `<name>.unpacked` (e.g. `app.asar.unpacked`).
     pub fn unpacked_dir(&self) -> PathBuf {
         let mut s = self.source_path.as_os_str().to_os_string();
         s.push(".unpacked");
-        PathBuf::from(s)
+        let primary = PathBuf::from(s);
+        if primary.exists() {
+            return primary;
+        }
+
+        let path_str = self.source_path.to_string_lossy();
+        if path_str.ends_with(".orig") {
+            let trimmed = &path_str[..path_str.len() - 5];
+            let fallback = PathBuf::from(format!("{}.unpacked", trimmed));
+            if fallback.exists() {
+                return fallback;
+            }
+        }
+
+        primary
     }
 
     /// Lists all files contained within the archive.
@@ -118,7 +134,7 @@ impl AsarReader {
         match self.header.find_node(internal_path) {
             Some(AsarNode::File { unpacked: true, size, .. }) => {
                 let clean = internal_path.replace('\\', "/");
-                let unpacked_src = self.unpacked_dir().join(clean);
+                let unpacked_src = self.unpacked_dir().join(clean.trim_start_matches('/'));
                 if !unpacked_src.exists() {
                     return Err(AsarError::NotFound(format!(
                         "Unpacked file missing at {}",
