@@ -65,7 +65,115 @@ test('applyReplacements: 幂等性测试（重复应用替换 appliedCount 为 0
   assert.strictEqual(second.appliedCount, 0);
 });
 
-// 3. loadRules 与 patchTargetFile 磁盘交互测试
+// 3. Rust 语义对拍：替换契约以 Rust 侧 Aho-Corasick(LeftmostFirst) 为准。
+// 下面用一个独立的参考模型（不走被测代码）随机对拍，任何一侧改了语义都会在这里红。
+// 参考模型刻意写成最直白的逐字符扫描，避免与被测实现共享思路。
+function rustReferenceModel(input, rules) {
+  const pats = rules.map(r => r[0]);
+  let out = '';
+  let i = 0;
+  let occurrences = 0;
+  const hit = new Set();
+  while (i < input.length) {
+    let chosen = -1;
+    for (let k = 0; k < pats.length; k++) {
+      if (pats[k] && input.startsWith(pats[k], i)) { chosen = k; break; }
+    }
+    if (chosen >= 0) {
+      out += rules[chosen][1];
+      i += pats[chosen].length;
+      occurrences++;
+      hit.add(chosen);
+    } else {
+      out += input[i];
+      i++;
+    }
+  }
+  return { out, occurrences, rulesHit: hit.size };
+}
+
+test('Rust 语义对拍: 2000 组随机输入与参考模型逐字节一致', () => {
+  const alphabet = ['a', 'b', 'c', 'ab', 'bc', 'abc', '$', '&', "'", '`', '1', '你'];
+  let seed = 20260104;
+  const rnd = (n) => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed % n; };
+  const mkStr = (len) => Array.from({ length: len }, () => alphabet[rnd(alphabet.length)]).join('');
+  for (let c = 0; c < 2000; c++) {
+    const input = mkStr(2 + rnd(14));
+    const nRules = 1 + rnd(3);
+    const rules = Array.from({ length: nRules }, () => [mkStr(1 + rnd(3)), mkStr(rnd(4))]);
+    const got = applyReplacements(input, rules);
+    const want = rustReferenceModel(input, rules);
+    const ctx = `input=${JSON.stringify(input)} rules=${JSON.stringify(rules)}`;
+    assert.strictEqual(got.content, want.out, `内容分歧 ${ctx}`);
+    assert.strictEqual(got.replacements, want.occurrences, `替换处数分歧 ${ctx}`);
+    assert.strictEqual(got.appliedCount, want.rulesHit, `命中规则数分歧 ${ctx}`);
+  }
+});
+
+test('Rust 语义: 全量替换 + 单遍 + 字面量（三条不变量）', () => {
+  // 全量：String.replace(str,..) 只换首处，Rust 换全部
+  assert.strictEqual(
+    applyReplacements('Hello Hello Hello', [['Hello', 'ZH']]).content,
+    'ZH ZH ZH'
+  );
+  // 单遍：后一条规则不得匹配前一条刚写入的文本
+  assert.strictEqual(
+    applyReplacements('abc', [['abc', 'xyz'], ['xyz', 'QQQ']]).content,
+    'xyz'
+  );
+  // 字面量：$ 序列不得被当成替换模式
+  for (const rep of ['X$&Y', '保存 $$', "A$'B", 'B$`C', '$1', '$99']) {
+    assert.strictEqual(
+      applyReplacements('Hello world', [['Hello', rep]]).content,
+      `${rep} world`,
+      `$ 序列被展开了: ${JSON.stringify(rep)}`
+    );
+  }
+});
+
+test('Rust 语义: 最左优先，同位置按规则声明顺序取舍', () => {
+  // 对应 rust/crates/replacer/src/automaton.rs 的 test_leftmost_longest_precedence
+  assert.strictEqual(
+    applyReplacements('We are testing now.', [['test', 'A'], ['testing', 'B']]).content,
+    'We are Aing now.'
+  );
+});
+
+test('Rust 语义: 空 pattern 与结构非法的规则必须报错', () => {
+  // aho-corasick 拒绝空 pattern；JS 侧空串会在每个字符间隙匹配并切碎文本
+  assert.throws(() => applyReplacements('abc', [['', 'Z']]), TypeError);
+  // serde 反序列化会失败，Node 不能悄悄当成「无此规则」
+  assert.throws(() => applyReplacements('abc', [['a', 'b'], null]), TypeError);
+  assert.throws(() => applyReplacements('abc', [123]), TypeError);
+});
+
+test('Rust 语义: 结构体形态规则 {search, replace} 与元组等价', () => {
+  // rust/crates/replacer/src/rules.rs 的 untagged 枚举同时接受两种形态
+  assert.strictEqual(
+    applyReplacements('Hello world', [{ search: 'Hello', replace: '你好' }]).content,
+    '你好 world'
+  );
+  // 字段类型不对时按既有约定跳过，不抛错
+  assert.strictEqual(
+    applyReplacements('123 456', [[123, 'x'], ['456', 'four-five-six']]).content,
+    '123 four-five-six'
+  );
+});
+
+test('multiMatch: 命中多于一次时必须被暴露而不是悄悄处理', () => {
+  const res = applyReplacements('a a a', [['a', 'b']]);
+  assert.deepStrictEqual(res.multiMatch, [0]);
+  assert.strictEqual(res.replacements, 3);
+  assert.strictEqual(res.appliedCount, 1);
+});
+
+test('正则元字符在 target 里按字面量处理', () => {
+  const meta = 'a.b*c (d) [e] {f} ^g$ |h\\i';
+  assert.strictEqual(applyReplacements(meta, [[meta, 'OK']]).content, 'OK');
+  assert.strictEqual(applyReplacements('xa.b*cy', [['a.b*c', 'Z']]).content, 'xZy');
+});
+
+// 4. loadRules 与 patchTargetFile 磁盘交互测试
 const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-repl-'));
 
 try {

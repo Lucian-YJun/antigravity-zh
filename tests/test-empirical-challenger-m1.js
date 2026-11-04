@@ -88,54 +88,80 @@ runTest('REPL', 'applyReplacements: non-string oldStr ignored safely', () => {
   assert.strictEqual(res.appliedCount, 1);
 });
 
-runTest('REPL', 'applyReplacements: empty string oldStr behavior', () => {
+runTest('REPL', 'applyReplacements: empty string oldStr is rejected (Rust parity)', () => {
   const content = 'abc';
-  // In JS: "abc".includes("") is true, and "abc".replace("", "Z") -> "Zabc"
-  const res = replacementEngine.applyReplacements(content, [['', 'Z']]);
-  assert.strictEqual(res.content, 'Zabc');
-  assert.strictEqual(res.appliedCount, 1);
+  // 契约以 Rust 为准：aho-corasick 拒绝空 pattern（BuildError::Pattern/Empty）。
+  // JS 侧空串同样必须拒绝——它会在每个字符间隙匹配，把整篇文本切碎成
+  // "ZaZbZcZ"，这绝不是任何规则作者想要的结果。
+  // 旧断言 'Zabc' 记录的是 String.replace('', 'Z') 的原始行为，不是期望行为。
+  assert.throws(
+    () => replacementEngine.applyReplacements(content, [['', 'Z']]),
+    /空字符串|空 pattern/,
+    'empty oldStr must be rejected, not silently applied'
+  );
 });
 
-// 1.2 Replacement behavior: single vs multiple occurrence semantics
-runTest('REPL', 'applyReplacements: behavior on multiple identical occurrences (single replacement)', () => {
+// 1.2 Replacement behavior: all-occurrence semantics (Rust aho-corasick parity)
+runTest('REPL', 'applyReplacements: replaces EVERY occurrence, not just the first', () => {
   const content = 'token token token';
   const res = replacementEngine.applyReplacements(content, [['token', 'replaced']]);
-  // JavaScript String.prototype.replace(string, string) replaces the FIRST occurrence
-  assert.strictEqual(res.content, 'replaced token token');
-  assert.strictEqual(res.appliedCount, 1);
+  // 契约以 Rust 为准：Aho-Corasick replace_all 是单遍全量替换。
+  // 旧断言 'replaced token token' 记录的是 String.replace(str, ..) 只换首处的行为，
+  // 那正是 Node 与 Rust 双轨分歧的根源（H3），现已统一到全量替换。
+  assert.strictEqual(res.content, 'replaced replaced replaced');
+  assert.strictEqual(res.appliedCount, 1, '一条规则命中');
+  assert.strictEqual(res.replacements, 3, '三处替换');
+  // PROJECT.md 要求 targetString 唯一匹配；命中多处必须显式暴露而不是悄悄处理
+  assert.deepStrictEqual(res.multiMatch, [0]);
 });
 
-// 1.3 Cascading and order-dependent replacements
-runTest('REPL', 'applyReplacements: cascading rule evaluation order', () => {
+// 1.3 Single-pass semantics: replacement output is never re-scanned
+runTest('REPL', 'applyReplacements: single pass, no cascading into inserted text', () => {
   const content = 'ALPHA';
   const rules = [
     ['ALPHA', 'BETA'],
     ['BETA', 'GAMMA'],
   ];
   const res = replacementEngine.applyReplacements(content, rules);
-  // Sequential replacement: ALPHA -> BETA, then BETA -> GAMMA
-  assert.strictEqual(res.content, 'GAMMA');
-  assert.strictEqual(res.appliedCount, 2);
-  assert.strictEqual(res.matchedRules, 2);
+  // 契约以 Rust 为准：单遍扫描，替换产物不会被重新扫描。
+  // 旧断言 'GAMMA' 来自逐条 String.replace 的顺序重扫，那会让后一条规则
+  // 匹配到前一条刚写进去的文本——Rust 侧不会，因此产出不同的字节。
+  assert.strictEqual(res.content, 'BETA');
+  assert.strictEqual(res.appliedCount, 1, '只有第一条规则命中');
+  assert.strictEqual(res.matchedRules, 1);
+  assert.strictEqual(res.replacements, 1);
 });
 
-// 1.4 Dollar sign and regex special patterns in newStr
-runTest('REPL', 'applyReplacements: special replacement patterns ($$, $&, $\', $`) in newStr', () => {
+// 1.4 Dollar sequences in the replacement are LITERAL (no String.replace expansion)
+runTest('REPL', 'applyReplacements: $$, $&, $\', $` in replacement are literal', () => {
   const content = 'const price = "OLD";';
   const res = replacementEngine.applyReplacements(content, [
     ['"OLD"', '"$100"'],
   ]);
   assert.strictEqual(res.content, 'const price = "$100";');
 
+  // 契约以 Rust 为准：aho-corasick 的 dst.push_str 是纯字面量写入。
+  // 旧断言 '[$]' / '[X]' 记录的是 String.replace 把 $$ 折叠成 $、
+  // 把 $& 展开成匹配文本的行为——那会让译文里的 $ 序列凭空变形（H2）。
   const res2 = replacementEngine.applyReplacements('TAG', [
-    ['TAG', '[$$]'], // $$ becomes $ in String.prototype.replace
+    ['TAG', '[$$]'],
   ]);
-  assert.strictEqual(res2.content, '[$]');
+  assert.strictEqual(res2.content, '[$$]');
 
   const res3 = replacementEngine.applyReplacements('X', [
-    ['X', '[$&]'], // $& inserts matched string 'X'
+    ['X', '[$&]'],
   ]);
-  assert.strictEqual(res3.content, '[X]');
+  assert.strictEqual(res3.content, '[$&]');
+
+  const res4 = replacementEngine.applyReplacements('X world', [
+    ['X', "[$']"],
+  ]);
+  assert.strictEqual(res4.content, "[$'] world");
+
+  const res5 = replacementEngine.applyReplacements('X world', [
+    ['X', '[$`]'],
+  ]);
+  assert.strictEqual(res5.content, '[$`] world');
 });
 
 // 1.5 Unicode, Emoji, CJK, and Zero-Width characters

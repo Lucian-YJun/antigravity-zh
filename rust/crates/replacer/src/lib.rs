@@ -8,8 +8,8 @@ pub mod engine;
 pub mod error;
 pub mod rules;
 
-pub use automaton::{BatchReplacer, StringReplacer};
+pub use automaton::{ApplyReport, BatchReplacer, StringReplacer};
 pub use error::ReplacerError;
 pub use rules::{
-    load_rules_from_file, load_rules_from_str, ReplacementRule, ReplacementSummary,
+    load_rules_from_file, load_rules_from_str, ReplacementRule, ReplacementSummary, SkipReason,
 };

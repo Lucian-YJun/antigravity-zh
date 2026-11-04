@@ -38,10 +38,32 @@ npm run sync
 ## 改完必须验证
 
 ```bash
-npm test        # 14 个套件，含词典格式、变体冗余、翻译行为、安装流程
+npm test        # 26 个门禁步骤：10 个集成套件 + 8 个模块单测 + cargo test/clippy + 7 个对抗套件
 ```
 
 测试里已经包含「变体冗余」检查，所以**即使有人绕过脚本直接改 JSON，也会被拦下**。
+
+注意：套件数会变，以 `package.json` 的 `test` 脚本为准，不要把具体数字写死在文档里。
+
+## 替换语义以 Rust 为准
+
+`src/native/*.replacements.json` 的替换行为，Node 与 Rust 两侧必须完全一致，
+**以 Rust 的 Aho-Corasick 语义为契约**：
+
+- **单遍扫描**：替换产物不会被重新扫描（逐条 `String.replace` 会让后面的规则
+  匹配到前面刚写进去的文本）。
+- **全量替换**：同一规则命中多处时全部替换（`String.replace(str, ..)` 只换第一处）。
+- **字面量替换**：译文里的 `$&` / `$$` / `` $` `` / `$'` 是普通字符，
+  不能被当成替换模式展开。Node 侧必须用 `replace(old, () => new)` 的函数形式。
+- **最左优先**：同一位置按规则声明顺序取舍（`["test","A"]` 与 `["testing","B"]`
+  对 `testing` 都产出 `Aing`）。
+
+Node 实现在 `scripts/lib/replacement-engine.js`，Rust 在
+`rust/crates/replacer/src/automaton.rs`。改任何一侧都要同步另一侧，
+`tests/test-replacement-engine.js` 里有对 Rust 参考模型的随机对拍用例。
+
+PROJECT.md 要求 `targetString` 在目标文件中**唯一匹配**；命中多于一次不再报错
+（按全量替换处理），但会打印 `multiMatch` 警告——多处命中通常意味着规则写得太宽。
 
 ## 词典规模不是目标
 

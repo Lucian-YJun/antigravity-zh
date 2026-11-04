@@ -734,8 +734,11 @@ const SUBAGENT_TIMER_BODY = [
     '})();'
 ].join('\n');
 function buildScript(dic) {
+    // 必须用函数形式回传替换内容：String.replace 的字符串形式会把译文里的
+    // `$&` / `$$` / `$\`` / `$'` 当成替换模式展开，从而把 TRANSLATOR_BODY 的
+    // 源码切片拼进 payload，导致语法错误、整个翻译器静默失效。
     return '(function(){if(window.__antigravityZh){window.__antigravityZh.retranslate();return;}' +
-        TRANSLATOR_BODY.replace('__DATA__', JSON.stringify(dic)).replace('__NORM__', NORM_SRC) + '\n' +
+        TRANSLATOR_BODY.replace('__DATA__', () => JSON.stringify(dic)).replace('__NORM__', () => NORM_SRC) + '\n' +
         SUBAGENT_TIMER_BODY +
         '})()';
 }
@@ -764,7 +767,9 @@ function pushDictionaryToWindows() {
             registeredWindows.delete(w);
             continue;
         }
-        w.webContents.executeJavaScript(js, true).catch(() => { });
+        w.webContents.executeJavaScript(js, true).catch((e) => {
+            console.error('[zh-i18n] 词典热载推送失败:', e && e.message ? e.message : e);
+        });
     }
 }
 // fs.watch 不可用时的兜底：轮询词典 mtime
@@ -839,7 +844,11 @@ function attachWebTranslator(win) {
             console.error('[zh-i18n] 读取词典失败:', e.message);
             return;
         }
-        win.webContents.executeJavaScript(buildScript(dic), true).catch(() => { });
+        // 注入失败绝不能静默吞掉：这是「界面莫名其妙还是英文」最难排查的一类原因
+        // （词典坏了、payload 语法错误、页面已进入不可执行状态都会走到这里）。
+        win.webContents.executeJavaScript(buildScript(dic), true).catch((e) => {
+            console.error('[zh-i18n] 网页翻译器注入失败:', e && e.message ? e.message : e);
+        });
     });
     if (!watchStarted) {
         watchStarted = true;

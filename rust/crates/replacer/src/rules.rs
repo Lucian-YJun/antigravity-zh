@@ -48,14 +48,39 @@ impl Serialize for ReplacementRule {
     }
 }
 
+/// Reason a scope was skipped during a batch run instead of being patched.
+///
+/// Mirrors the `skipped` stat produced by `patchAllTargets` in
+/// `scripts/lib/replacement-engine.js`, which warns and moves on rather than
+/// failing the whole install.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SkipReason {
+    /// `<scope>.replacements.json` is absent from the rules directory.
+    RulesMissing(PathBuf),
+    /// The staged target file is absent — usually an upstream rename.
+    TargetMissing(PathBuf),
+}
+
 /// Summary report of replacements applied to a single file.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ReplacementSummary {
     pub scope: String,
     pub target_file: PathBuf,
     pub total_rules: usize,
+    /// Total replacement *occurrences* written. Differs from `rules_hit` when a
+    /// target string appears more than once in the file.
     pub matched_rules: usize,
+    /// Number of distinct rules that matched at least once. This is the figure
+    /// comparable to `total_rules`; printing `matched_rules / total_rules` used
+    /// to produce nonsense like "2/1 matches".
+    pub rules_hit: usize,
+    /// Indices of rules that matched more than once. PROJECT.md requires each
+    /// target string to match uniquely, so these are surfaced for review.
+    pub multi_match: Vec<usize>,
     pub modified: bool,
+    /// `Some` when nothing was attempted for this scope; carries the reason so
+    /// callers can surface it instead of silently dropping the scope.
+    pub skipped: Option<SkipReason>,
 }
 
 /// Loads a replacement rule set from a JSON file.
