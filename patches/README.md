@@ -1,4 +1,17 @@
-# 可独立摘出的补丁
+# 可独立摘出的补丁（历史留存，已合入主线）
+
+> ⚠️ **本目录下的补丁已经全部合入 `src/zh-i18n.js` 主线，不要再 `git apply`。**
+>
+> 实测 `git apply --check patches/r1-watch-crash-guard.patch` 与
+> `git apply --check --reverse` **双向都失败**——因为 `src/zh-i18n.js` 早已
+> 前进到补丁之外的版本。修复本身在主线里的位置：
+>
+> - `startMtimePoll` — `src/zh-i18n.js:771`
+> - `startDictionaryWatch`（含 `watcher.on('error')` 兜底）— `src/zh-i18n.js:796`、`:808`
+> - `attachWebTranslator` 的调用点与 `closed` 清理 — `src/zh-i18n.js:846`
+> - 配套测试 — `tests/test-watch-robustness.js`
+>
+> 保留本目录只为历史评审记录。仓库里没有任何脚本、测试或打包清单引用它。
 
 这里的补丁对应**跨文件耦合、无法整体 cherry-pick** 的单个修复，
 用于把高风险的小改动单独先合，而不必等待同提交里的其它改动。

@@ -38,14 +38,28 @@ const { spawnSync, execFileSync } = require('child_process');
 const exePath = path.join(__dirname, '..', 'dist', 'Antigravity-zh-patch.exe');
 const rootDir = path.join(__dirname, '..');
 
+// 缺打包 exe 不再静默 exit(0)：旧行为会让整个套件在任何没跑过 `npm run build:exe`
+// 的机器上消失，而 npm test 依然全绿。
+const ALLOW_MISSING_ARTIFACTS = process.env.AGY_ZH_ALLOW_MISSING_ARTIFACTS === '1';
 if (!fs.existsSync(exePath)) {
-  console.log('⚠️ [SKIP] Target binary not found (dist/Antigravity-zh-patch.exe).');
-  console.log('   Run `npm run build:exe` before executing M2 EXE empirical stress test suite.');
-  process.exit(0);
+  const msg = [
+    '目标二进制缺失: dist/Antigravity-zh-patch.exe',
+    '   请先运行 `npm run build:exe`。',
+    '   缺产物即视为失败，以免本套件静默消失而整体仍然全绿。',
+    '   确实只想跑其余套件时，显式设置 AGY_ZH_ALLOW_MISSING_ARTIFACTS=1。',
+  ].join('\n');
+  if (ALLOW_MISSING_ARTIFACTS) {
+    console.log('⚠️ [SKIP]\n' + msg);
+    process.exit(0);
+  }
+  console.error('❌ ' + msg);
+  process.exit(1);
 }
 
 let pass = 0;
 let fail = 0;
+let skipped = 0;
+const skippedGroups = [];
 const results = [];
 
 function check(name, condition, details = '') {
@@ -96,7 +110,7 @@ function buildValidAsar(tempDir) {
   fs.rmSync(out, { force: true });
   execFileSync(process.execPath, [
     '-e',
-    `require('asar').createPackage(${JSON.stringify(src)}, ${JSON.stringify(out)})` +
+    `require('@electron/asar').createPackage(${JSON.stringify(src)}, ${JSON.stringify(out)})` +
     `.catch(e => { console.error(e); process.exit(1); })`,
   ], { stdio: 'pipe', cwd: rootDir });
   return out;
@@ -298,7 +312,14 @@ try {
 }
 
 if (!hostIdeRunning) {
+  // 这一组是全仓唯一对 patch.js「检测到 IDE 正在运行就拒绝执行」fail-safe 分支的
+  // 行为级覆盖（test-patch-install.js 把进程枚举 stub 成「未运行」，从不走拒绝路径）。
+  // 跳过时必须让它在最终判决里显眼可见，否则「APPROVE」会掩盖 AGENTS.md 列为
+  // 「不要动的东西」的那段逻辑其实一次都没被验证过。
+  skipped += 7;
+  skippedGroups.push('Group 4: running-process protection (需要宿主 Antigravity IDE 正在运行)');
   console.log('  ⚠️ [SKIP] Host Antigravity IDE is not running. Skipping Group 4 running-process protection tests.');
+  console.log('     ⚠️ 这是 patch.js fail-safe 拒绝分支的唯一行为级覆盖，本次未被验证。');
 } else {
   const { tempDir, localAppData, resourcesDir, appRoot } = createSandbox();
   try {
@@ -400,8 +421,13 @@ console.log('\nGroup 6: Resource Cleanup and Staging Hygiene');
 // Summary and Verdict
 // -----------------------------------------------------------------------------
 console.log('\n========================================');
-console.log(`Results: ${pass} PASSED, ${fail} FAILED`);
-console.log(`Final Verdict: ${fail === 0 ? 'APPROVE' : 'REQUEST_CHANGES'}`);
+console.log(`Results: ${pass} PASSED, ${fail} FAILED, ${skipped} SKIPPED`);
+if (skippedGroups.length > 0) {
+  console.log('Skipped coverage (NOT verified by this run):');
+  for (const g of skippedGroups) console.log(`  - ${g}`);
+}
+// 有跳过时不给无条件 APPROVE：绿并不代表全绿。
+console.log(`Final Verdict: ${fail === 0 ? (skipped > 0 ? 'APPROVE_WITH_UNVERIFIED_COVERAGE' : 'APPROVE') : 'REQUEST_CHANGES'}`);
 console.log('========================================');
 
 process.exit(fail === 0 ? 0 : 1);

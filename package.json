@@ -17,8 +17,8 @@
     "repatch": "node scripts/patch.js --close --relaunch",
     "unpatch": "node scripts/patch.js --revert",
     "sync": "node scripts/sync-dict.js",
-    "test": "node tests/test-dict.js && node tests/test-main.js && node tests/test-page.js && node tests/test-process-detect.js && node tests/test-patch-install.js && node tests/test-sync-dict.js && node tests/test-dict-normalize.js && node tests/test-watch-robustness.js && node tests/test-publish-guard.js && node tests/test-add-terms.js && npm run test:lib && npm run test:cargo && npm run test:adversarial",
-    "test:release": "npm run build && npm run test:adversarial",
+    "test": "node tests/test-dict.js && node tests/test-main.js && node tests/test-page.js && node tests/test-process-detect.js && node tests/test-patch-install.js && node tests/test-sync-dict.js && node tests/test-dict-normalize.js && node tests/test-watch-robustness.js && node tests/test-publish-guard.js && node tests/test-add-terms.js && node tests/test-devtools-guard.js && npm run test:lib && npm run test:cargo && npm run test:adversarial",
+    "test:release": "npm run build && npm run test:adversarial && npm run bench",
     "test:dict": "node tests/test-dict.js",
     "test:main": "node tests/test-main.js",
     "test:page": "node tests/test-page.js",
@@ -26,7 +26,7 @@
     "test:sync": "node tests/test-sync-dict.js",
     "bench": "node tests/perf-benchmark.js",
     "test:install": "node tests/test-patch-install.js",
-    "build:exe": "pkg . -t node18-win-x64 -o dist/Antigravity-zh-patch.exe",
+    "build:exe": "pkg . -t node18-win-x64 -o dist/Antigravity-zh-patch.exe && node -e \"const fs=require('fs'),p=require('./package.json');fs.mkdirSync('dist',{recursive:true});fs.writeFileSync('dist/build-manifest.json',JSON.stringify({version:p.version,exe:'Antigravity-zh-patch.exe',node:'node18-win-x64',builtAt:new Date().toISOString()},null,2)+'\\n')\"",
     "release:package": "node scripts/package-release.js",
     "test:normalize": "node tests/test-dict-normalize.js",
     "test:watch": "node tests/test-watch-robustness.js",
@@ -34,7 +34,7 @@
     "add-terms": "node scripts/add-terms.js",
     "test:add-terms": "node tests/test-add-terms.js",
     "test:lib": "node tests/test-zip.js && node tests/test-env.js && node tests/test-replacement-engine.js && node tests/test-dict-manager.js && node tests/test-cdp-client.js && node tests/test-process-manager.js && node tests/test-backup-manager.js && node tests/test-deployer.js",
-    "test:cargo": "cargo test --workspace --manifest-path rust/Cargo.toml",
+    "test:cargo": "cargo test --workspace --manifest-path rust/Cargo.toml && cargo clippy --workspace --all-targets --manifest-path rust/Cargo.toml -- -D warnings",
     "test:adversarial": "node tests/test-adversarial-treewalker.js && node tests/test-m2-edge-cases.js && node tests/stress-m1-empirical.js && node tests/test-empirical-challenger-m1.js && node tests/test-empirical-challenger-m1-cli.js && node tests/test-empirical-challenger-m2-rust.js && node tests/test-empirical-challenger-m2-exe.js"
   },
   "keywords": [
@@ -49,11 +49,15 @@
   },
   "type": "commonjs",
   "dependencies": {
-    "asar": "^3.2.0",
+    "@electron/asar": "^4.3.1",
     "ws": "^8.21.3"
   },
   "devDependencies": {
+    "chromium-pickle-js": "^0.2.0",
     "jsdom": "^30.1.0",
     "pkg": "^5.8.1"
+  },
+  "overrides": {
+    "minimatch": "^11.0.1"
   }
 }

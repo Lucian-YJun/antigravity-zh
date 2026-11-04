@@ -25,19 +25,25 @@ const REPO_SLUG = 'Lucian-YJun/antigravity-zh';
 const ZIP_NAME = `Antigravity-zh-patch-v${VERSION}.zip`;
 const EXE_NAME = 'Antigravity-zh-patch.exe';
 
-// 环境变量优先于本地配置文件：CI 里通常只注入 GITHUB_TOKEN，
-// 而本机开发者习惯把 token 放在 mcp 配置里，两条路都要能用。
+// 环境变量优先于本地配置文件：CI 里通常只注入 GITHUB_TOKEN。
+// 从 ~/.gemini/config/mcp_config.json 读取 PAT 的回退路径改为显式 opt-in：
+// 那是另一个工具的凭据库，静默借用它发版会让「用哪个身份发布的」变得不可追溯。
 function getToken() {
   const fromEnv = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
   if (fromEnv) return { token: fromEnv, source: process.env.GITHUB_TOKEN ? 'GITHUB_TOKEN' : 'GH_TOKEN' };
 
   const mcpPath = path.join(process.env.USERPROFILE || process.env.HOME || '', '.gemini', 'config', 'mcp_config.json');
-  if (fs.existsSync(mcpPath)) {
+  const allowMcp = process.env.AGY_ZH_ALLOW_MCP_TOKEN === '1';
+  if (allowMcp && fs.existsSync(mcpPath)) {
     try {
       const cfg = JSON.parse(fs.readFileSync(mcpPath, 'utf8'));
       const token = cfg.mcpServers && cfg.mcpServers.github && cfg.mcpServers.github.env
         && cfg.mcpServers.github.env.GITHUB_PERSONAL_ACCESS_TOKEN;
-      if (token) return { token, source: mcpPath };
+      if (token) {
+        console.warn('⚠️ 正在使用 mcp_config.json 里的 GitHub Token（另一个工具的凭据库）。');
+        console.warn('   该回退路径需显式设置 AGY_ZH_ALLOW_MCP_TOKEN=1 才会启用。');
+        return { token, source: mcpPath };
+      }
     } catch (e) {
       console.error(`读取 ${mcpPath} 失败:`, e.message);
     }
@@ -55,6 +61,30 @@ function resolveAssets(root) {
   if (missing.length) {
     const lines = missing.map(a => `  - dist/${a.name}${a.hint ? `（缺少它请先运行 ${a.hint}）` : ''}`);
     throw new Error(`缺少发布资产，发布中止：\n${lines.join('\n')}\n\n请先执行 \`npm run release:package\` 生成完整发布包（含 exe、三个 bat 与 src/）后再重试。`);
+  }
+
+  // 溯源校验：dist/ 被 gitignore 但会跨构建残留在开发机上，仅凭 existsSync
+  // 无法区分「刚构建的 exe」和「上个版本留下的 exe」。build:exe 会写下
+  // dist/build-manifest.json，这里核对它的版本号，避免把旧 exe 当新资产发出去。
+  const manifestPath = path.join(root, 'dist', 'build-manifest.json');
+  if (!fs.existsSync(manifestPath)) {
+    throw new Error(
+      `缺少 dist/build-manifest.json，无法确认 ${EXE_NAME} 是用当前版本构建的。\n`
+      + `请重新执行 \`npm run build:exe\`（它会一并写入构建溯源）后再发布。`
+    );
+  }
+  let manifest;
+  try {
+    manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+  } catch (err) {
+    throw new Error(`dist/build-manifest.json 不是合法 JSON: ${err.message}`);
+  }
+  if (manifest.version !== VERSION) {
+    throw new Error(
+      `构建溯源版本不符，发布中止：manifest 记录的是 v${manifest.version}，`
+      + `但 package.json 是 v${VERSION}。\n`
+      + `dist/ 里很可能是上个版本的残留产物，请重新执行 \`npm run build:exe\`。`
+    );
   }
   return assets;
 }
@@ -132,7 +162,8 @@ async function main() {
     console.error('  CMD:        set GITHUB_TOKEN=ghp_xxx && node scripts/publish-release.js');
     console.error('  Git Bash:   GITHUB_TOKEN=ghp_xxx node scripts/publish-release.js');
     console.error('也可以在 PowerShell 里持久化：setx GITHUB_TOKEN "ghp_xxx"（新开终端生效）。');
-    console.error(`回退路径 ~/.gemini/config/mcp_config.json 的 mcpServers.github.env.GITHUB_PERSONAL_ACCESS_TOKEN 未提供可用值。`);
+    console.error('也可以显式启用 mcp_config.json 回退路径（不推荐，凭据来源不可追溯）：');
+    console.error('  PowerShell: $env:AGY_ZH_ALLOW_MCP_TOKEN = "1"; node scripts/publish-release.js');
     process.exit(1);
   }
   const { token, source } = auth;

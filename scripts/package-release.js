@@ -11,7 +11,11 @@ const EXE_NAME = 'Antigravity-zh-patch.exe';
 const BAT_FILES = ['一键安装.bat', '一键还原.bat', '快速同步词典.bat'];
 
 // 清单顺序即 zip 内顺序，便于人工核对与 diff
-function collectEntries(root) {
+// requireExe=false 仅用于 --dry-run 预览：那时 exe 可能还没构建，允许缺席。
+// 真正打包时必须为 true —— zip 里没有 exe 就等于没有任何可用的安装入口
+// （三个 .bat 全都调用 node scripts/patch.js，而 scripts/ 并不在 zip 清单里），
+// 旧版只 warn 不拦，实测会产出一个 14 条目、完全装不上的发布包。
+function collectEntries(root, { requireExe = true } = {}) {
   const items = [];
   const add = (name, file, required = true) => {
     if (!fs.existsSync(file)) {
@@ -23,7 +27,15 @@ function collectEntries(root) {
 
   const exePath = path.join(root, 'dist', EXE_NAME);
   if (!fs.existsSync(exePath)) {
-    console.warn(`⚠️ 未找到 dist/${EXE_NAME}，本次只打包脚本与词典；先运行 npm run build:exe 可补上 exe。`);
+    if (requireExe) {
+      throw new Error(
+        `缺少发布文件: ${EXE_NAME}（${exePath}）\n`
+        + '  zip 里没有 exe 就没有任何可用的安装入口（.bat 依赖的 scripts/ 不在打包清单内）。\n'
+        + '  请先运行: npm run build:exe\n'
+        + '  只想预览清单可加 --dry-run。'
+      );
+    }
+    console.warn(`⚠️ 未找到 dist/${EXE_NAME}，本次为预览模式，只列出脚本与词典。`);
   } else {
     add(EXE_NAME, exePath);
   }
@@ -43,12 +55,28 @@ function collectEntries(root) {
   return items;
 }
 
+// 发布包的固定骨架：exe + 3 个 bat + 词典 + 翻译器 + 2 个文档 = 9，
+// 再加上 src/native 下的全部替换表。条目数不对就说明清单被漏改过。
+const FIXED_ENTRY_COUNT = 9;
+
 function packageRelease(root = ROOT, outDir = path.join(root, 'dist')) {
   const version = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8')).version;
   const zipName = `Antigravity-zh-patch-v${version}.zip`;
   const zipPath = path.join(outDir, zipName);
 
   const entries = collectEntries(root);
+  const nativeCount = entries.filter(e => e.name.startsWith('src/native/')).length;
+  const expectedCount = FIXED_ENTRY_COUNT + nativeCount;
+  if (entries.length !== expectedCount) {
+    throw new Error(
+      `发布清单条目数异常: 实际 ${entries.length}，预期 ${expectedCount}`
+      + `（固定 ${FIXED_ENTRY_COUNT} + src/native ${nativeCount}）`
+    );
+  }
+  if (!entries.some(e => e.name === EXE_NAME)) {
+    throw new Error(`发布清单里没有 ${EXE_NAME}，拒绝产出无法安装的发布包`);
+  }
+
   const buffer = buildZip(entries);
   fs.mkdirSync(outDir, { recursive: true });
   fs.writeFileSync(zipPath, buffer);
@@ -125,7 +153,7 @@ if (require.main === module) {
   if (process.argv.includes('--self-test')) {
     selfTest();
   } else if (process.argv.includes('--dry-run')) {
-    const entries = collectEntries(root);
+    const entries = collectEntries(root, { requireExe: false });
     console.log(`预览：${entries.length} 个条目`);
     for (const entry of entries) console.log(`   - ${entry.name} (${entry.data.length} B)`);
   } else {

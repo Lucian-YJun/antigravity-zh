@@ -210,7 +210,9 @@ function runInstall() {
 
     let asar;
     try {
-        asar = require('asar');
+        // 旧包名 `asar` 已被上游正式弃用（"Please use @electron/asar moving forward.
+        // There is no API change, just a package name change"），这里已迁移。
+        asar = require('@electron/asar');
     } catch {
         console.error('❌ 缺少依赖，请先在本目录运行: npm install');
         process.exit(1);
