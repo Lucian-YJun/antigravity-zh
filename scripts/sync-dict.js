@@ -40,12 +40,29 @@ if (!fs.existsSync(kitDir)) {
 
 const { sourceDict, sourceI18n } = resolveSourceAssets(path.resolve(__dirname, '..'), path.dirname(process.execPath));
 
+// 0. 先校验词典能解析，再动安装目录。
+// 顺序很关键：旧版先 copyFileSync 再在 CDP 分支里 JSON.parse，于是手工改词典时
+// 多打一个逗号就会用坏文件覆盖掉安装目录里能用的那份，而本脚本一声不响——
+// 用户只看到界面变回英文。AGENTS.md 明确鼓励用户直接改 JSON，这条路必须守住。
+let dictData;
+try {
+  dictData = JSON.parse(fs.readFileSync(sourceDict, 'utf8'));
+} catch (err) {
+  console.error(`❌ 词典不是合法 JSON，已中止同步（安装目录未被改动）: ${sourceDict}`);
+  console.error(`   ${err.message}`);
+  process.exit(1);
+}
+if (!dictData || typeof dictData !== 'object' || !dictData.dict || typeof dictData.dict !== 'object') {
+  console.error(`❌ 词典缺少 dict 字段，已中止同步（安装目录未被改动）: ${sourceDict}`);
+  process.exit(1);
+}
+
 // 1. 复制词典与翻译引擎组件
 fs.copyFileSync(sourceDict, path.join(kitDir, 'cockpit-zh.json'));
 if (fs.existsSync(sourceI18n)) {
   fs.copyFileSync(sourceI18n, path.join(kitDir, 'zh-i18n.js'));
 }
-console.log('✅ 词典与翻译引擎文件已复制到应用目录。');
+console.log(`✅ 词典（${Object.keys(dictData.dict).length} 条）与翻译引擎文件已复制到应用目录。`);
 
 // 2. 检测并直连活动窗口主动推送
 function degrade() {

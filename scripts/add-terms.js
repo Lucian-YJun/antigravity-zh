@@ -20,10 +20,19 @@ const args = process.argv.slice(2);
 const isDryRun = args.includes('--dry-run');
 const isForce = args.includes('--force');
 const dictArgIdx = args.indexOf('--dict');
+// --dict 后面没跟路径时必须报错：旧行为会静默回落到真实词典 src/cockpit-zh.json，
+// 于是「想在沙箱副本上试一下」的操作直接改掉了正式词典。
+if (dictArgIdx >= 0 && !args[dictArgIdx + 1]) {
+    console.error('❌ --dict 后面必须跟词典路径，例如: --dict ./sandbox/cockpit-zh.json');
+    process.exit(1);
+}
 // 允许指定目标词典：测试必须能在沙箱副本上跑，不能动真实词典
+const inlineDictIdx = args.findIndex(a => a.startsWith('--dict='));
 const dictPath = dictArgIdx >= 0 && args[dictArgIdx + 1]
     ? path.resolve(args[dictArgIdx + 1])
-    : path.join(__dirname, '..', 'src', 'cockpit-zh.json');
+    : inlineDictIdx >= 0
+        ? path.resolve(args[inlineDictIdx].slice('--dict='.length))
+        : path.join(__dirname, '..', 'src', 'cockpit-zh.json');
 const file = args.find((a, i) => !a.startsWith('--') && (dictArgIdx < 0 || i !== dictArgIdx + 1));
 
 if (!file) {
