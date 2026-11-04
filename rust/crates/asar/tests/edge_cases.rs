@@ -33,8 +33,8 @@ fn test_asar_empty_file_serialization() {
     if let Some(AsarNode::File { size, offset, executable, unpacked, .. }) = node1 {
         assert_eq!(*size, 0);
         assert_eq!(*offset, Some(0));
-        assert_eq!(*executable, false);
-        assert_eq!(*unpacked, false);
+        assert!(!(*executable));
+        assert!(!(*unpacked));
     } else {
         panic!("Expected File node for zero_size.txt");
     }
@@ -44,8 +44,8 @@ fn test_asar_empty_file_serialization() {
     if let Some(AsarNode::File { size, offset, executable, unpacked, .. }) = node2 {
         assert_eq!(*size, 0);
         assert_eq!(*offset, Some(0));
-        assert_eq!(*executable, true);
-        assert_eq!(*unpacked, false);
+        assert!(*executable);
+        assert!(!(*unpacked));
     } else {
         panic!("Expected File node for nested/empty.bin");
     }
@@ -196,8 +196,96 @@ fn test_asar_unpacked_pack_and_extract() {
 
     let stats = reader.extract_all(&dest).expect("extract asar");
     assert_eq!(stats.total_files, 2);
+    assert_eq!(stats.total_directories, 1, "only the 'sub' directory node exists");
     assert_eq!(std::fs::read(dest.join("packed.txt")).unwrap(), b"packed data");
     assert_eq!(std::fs::read(dest.join("sub/binary.node")).unwrap(), b"native binary data");
+
+    let _ = std::fs::remove_dir_all(&tmp);
+}
+
+#[test]
+fn test_pack_emits_asar_compatible_integrity() {
+    let tmp = std::env::temp_dir().join(format!("asar-test-integrity-{}", std::process::id()));
+    let src = tmp.join("src");
+    let asar_file = tmp.join("app.asar");
+    let dest = tmp.join("dest");
+
+    let _ = std::fs::remove_dir_all(&tmp);
+    std::fs::create_dir_all(&src).unwrap();
+    std::fs::write(src.join("abc.txt"), b"abc").unwrap();
+    std::fs::write(src.join("empty.txt"), b"").unwrap();
+
+    antigravity_asar::pack_dir(&src, &asar_file, None).expect("pack asar");
+
+    let reader = antigravity_asar::AsarReader::open(&asar_file).expect("open asar");
+
+    let meta = match reader.header().find_node("abc.txt") {
+        Some(AsarNode::File {
+            integrity: Some(meta),
+            ..
+        }) => meta,
+        other => panic!("expected integrity metadata for abc.txt, got {:?}", other),
+    };
+    assert_eq!(meta.algorithm, "SHA256");
+    assert_eq!(
+        meta.hash,
+        "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+    );
+    assert_eq!(meta.block_size, Some(4 * 1024 * 1024));
+    let blocks = meta.blocks.as_ref().expect("blocks present");
+    assert_eq!(blocks.len(), 1);
+    assert_eq!(blocks[0], meta.hash);
+
+    // Empty files still carry the empty-input digest, like @electron/asar.
+    match reader.header().find_node("empty.txt") {
+        Some(AsarNode::File {
+            integrity: Some(meta),
+            ..
+        }) => assert_eq!(
+            meta.hash,
+            "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        ),
+        other => panic!("expected integrity metadata for empty.txt, got {:?}", other),
+    }
+
+    // The integrity objects enlarge the header; payload offsets must stay correct.
+    let stats = reader.extract_all(&dest).expect("extract after integrity growth");
+    assert_eq!(stats.total_files, 2);
+    assert_eq!(std::fs::read(dest.join("abc.txt")).unwrap(), b"abc");
+    assert_eq!(std::fs::read(dest.join("empty.txt")).unwrap(), b"");
+
+    let _ = std::fs::remove_dir_all(&tmp);
+}
+
+#[test]
+fn test_extract_all_counts_nested_directories() {
+    let tmp = std::env::temp_dir().join(format!("asar-test-dircount-{}", std::process::id()));
+    let src = tmp.join("src");
+    let asar_file = tmp.join("tree.asar");
+    let dest = tmp.join("dest");
+
+    let _ = std::fs::remove_dir_all(&tmp);
+    std::fs::create_dir_all(src.join("dist").join("ideInstall")).unwrap();
+    std::fs::write(src.join("package.json"), b"{}").unwrap();
+    std::fs::write(src.join("dist").join("main.js"), b"main").unwrap();
+    std::fs::write(
+        src.join("dist").join("ideInstall").join("wizard.js"),
+        b"wizard",
+    )
+    .unwrap();
+
+    antigravity_asar::pack_dir(&src, &asar_file, None).expect("pack tree");
+
+    let reader = antigravity_asar::AsarReader::open(&asar_file).expect("open tree");
+    assert_eq!(
+        reader.header().count_directories(),
+        2,
+        "header records 'dist' and 'dist/ideInstall', not the implicit root"
+    );
+
+    let stats = reader.extract_all(&dest).expect("extract tree");
+    assert_eq!(stats.total_files, 3);
+    assert_eq!(stats.total_directories, 2);
 
     let _ = std::fs::remove_dir_all(&tmp);
 }

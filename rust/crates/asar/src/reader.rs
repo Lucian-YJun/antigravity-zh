@@ -10,6 +10,7 @@ use crate::header::{parse_header, AsarHeader, AsarNode, FileEntryInfo};
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct ExtractionStats {
     pub total_files: usize,
+    /// Directory nodes recorded in the archive header, excluding the implicit root.
     pub total_directories: usize,
     pub total_bytes: u64,
 }
@@ -61,8 +62,7 @@ impl AsarReader {
         }
 
         let path_str = self.source_path.to_string_lossy();
-        if path_str.ends_with(".orig") {
-            let trimmed = &path_str[..path_str.len() - 5];
+        if let Some(trimmed) = path_str.strip_suffix(".orig") {
             let fallback = PathBuf::from(format!("{}.unpacked", trimmed));
             if fallback.exists() {
                 return fallback;
@@ -184,6 +184,26 @@ impl AsarReader {
             }
         }
 
+        // Directory nodes recorded in the header but containing no files must be
+        // recreated too, otherwise an empty directory vanishes on a pack→extract
+        // round trip while `total_directories` still counts it. Guarded against
+        // traversal for the same reason the file entries are.
+        for dir in self.header.list_directories() {
+            let rel = Path::new(&dir);
+            if rel
+                .components()
+                .any(|c| matches!(c, std::path::Component::ParentDir))
+            {
+                return Err(AsarError::InvalidPath(format!(
+                    "Path traversal attempt blocked in directory node: {}",
+                    dir
+                )));
+            }
+            if !dir.is_empty() {
+                dirs_to_create.insert(dest_root.join(rel));
+            }
+        }
+
         for dir in dirs_to_create {
             fs::create_dir_all(&dir)?;
         }
@@ -238,7 +258,7 @@ impl AsarReader {
 
         Ok(ExtractionStats {
             total_files,
-            total_directories: 0,
+            total_directories: self.header.count_directories(),
             total_bytes,
         })
     }

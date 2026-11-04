@@ -5,6 +5,7 @@ use walkdir::WalkDir;
 
 use crate::error::AsarError;
 use crate::header::{serialize_header, AsarHeader};
+use crate::integrity::file_integrity;
 
 /// Options configuring ASAR packing behavior.
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
@@ -131,6 +132,7 @@ impl AsarWriter {
         };
 
         let mut collected_files: Vec<CollectedFile> = Vec::new();
+        let mut collected_dirs: Vec<String> = Vec::new();
         let mut directory_count = 0;
 
         // Traverse source directory deterministically
@@ -150,6 +152,10 @@ impl AsarWriter {
 
             if entry.file_type().is_dir() {
                 directory_count += 1;
+                // Recorded separately and inserted into the header below: the file
+                // loop only creates intermediate segments of file paths, so without
+                // this an empty directory never reaches the header at all.
+                collected_dirs.push(rel_str);
             } else if entry.file_type().is_file() {
                 let metadata = entry.metadata().map_err(|e| AsarError::Io(e.into()))?;
                 let size = metadata.len();
@@ -190,12 +196,39 @@ impl AsarWriter {
         let mut current_offset: u64 = 0;
 
         for file in &collected_files {
+            // asar hashes every source file before writing the header, including
+            // unpacked entries, so the emitted `integrity` objects stay identical
+            // to what @electron/asar would produce for the same tree.
+            let integrity = Some(file_integrity(&file.abs_path)?);
+
             if file.unpacked {
-                header.insert_file(&file.rel_str, file.size, None, file.executable, true)?;
+                header.insert_file_with_integrity(
+                    &file.rel_str,
+                    file.size,
+                    None,
+                    file.executable,
+                    true,
+                    integrity,
+                )?;
             } else {
-                header.insert_file(&file.rel_str, file.size, Some(current_offset), file.executable, false)?;
+                header.insert_file_with_integrity(
+                    &file.rel_str,
+                    file.size,
+                    Some(current_offset),
+                    file.executable,
+                    false,
+                    integrity,
+                )?;
                 current_offset += file.size;
             }
+        }
+
+        // Insert directory nodes so empty directories survive the round trip and
+        // `count_directories()` reports what the header actually contains.
+        // @electron/asar records them as {"files":{}}; matching that is required for
+        // archive-format parity with the Node toolchain.
+        for dir in &collected_dirs {
+            header.insert_directory(dir)?;
         }
 
         let header_bytes = serialize_header(&header)?;

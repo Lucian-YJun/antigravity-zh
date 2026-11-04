@@ -69,6 +69,13 @@ pub struct SourceAssets {
     pub source_i18n: PathBuf,
     pub source_dict: PathBuf,
     pub native_patches_dir: PathBuf,
+    /// Which candidate directory the three paths above were resolved from.
+    ///
+    /// The search walks the executable directory, the CWD, and up to four CWD
+    /// ancestors, so more than one checkout can satisfy it. Recording the winner
+    /// lets the caller print it — otherwise a stale or foreign checkout can
+    /// silently supply the dictionary and rules with no visible trace.
+    pub resolved_from: PathBuf,
 }
 
 /// Resolves source assets (scripts, dictionary, native rule files) across project and runtime locations.
@@ -129,6 +136,7 @@ pub fn resolve_source_assets(custom_root: Option<&Path>) -> Result<SourceAssets,
             source_i18n: i18n,
             source_dict: dict,
             native_patches_dir: native,
+            resolved_from: dir.clone(),
         });
     }
 
