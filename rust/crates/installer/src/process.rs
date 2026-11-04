@@ -239,13 +239,18 @@ mod win32_impl {
             }
             let _guard = HandleGuard(handle);
 
-            let ntdll = windows_sys::Win32::System::LibraryLoader::GetModuleHandleA(b"ntdll.dll\0".as_ptr());
+            // c"..." literals instead of hand-rolled b"...\0": the nul terminator is
+            // guaranteed by the literal type. windows-sys takes a raw *const u8 here,
+            // hence the explicit cast.
+            let ntdll = windows_sys::Win32::System::LibraryLoader::GetModuleHandleA(
+                c"ntdll.dll".as_ptr() as *const u8,
+            );
             if ntdll.is_null() {
                 return None;
             }
             let proc = windows_sys::Win32::System::LibraryLoader::GetProcAddress(
                 ntdll,
-                b"NtQueryInformationProcess\0".as_ptr(),
+                c"NtQueryInformationProcess".as_ptr() as *const u8,
             )?;
             let nt_query: NtQueryInformationProcessFn = std::mem::transmute(proc);
 
@@ -423,11 +428,10 @@ impl ProcessManager {
             let mut killed = 0;
 
             for proc in processes {
-                if proc.is_sidecar && !ancestors.contains(&proc.pid) {
-                    if win32_impl::terminate_single_process(proc.pid).is_ok() {
+                if proc.is_sidecar && !ancestors.contains(&proc.pid)
+                    && win32_impl::terminate_single_process(proc.pid).is_ok() {
                         killed += 1;
                     }
-                }
             }
 
             Ok(killed)
@@ -440,6 +444,11 @@ impl ProcessManager {
 
     /// Requests a graceful shutdown of active IDE instances via WM_CLOSE.
     /// Polls until all IDE processes terminate or the timeout expires.
+    ///
+    /// Refuses to act when one of the IDE processes is an ancestor of this
+    /// process — that means the tool is running inside the IDE's own integrated
+    /// terminal, and closing the IDE would kill our console mid-install.
+    /// `kill_residual_sidecars` already applies the same protection.
     pub fn graceful_close(timeout_secs: u64) -> Result<bool, InstallerError> {
         #[cfg(windows)]
         {
@@ -451,6 +460,21 @@ impl ProcessManager {
 
             if ide_procs.is_empty() {
                 return Ok(true);
+            }
+
+            let ancestors = Self::get_ancestor_pids(64)?;
+            let hosting: Vec<String> = ide_procs
+                .iter()
+                .filter(|pid| ancestors.contains(pid))
+                .map(|pid| pid.to_string())
+                .collect();
+            if !hosting.is_empty() {
+                return Err(InstallerError::ProcessRunning(format!(
+                    "Antigravity PID {} 是当前进程的祖先进程（本工具正运行在它内部的终端里）。\
+                     关闭它会连带杀掉当前控制台，使安装中途中断，因此拒绝执行。\
+                     请在 Antigravity 之外的 cmd / PowerShell 窗口中重试。",
+                    hosting.join(", ")
+                )));
             }
 
             for &pid in &ide_procs {

@@ -151,7 +151,7 @@ impl Deployer {
         // Phase 3: Transactional atomic renames with reverse rollback stack
         let mut rollback_stack: Vec<Box<dyn FnOnce() -> std::io::Result<()>>> = Vec::new();
 
-        let mut execute_transaction = || -> Result<(), InstallerError> {
+        let execute_transaction = || -> Result<(), InstallerError> {
             // Step 1: Backup existing orig if present AND we have a new active asar to commit
             if had_asar {
                 if had_orig {
@@ -217,7 +217,20 @@ impl Deployer {
             Ok(())
         };
 
-        if let Err(err) = execute_transaction() {
+        // Run the transaction inside catch_unwind: with the default unwind
+        // panic strategy a panic here would otherwise skip the rollback stack
+        // entirely and leave the install directory half-swapped (app.asar
+        // already renamed away, new tree not yet in place).
+        let tx_outcome =
+            std::panic::catch_unwind(std::panic::AssertUnwindSafe(execute_transaction));
+
+        let tx_failure = match tx_outcome {
+            Ok(Ok(())) => None,
+            Ok(Err(err)) => Some(err.to_string()),
+            Err(_) => Some("transaction panicked (see stderr for the panic message)".to_string()),
+        };
+
+        if let Some(reason) = tx_failure {
             // Rollback in exact reverse order (LIFO)
             while let Some(rollback_op) = rollback_stack.pop() {
                 let _ = rollback_op();
@@ -228,7 +241,7 @@ impl Deployer {
             if zh_new.exists() {
                 let _ = fs::remove_dir_all(&zh_new);
             }
-            return Err(InstallerError::DeploymentRolledBack(err.to_string()));
+            return Err(InstallerError::DeploymentRolledBack(reason));
         }
 
         // Phase 4: Commit cleanup - remove .old and intermediate files
@@ -294,27 +307,87 @@ impl Deployer {
     }
 }
 
+/// True when a rename failed because source and destination live on different
+/// volumes. EXDEV is 18 on Unix; ERROR_NOT_SAME_DEVICE is 17 on Windows.
+fn is_cross_device(err: &std::io::Error) -> bool {
+    #[cfg(windows)]
+    {
+        err.raw_os_error() == Some(17)
+    }
+    #[cfg(not(windows))]
+    {
+        err.raw_os_error() == Some(18)
+    }
+}
+
 fn move_dir<P: AsRef<Path>, Q: AsRef<Path>>(from: P, to: Q) -> Result<(), InstallerError> {
     let from_p = from.as_ref();
     let to_p = to.as_ref();
-    if fs::rename(from_p, to_p).is_ok() {
-        return Ok(());
+    match fs::rename(from_p, to_p) {
+        Ok(()) => return Ok(()),
+        // Only a cross-volume error justifies the non-atomic copy fallback.
+        // The previous code fell back for *any* failure, so an EPERM/EBUSY from
+        // antivirus or a sharing violation silently turned an atomic move into a
+        // partial copy layered on top of an existing destination.
+        Err(e) if is_cross_device(&e) => {}
+        Err(e) => return Err(InstallerError::Io(e)),
     }
-    copy_dir_all(from_p, to_p)?;
+    if to_p.exists() {
+        fs::remove_dir_all(to_p)?;
+    }
+    copy_dir_all(from_p, to_p, 0)?;
     let _ = fs::remove_dir_all(from_p);
     Ok(())
 }
 
-fn copy_dir_all(src: &Path, dst: &Path) -> Result<(), InstallerError> {
+/// Recursion ceiling for the cross-device copy fallback. A symlink loop or a
+/// pathological tree would otherwise overflow the stack.
+const MAX_COPY_DEPTH: usize = 64;
+
+fn copy_dir_all(src: &Path, dst: &Path, depth: usize) -> Result<(), InstallerError> {
+    if depth > MAX_COPY_DEPTH {
+        return Err(InstallerError::Env(format!(
+            "Directory nesting exceeds {} levels while copying {} — possible symlink loop",
+            MAX_COPY_DEPTH,
+            src.display()
+        )));
+    }
     fs::create_dir_all(dst)?;
     for entry in fs::read_dir(src)? {
         let entry = entry?;
-        let ty = entry.file_type()?;
+        // symlink_metadata, not file_type(): the latter follows the link and would
+        // report a symlink-to-directory as a plain directory, making the copy
+        // dereference every link (Node's cpSync keeps them) and follow cycles.
+        let meta = fs::symlink_metadata(entry.path())?;
         let dest = dst.join(entry.file_name());
-        if ty.is_dir() {
-            copy_dir_all(&entry.path(), &dest)?;
+        if meta.file_type().is_symlink() {
+            // Replicate the link when the platform allows it; otherwise fall back
+            // to copying the target's contents so the tree stays usable.
+            #[cfg(windows)]
+            let linked = {
+                let target = fs::read_link(entry.path())?;
+                if meta.is_dir() {
+                    std::os::windows::fs::symlink_dir(&target, &dest)
+                } else {
+                    std::os::windows::fs::symlink_file(&target, &dest)
+                }
+            };
+            #[cfg(not(windows))]
+            let linked = {
+                let target = fs::read_link(entry.path())?;
+                std::os::unix::fs::symlink(&target, &dest)
+            };
+            if linked.is_err() {
+                if meta.is_dir() {
+                    copy_dir_all(&entry.path(), &dest, depth + 1)?;
+                } else {
+                    fs::copy(entry.path(), &dest)?;
+                }
+            }
+        } else if meta.is_dir() {
+            copy_dir_all(&entry.path(), &dest, depth + 1)?;
         } else {
-            fs::copy(entry.path(), dest)?;
+            fs::copy(entry.path(), &dest)?;
         }
     }
     Ok(())

@@ -8,6 +8,18 @@ use serde::Deserialize;
 use crate::env;
 use crate::error::InstallerError;
 
+/// Upper bound for a single WebSocket frame payload. The length is declared by
+/// the peer, so it must be validated before allocating — CDP replies for a
+/// dictionary push are well under a megabyte, and this cap only exists to stop
+/// a malformed or hostile loopback responder from exhausting memory.
+const MAX_WS_FRAME: usize = 64 * 1024 * 1024;
+
+/// Upper bound for a reassembled (possibly fragmented) WebSocket message.
+const MAX_WS_MESSAGE: usize = 256 * 1024 * 1024;
+
+/// Upper bound for the HTTP upgrade handshake header block.
+const MAX_HANDSHAKE_BYTES: usize = 64 * 1024;
+
 #[derive(Debug, Clone, Deserialize)]
 pub struct CdpTarget {
     pub id: Option<String>,
@@ -79,20 +91,16 @@ impl CdpClient {
     pub fn parse_ws_url(url: &str) -> Option<(String, u16, String)> {
         let rest = if let Some(s) = url.strip_prefix("ws://") {
             s
-        } else if let Some(s) = url.strip_prefix("wss://") {
-            s
-        } else {
-            return None;
-        };
+        } else { url.strip_prefix("wss://")? };
 
         let (host_port, path) = match rest.find('/') {
             Some(idx) => (&rest[..idx], &rest[idx..]),
             None => (rest, "/"),
         };
 
-        let (host, port_str) = match host_port.rfind(':') {
-            Some(idx) => (&host_port[..idx], &host_port[idx + 1..]),
-            None => return None,
+        let (host, port_str) = {
+            let idx = host_port.rfind(':')?;
+            (&host_port[..idx], &host_port[idx + 1..])
         };
 
         let port: u16 = port_str.parse().ok()?;
@@ -155,14 +163,34 @@ impl CdpClient {
         );
 
         let mut success_count = 0;
+        let mut failures = 0;
         for page in matching_pages {
-            if let Some(ws_url) = page.websocket_debugger_url {
-                if let Some((host, p, path)) = Self::parse_ws_url(&ws_url) {
-                    if let Ok(true) = ws_evaluate(&host, p, &path, &code) {
-                        success_count += 1;
-                    }
+            let Some(ws_url) = page.websocket_debugger_url else {
+                continue;
+            };
+            let Some((host, p, ws_path)) = Self::parse_ws_url(&ws_url) else {
+                eprintln!("  ⚠️ 无法解析调试地址，已跳过: {}", ws_url);
+                failures += 1;
+                continue;
+            };
+            match ws_evaluate(&host, p, &ws_path, &code) {
+                Ok(true) => success_count += 1,
+                // Ok(false) 表示页面里没有 __antigravityZh（补丁未注入或页面尚未加载完），
+                // 属正常情况，不计入故障。
+                Ok(false) => {}
+                // Err 表示传输层故障。旧版把它和 Ok(false) 混为一谈，于是推送明明成功
+                // 也可能报告 0 个窗口，用户完全无从判断问题出在哪一环。
+                Err(err) => {
+                    eprintln!("  ⚠️ 推送到 {} 失败: {}", ws_url, err);
+                    failures += 1;
                 }
             }
+        }
+        if failures > 0 {
+            eprintln!(
+                "  {} 个目标推送失败，{} 个成功（失败原因见上）。",
+                failures, success_count
+            );
         }
 
         Ok(success_count)
@@ -327,16 +355,32 @@ fn ws_evaluate(host: &str, port: u16, path: &str, code: &str) -> Result<bool, In
     let end_of_headers = loop {
         let n = stream.read(&mut buf)?;
         if n == 0 {
-            return Ok(false);
+            return Err(InstallerError::Env(
+                "WebSocket handshake failed: peer closed the connection".into(),
+            ));
         }
         handshake_resp.extend_from_slice(&buf[..n]);
         if let Some(pos) = handshake_resp.windows(4).position(|w| w == b"\r\n\r\n") {
             break pos + 4;
         }
+        if handshake_resp.len() > MAX_HANDSHAKE_BYTES {
+            return Err(InstallerError::Env(format!(
+                "WebSocket handshake headers exceed {} bytes",
+                MAX_HANDSHAKE_BYTES
+            )));
+        }
     };
     let handshake_str = String::from_utf8_lossy(&handshake_resp[..end_of_headers]);
     if !handshake_str.contains("101 Switching Protocols") && !handshake_str.contains("HTTP/1.1 101") {
-        return Ok(false);
+        let status = handshake_str
+            .lines()
+            .next()
+            .unwrap_or("<no status line>")
+            .to_string();
+        return Err(InstallerError::Env(format!(
+            "WebSocket upgrade rejected: {}",
+            status
+        )));
     }
 
     let unconsumed = handshake_resp[end_of_headers..].to_vec();
@@ -374,13 +418,23 @@ fn ws_evaluate(host: &str, port: u16, path: &str, code: &str) -> Result<bool, In
     }
     stream.write_all(&frame)?;
 
-    // 4. Read response frame(s) with WsReader
+    // 4. Read response frame(s) with WsReader.
+    //
+    // Two hardening rules that the previous version violated:
+    //  * the payload length is server-controlled, so it is capped before any
+    //    allocation — an oversized claim used to abort the tool with a
+    //    capacity-overflow panic;
+    //  * fragmented messages (opcode 0x0 continuations) are accumulated until
+    //    FIN, otherwise a split Runtime.evaluate reply parses as truncated JSON
+    //    and the successful push is reported as a failure.
     let mut reader = WsReader::new(&mut stream, unconsumed);
+    let mut fragments: Vec<u8> = Vec::new();
+    let mut fragment_opcode: u8 = 0;
+
     loop {
         let mut header = [0u8; 2];
-        if reader.read_exact(&mut header).is_err() {
-            return Ok(false);
-        }
+        reader.read_exact(&mut header)?;
+        let fin = (header[0] & 0x80) != 0;
         let opcode = header[0] & 0x0F;
         let masked = (header[1] & 0x80) != 0;
         let mut payload_len = (header[1] & 0x7F) as usize;
@@ -392,7 +446,27 @@ fn ws_evaluate(host: &str, port: u16, path: &str, code: &str) -> Result<bool, In
         } else if payload_len == 127 {
             let mut len_bytes = [0u8; 8];
             reader.read_exact(&mut len_bytes)?;
-            payload_len = u64::from_be_bytes(len_bytes) as usize;
+            let declared = u64::from_be_bytes(len_bytes);
+            if declared > MAX_WS_FRAME as u64 {
+                return Err(InstallerError::Env(format!(
+                    "WebSocket frame declares {} bytes, exceeding the {} byte cap",
+                    declared, MAX_WS_FRAME
+                )));
+            }
+            payload_len = declared as usize;
+        }
+
+        if payload_len > MAX_WS_FRAME {
+            return Err(InstallerError::Env(format!(
+                "WebSocket frame of {} bytes exceeds the {} byte cap",
+                payload_len, MAX_WS_FRAME
+            )));
+        }
+        if fragments.len() + payload_len > MAX_WS_MESSAGE {
+            return Err(InstallerError::Env(format!(
+                "Fragmented WebSocket message exceeds the {} byte cap",
+                MAX_WS_MESSAGE
+            )));
         }
 
         let mask = if masked {
@@ -412,28 +486,58 @@ fn ws_evaluate(host: &str, port: u16, path: &str, code: &str) -> Result<bool, In
             }
         }
 
-        if opcode == 0x9 {
-            // Ping frame: reply with Pong frame (opcode 0xA)
-            let mut pong = vec![0x8A, 0x80];
-            let mask = [0x50, 0x4F, 0x4E, 0x47];
-            pong.extend_from_slice(&mask);
-            reader.stream.write_all(&pong)?;
-            continue;
-        }
-
-        if opcode == 0x8 {
-            // Close frame
-            return Ok(false);
-        }
-
-        if opcode == 0x1 {
-            // Text frame: check if this message responds to our eval request
-            if let Ok(val) = serde_json::from_slice::<serde_json::Value>(&body) {
-                if val.get("id").and_then(|id| id.as_i64()) == Some(999) {
-                    return Ok(val["result"]["result"]["value"].as_bool() == Some(true));
+        match opcode {
+            // Ping -> Pong (control frames are never fragmented and always short)
+            0x9 => {
+                let pong = vec![0x8Au8, 0x80, 0x50, 0x4F, 0x4E, 0x47];
+                reader.stream.write_all(&pong)?;
+                continue;
+            }
+            // Close
+            0x8 => {
+                return Err(InstallerError::Env(
+                    "WebSocket closed by peer before the evaluate reply arrived".into(),
+                ))
+            }
+            // Text or binary: starts a (possibly fragmented) message
+            0x1 | 0x2 => {
+                fragments.clear();
+                fragment_opcode = opcode;
+                fragments.extend_from_slice(&body);
+            }
+            // Continuation frame
+            0x0 => {
+                if fragments.is_empty() {
+                    return Err(InstallerError::Env(
+                        "WebSocket continuation frame without an initial frame".into(),
+                    ));
                 }
+                fragments.extend_from_slice(&body);
+            }
+            other => {
+                return Err(InstallerError::Env(format!(
+                    "Unsupported WebSocket opcode 0x{:x}",
+                    other
+                )))
             }
         }
+
+        if !fin {
+            continue; // more fragments expected
+        }
+
+        // Complete message assembled.
+        if fragment_opcode == 0x1 {
+            if let Ok(val) = serde_json::from_slice::<serde_json::Value>(&fragments) {
+                if val.get("id").and_then(|id| id.as_i64()) == Some(999) {
+                    let ok = val["result"]["result"]["value"].as_bool() == Some(true);
+                    fragments.clear();
+                    return Ok(ok);
+                }
+            }
+            // A text message that is not our reply (e.g. a CDP event) — keep reading.
+        }
+        fragments.clear();
     }
 }
 
