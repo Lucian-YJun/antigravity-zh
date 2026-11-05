@@ -14,17 +14,14 @@ const env = require('./lib/env');
 
 const { isLoopbackHost, isAntigravityPage, isTrustedDebuggerUrl } = cdpClient;
 
-// 被测试 require 时只导出纯函数，不执行同步流程。
-// 本脚本顶层会复制文件、发起网络请求，没有守卫的话任何 require 都会改动安装目录。
-// pkg 打包后的 exe 里 process.pkg 有值，因此始终走下面的主流程。
-const DETECT_ONLY = !process.pkg && require.main !== module;
-if (DETECT_ONLY) {
-  module.exports = { isLoopbackHost, isAntigravityPage, isTrustedDebuggerUrl };
-}
-
-if (!DETECT_ONLY) {
+// 同步流程会复制文件、发起网络请求，所以只有「直接执行」或「显式调用 runSync()」
+// 时才运行 —— 任何一次 require 都不该改动安装目录。
+// 内嵌 exe 里由 patch.js 的 --sync 分支调用 runSync()。
+const IS_ENTRY = require.main === module;
 
 const { loadWebSocket, readDevToolsPort, fetchTargets, pushToPages } = cdpClient;
+
+function runSync() {
 const { resolveSourceAssets } = env;
 
 const localAppData = process.env.LOCALAPPDATA;
@@ -104,4 +101,15 @@ if (!port) {
   }
 }
 
-} // if (!DETECT_ONLY)
+}
+
+module.exports = {
+  isLoopbackHost,
+  isAntigravityPage,
+  isTrustedDebuggerUrl,
+  runSync,
+};
+
+if (IS_ENTRY) {
+  runSync();
+}

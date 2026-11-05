@@ -66,6 +66,27 @@ Node 与 Rust 两套实现此前对同一条规则会产出不同结果：Node �
 - 有跳过的套件会在结论里显式列出（`APPROVE_WITH_UNVERIFIED_COVERAGE`），
   不再给出无条件的 `APPROVE`。
 
+## 6. 修复发布包自相矛盾：按 README 双击 bat 其实会失败
+
+三个 `.bat` 一直调用 `node scripts/patch.js`，还要求 `npm install` —— 但发布 zip 里
+既没有 `scripts/` 也没有 `node_modules/`，而那个内嵌了 Node 运行时的
+`Antigravity-zh-patch.exe` 反而没有任何地方调用它。
+
+结果是：按 README 说的「解压后双击 `一键安装.bat`」，会先报「未检测到 Node.js 环境」；
+就算装了 Node，也会因为包里没有 `scripts/` 而失败。那个几十 MB 的 exe 是死的。
+
+现在三个 bat **优先调用随包 exe**（用户无需安装任何环境），exe 缺席时才退回源码
+检出模式（保留 clone 仓库直接运行的老用法）。同时：
+
+- 新增 `--sync`，让「快速同步词典.bat」在 exe 形态下也能用
+  （exe 的入口是 `patch.js`，本身没有 sync 子命令）
+- bat 改为不使用 `goto` 标签跳转、不在括号块内读取 `%errorlevel%`：
+  前者在 UTF-8 多字节文本下会按字节偏移错位、把注释当命令执行；
+  后者在解析期就展开、恒为 0，会让失败也报成功
+
+已用 **Windows 自带解压** + 沙箱 `LOCALAPPDATA` 跑通完整生命周期：
+预览 → 安装 → 词典同步 → 还原，四步全部正常（真实安装目录未参与）。
+
 ## 升级方式
 
 下载本版 zip 解压，先运行 `一键还原.bat` 再运行 `一键安装.bat`；
