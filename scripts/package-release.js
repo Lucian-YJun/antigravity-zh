@@ -55,9 +55,17 @@ function collectEntries(root, { requireExe = true } = {}) {
   return items;
 }
 
-// 发布包的固定骨架：exe + 3 个 bat + 词典 + 翻译器 + 2 个文档 = 9，
-// 再加上 src/native 下的全部替换表。条目数不对就说明清单被漏改过。
-const FIXED_ENTRY_COUNT = 9;
+// 必需条目按「名字核对」，不硬编码总条目数。
+// 硬编码的数字一旦与清单增删不同步就会在真打包时误报——本文件初版就把 8 写成了 9，
+// 而没有任何测试覆盖这条路径，所以只有真跑一次 release:package 才会暴露。
+const REQUIRED_ENTRIES = [
+  EXE_NAME,
+  ...BAT_FILES,
+  'src/cockpit-zh.json',
+  'src/zh-i18n.js',
+  'README.md',
+  'RELEASE_NOTES.md',
+];
 
 function packageRelease(root = ROOT, outDir = path.join(root, 'dist')) {
   const version = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8')).version;
@@ -65,16 +73,24 @@ function packageRelease(root = ROOT, outDir = path.join(root, 'dist')) {
   const zipPath = path.join(outDir, zipName);
 
   const entries = collectEntries(root);
-  const nativeCount = entries.filter(e => e.name.startsWith('src/native/')).length;
-  const expectedCount = FIXED_ENTRY_COUNT + nativeCount;
-  if (entries.length !== expectedCount) {
-    throw new Error(
-      `发布清单条目数异常: 实际 ${entries.length}，预期 ${expectedCount}`
-      + `（固定 ${FIXED_ENTRY_COUNT} + src/native ${nativeCount}）`
-    );
+  const names = new Set(entries.map(e => e.name));
+  const missing = REQUIRED_ENTRIES.filter(n => !names.has(n));
+  if (missing.length) {
+    throw new Error(`发布清单缺少必需条目: ${missing.join(', ')}`);
   }
-  if (!entries.some(e => e.name === EXE_NAME)) {
+  if (!names.has(EXE_NAME)) {
     throw new Error(`发布清单里没有 ${EXE_NAME}，拒绝产出无法安装的发布包`);
+  }
+  // native 替换表的数量必须与 src/native 下实际的 .json 文件一致，防止漏打包
+  const nativeOnDisk = fs
+    .readdirSync(path.join(root, 'src', 'native'))
+    .filter(f => f.endsWith('.json'))
+    .length;
+  const nativeInZip = entries.filter(e => e.name.startsWith('src/native/')).length;
+  if (nativeInZip !== nativeOnDisk) {
+    throw new Error(
+      `src/native 打包不完整: 磁盘上 ${nativeOnDisk} 个替换表，清单里只有 ${nativeInZip} 个`
+    );
   }
 
   const buffer = buildZip(entries);

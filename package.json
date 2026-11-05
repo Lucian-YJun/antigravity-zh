@@ -1,6 +1,6 @@
 {
   "name": "antigravity-zh",
-  "version": "1.3.1",
+  "version": "1.3.2",
   "description": "Antigravity 中文汉化补丁 - 首屏优先与渐进式翻译",
   "main": "scripts/patch.js",
   "bin": "scripts/patch.js",
@@ -49,15 +49,12 @@
   },
   "type": "commonjs",
   "dependencies": {
-    "@electron/asar": "^4.3.1",
+    "@electron/asar": "^3.4.1",
     "ws": "^8.21.3"
   },
   "devDependencies": {
     "chromium-pickle-js": "^0.2.0",
     "jsdom": "^30.1.0",
     "pkg": "^5.8.1"
-  },
-  "overrides": {
-    "minimatch": "^11.0.1"
   }
 }
