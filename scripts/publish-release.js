@@ -55,12 +55,14 @@ function getToken() {
 function resolveAssets(root) {
   const assets = [
     { name: ZIP_NAME, path: path.join(root, 'dist', ZIP_NAME), type: 'application/zip', hint: 'npm run release:package' },
-    { name: EXE_NAME, path: path.join(root, 'dist', EXE_NAME), type: 'application/octet-stream', hint: 'npm run build:exe' },
+    // 上传到 GitHub 的名字是面向用户的 Antigravity-zh.exe，而本地构建产物叫
+    // antigravity-tool.exe（cargo 的 [[bin]] 名）。两者不同，uploadAsset 用 name 覆盖文件名。
+    { name: EXE_NAME, path: path.join(root, 'dist', 'antigravity-tool.exe'), type: 'application/octet-stream', hint: 'npm run build:rust' },
   ];
   const missing = assets.filter(a => !fs.existsSync(a.path));
   if (missing.length) {
-    const lines = missing.map(a => `  - dist/${a.name}${a.hint ? `（缺少它请先运行 ${a.hint}）` : ''}`);
-    throw new Error(`缺少发布资产，发布中止：\n${lines.join('\n')}\n\n请先执行 \`npm run release:package\` 生成完整发布包（含 exe、三个 bat 与 src/）后再重试。`);
+    const lines = missing.map(a => `  - ${a.name} ← ${path.relative(root, a.path)}${a.hint ? `（缺少它请先运行 ${a.hint}）` : ''}`);
+    throw new Error(`缺少发布资产，发布中止：\n${lines.join('\n')}\n\n请先执行 \`npm run build\`（= build:rust + release:package）后再重试。`);
   }
 
   // 溯源校验：dist/ 被 gitignore 但会跨构建残留在开发机上，仅凭 existsSync
@@ -112,9 +114,11 @@ function request(options, data) {
   });
 }
 
-function uploadAsset(uploadUrlRaw, filePath, contentType, token) {
+function uploadAsset(uploadUrlRaw, filePath, contentType, token, fileNameOverride) {
   return new Promise((resolve, reject) => {
-    const fileName = path.basename(filePath);
+    // 用展示名而不是 path.basename：构建产物名与发布名可能不同
+    // （antigravity-tool.exe → Antigravity-zh.exe）。
+    const fileName = fileNameOverride || path.basename(filePath);
     const stats = fs.statSync(filePath);
     // uploadUrlRaw 类似 https://uploads.github.com/repos/.../releases/12345/assets{?name,label}
     const cleanUrl = uploadUrlRaw.replace(/\{.*\}/, '');
@@ -220,7 +224,7 @@ async function main() {
   }
 
   for (const asset of assets) {
-    await uploadAsset(release.upload_url, asset.path, asset.type, token);
+    await uploadAsset(release.upload_url, asset.path, asset.type, token, asset.name);
   }
 
   console.log('全部发布流程圆满完成！访问链接:', release.html_url);

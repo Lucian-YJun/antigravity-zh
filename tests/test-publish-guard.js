@@ -80,5 +80,38 @@ check('require 后未发起任何网络请求',
 check('require 后未打印发版流程的产出（不应出现 url / 上传字样）',
     !/html_url|创建 GitHub Release|附件上传成功/.test(out), out.slice(0, 300));
 
+// 3. 资产清单必须与实际产物名字对齐
+// 真实踩过的坑：把发布名从 Antigravity-zh-patch.exe 改成 Antigravity-zh.exe 后，
+// resolveAssets 仍在找 dist/Antigravity-zh.exe —— 那个文件不存在（本地只有构建产物
+// antigravity-tool.exe），于是发布被拒，且提示还指向已废弃的 build:exe。
+const pub = require(script);
+const fakeRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'pubassets-'));
+try {
+    const dist = path.join(fakeRoot, 'dist');
+    fs.mkdirSync(dist, { recursive: true });
+    const pkgVersion = JSON.parse(fs.readFileSync(path.join(repo, 'package.json'), 'utf8')).version;
+    fs.writeFileSync(path.join(dist, `Antigravity-zh-patch-v${pkgVersion}.zip`), 'x');
+    fs.writeFileSync(path.join(dist, 'antigravity-tool.exe'), 'MZ'); // 只放构建产物名
+    fs.writeFileSync(path.join(dist, 'build-manifest.json'),
+        JSON.stringify({ version: pkgVersion, exe: 'Antigravity-zh.exe', engine: 'rust' }));
+
+    const assets = pub.resolveAssets(fakeRoot);
+    check('resolveAssets 按构建产物名定位 exe（antigravity-tool.exe）',
+        assets.length === 2 && assets.every(a => fs.existsSync(a.path)),
+        JSON.stringify(assets.map(a => a.name)));
+    check('上传使用的展示名是面向用户的 Antigravity-zh.exe',
+        assets.some(a => a.name === 'Antigravity-zh.exe'),
+        JSON.stringify(assets.map(a => a.name)));
+
+    fs.rmSync(path.join(dist, 'antigravity-tool.exe'));
+    let msg = '';
+    try { pub.resolveAssets(fakeRoot); } catch (e) { msg = e.message; }
+    check('缺少构建产物时拒绝发布', /缺少发布资产/.test(msg), msg.slice(0, 160));
+    check('拒绝提示指向 build:rust，而非已废弃的 build:exe',
+        Boolean(msg) && !/build:exe/.test(msg) && /build:rust/.test(msg), msg.slice(0, 240));
+} finally {
+    fs.rmSync(fakeRoot, { recursive: true, force: true });
+}
+
 console.log(`\n发布脚本副作用边界: ${pass} 通过, ${fail} 失败`);
 process.exit(fail ? 1 : 0);
