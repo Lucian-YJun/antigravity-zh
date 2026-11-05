@@ -28,7 +28,7 @@
     "test:audit": "cargo audit --file rust/Cargo.lock",
     "test:perf": "node tests/perf-benchmark.js",
     "test:install": "node tests/test-patch-install.js",
-    "build:exe": "pkg . -t node18-win-x64 -o dist/Antigravity-zh-patch.exe && node -e \"const fs=require('fs'),p=require('./package.json');fs.mkdirSync('dist',{recursive:true});fs.writeFileSync('dist/build-manifest.json',JSON.stringify({version:p.version,exe:'Antigravity-zh-patch.exe',node:'node18-win-x64',builtAt:new Date().toISOString()},null,2)+'\\n')\"",
+    "build:exe": "pkg . -t node22-win-x64 -o dist/Antigravity-zh-patch.exe && node -e \"const fs=require('fs'),p=require('./package.json');fs.mkdirSync('dist',{recursive:true});fs.writeFileSync('dist/build-manifest.json',JSON.stringify({version:p.version,exe:'Antigravity-zh-patch.exe',node:'node22-win-x64',builtAt:new Date().toISOString()},null,2)+'\\n')\"",
     "release:package": "node scripts/package-release.js",
     "test:normalize": "node tests/test-dict-normalize.js",
     "test:watch": "node tests/test-watch-robustness.js",
@@ -55,8 +55,8 @@
     "ws": "^8.21.3"
   },
   "devDependencies": {
+    "@yao-pkg/pkg": "^6.25.0",
     "chromium-pickle-js": "^0.2.0",
-    "jsdom": "^30.1.0",
-    "pkg": "^5.8.1"
+    "jsdom": "^30.1.0"
   }
 }
