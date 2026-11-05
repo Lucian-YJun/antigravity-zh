@@ -7,4 +7,7 @@ dist/
 dist2/
 release/
 .agents/
-PROJECT.md
+# Qoder 工具产生的临时文件，非项目内容
+.qoder-credits/
+# clean-dict-variants.js 在 --write 前写出的词典备份
+src/cockpit-zh.json.bak
