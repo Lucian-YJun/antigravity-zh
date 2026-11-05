@@ -113,5 +113,18 @@ try {
     fs.rmSync(fakeRoot, { recursive: true, force: true });
 }
 
+// 4. 顺序守卫：必须先确认「要发布的提交已在远端」，再动资产与 Release。
+// Release 的 target_commitish 是 main；本地领先远端时直接发布会把 tag 打在旧的
+// main 上，Release 对应的源码与上传的产物就不是同一份，事后极难发现。
+const callAssert = src.indexOf('assertRemoteHasHead(path.join(__dirname');
+const callResolve = src.indexOf('const assets = resolveAssets(');
+const callCreate = src.indexOf('创建 GitHub Release');
+check('定义了 assertRemoteHasHead',
+    /function assertRemoteHasHead\s*\(/.test(src));
+check('assertRemoteHasHead 在 resolveAssets 之前调用',
+    callAssert > 0 && callResolve > 0 && callAssert < callResolve);
+check('assertRemoteHasHead 在创建 Release 之前调用',
+    callAssert > 0 && callCreate > 0 && callAssert < callCreate);
+
 console.log(`\n发布脚本副作用边界: ${pass} 通过, ${fail} 失败`);
 process.exit(fail ? 1 : 0);

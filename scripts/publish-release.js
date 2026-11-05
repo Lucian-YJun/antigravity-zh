@@ -157,6 +157,39 @@ function uploadAsset(uploadUrlRaw, filePath, contentType, token, fileNameOverrid
   });
 }
 
+// 发布必须对应远端上真实存在的提交。
+//
+// Release 的 target_commitish 是 'main'：如果本地还领先远端，GitHub 会把 tag 打到
+// 远端那份旧的 main 上，于是「Release 对应的源码」和「上传的 zip/exe」不是同一份，
+// 而且事后很难发现。这里在动手之前先比对一次。
+function assertRemoteHasHead(root) {
+  if (process.env.AGY_ZH_ALLOW_UNPUSHED_RELEASE === '1') {
+    console.warn('⚠️ 已跳过「本地提交是否已推送」检查（AGY_ZH_ALLOW_UNPUSHED_RELEASE=1）。');
+    return;
+  }
+  const { execFileSync } = require('child_process');
+  const git = (args) => execFileSync('git', args, { cwd: root, encoding: 'utf8' }).trim();
+  let head;
+  let remote;
+  try {
+    head = git(['rev-parse', 'HEAD']);
+    remote = git(['ls-remote', 'origin', 'refs/heads/main']).split(/\s+/)[0];
+  } catch (e) {
+    // 拿不到远端信息时不阻断（离线/无 origin 的场景），但要明确告知
+    console.warn(`⚠️ 无法校验远端 main（${String(e.message || e).split('\n')[0]}）。`);
+    console.warn('   请自行确认本地提交已推送，否则 Release 会指向旧的 main。');
+    return;
+  }
+  if (remote && remote !== head) {
+    throw new Error(
+      `本地 HEAD (${head.slice(0, 8)}) 与远端 origin/main (${remote.slice(0, 8)}) 不一致，发布中止。\n`
+      + `  Release 的 target_commitish 是 main，直接发布会把 v${VERSION} 打在旧的 main 上，\n`
+      + `  导致 Release 对应的源码与上传的产物不是同一份。\n`
+      + '  请先 git push origin main 后再发布。'
+    );
+  }
+}
+
 async function main() {
   const auth = getToken();
   if (!auth) {
@@ -172,6 +205,10 @@ async function main() {
   }
   const { token, source } = auth;
   console.log(`使用 Token 来源: ${source}`);
+
+  // 先确认要发布的提交真的在远端：Release 的 target_commitish 是 main，
+  // 本地领先远端时发布会把 tag 打在旧的 main 上。
+  assertRemoteHasHead(path.join(__dirname, '..'));
 
   // 先校验资产再创建 Release：缺 zip 时若已建好 Release，GitHub 上会留下一个空的发布
   const assets = resolveAssets(path.join(__dirname, '..'));
