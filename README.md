@@ -10,6 +10,7 @@
 
 1. **完全退出 Antigravity**（确认 Windows 系统托盘右下角的图标已退出）。
 2. 解压下载的压缩包，双击运行 `一键安装.bat`。
+   （安装器是原生 exe，**不需要安装 Node.js，也不需要联网或 npm install**。）
 3. 提示安装成功后，重新启动 Antigravity 即可看到中文界面。
 
 > 如果官方推送了客户端更新，重新跑一次 `一键安装.bat` 即可恢复汉化。想恢复英文原版，双击运行 `一键还原.bat`。
@@ -48,18 +49,20 @@
 
 ```text
 antigravity-zh/
-├── 一键安装.bat               # 运行环境安装与打补丁
+├── Antigravity-zh.exe         # 安装器（Rust 原生，无需 Node 或任何运行环境）
+├── 一键安装.bat               # 一键打补丁（调用上面的 exe）
 ├── 一键还原.bat               # 还原回英文原版
 ├── 快速同步词典.bat           # 免重启同步自定义词条
 ├── src/
 │   ├── zh-i18n.js             # 注入到界面的翻译引擎
 │   ├── cockpit-zh.json        # 词典与动态正则规则表
 │   └── native/                # Electron 菜单等原生进程替换表
-├── scripts/
+├── scripts/                   # Node 实现（开发与测试用；发布包不包含）
 │   ├── patch.js               # 解包、打补丁与还原逻辑
 │   ├── sync-dict.js           # 复制组件并经由 CDP 热推送词典
 │   ├── package-release.js     # 生成发布用 zip（内置 zip 写入器）
 │   └── publish-release.js     # 调用 GitHub API 建 Release 并上传产物
+├── rust/                      # 上面那个 exe 的源码（asar / replacer / installer / cli）
 └── tests/                     # 自动化测试与性能基准套件
 ```
 

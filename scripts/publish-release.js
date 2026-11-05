@@ -23,7 +23,7 @@ function deriveReleaseTitle(notesPath, fallback) {
 
 const REPO_SLUG = 'Lucian-YJun/antigravity-zh';
 const ZIP_NAME = `Antigravity-zh-patch-v${VERSION}.zip`;
-const EXE_NAME = 'Antigravity-zh-patch.exe';
+const EXE_NAME = 'Antigravity-zh.exe';
 
 // 环境变量优先于本地配置文件：CI 里通常只注入 GITHUB_TOKEN。
 // 从 ~/.gemini/config/mcp_config.json 读取 PAT 的回退路径改为显式 opt-in：

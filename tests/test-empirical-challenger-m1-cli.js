@@ -150,7 +150,13 @@ for (const [binName, binPath] of [['dist', DIST_BIN], ['release', RELEASE_BIN]])
     const res = runTool(binPath, ['--version']);
     assert.strictEqual(res.status, 0);
     assert(!res.panicked, 'Panic detected');
-    assert(res.stdout.includes('antigravity-tool 1.3.1'), `Unexpected version: ${res.stdout}`);
+    // 从 package.json 读取期望版本，不再写死 —— 写死时版本一升就红，
+    // 而真正该守的是「二进制自报版本与仓库版本一致」。
+    const expected = require(path.join(__dirname, '..', 'package.json')).version;
+    assert(
+      res.stdout.includes(`antigravity-tool ${expected}`),
+      `Unexpected version: ${res.stdout.trim()} (expected antigravity-tool ${expected})`
+    );
   });
 
   runTest('DISPATCH', `${binName}: --help lists all 7 registered subcommands`, () => {

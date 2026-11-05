@@ -29,6 +29,17 @@
  *    - Verifies staging directories are cleaned up after failure cases.
  */
 
+// ⚠️ LEGACY：本套件测的是 pkg 打包的 Node 版安装器（dist/Antigravity-zh-patch.exe），
+// 该产物自 v1.4.0 起**不再随发布包分发**（发布包改为 Rust 原生安装器
+// Antigravity-zh.exe）。已从 `npm test` 链中移除，避免干净检出时因为没有该产物而红。
+//
+// 需要对比两套实现时手动运行：
+//   npm run test:legacy-exe        # = npm run build:exe && node tests/test-empirical-challenger-m2-exe.js
+//
+// 随发布包分发的 Rust 安装器由以下套件覆盖：
+//   tests/test-empirical-challenger-m1-cli.js（真的 spawn dist/antigravity-tool.exe）
+//   tests/test-empirical-challenger-m2-rust.js（SUITE 3 双轨对拍）
+//   rust/crates/*/tests（cargo test）
 const fs = require('fs');
 const path = require('path');
 const os = require('os');

@@ -7,7 +7,10 @@ const os = require('os');
 const { CRC_TABLE, crc32, dosDateTime, buildZip, readZip } = require('./lib/zip');
 
 const ROOT = path.resolve(__dirname, '..');
-const EXE_NAME = 'Antigravity-zh-patch.exe';
+const EXE_NAME = 'Antigravity-zh.exe';
+// 发布包里给用户看到的名字（Antigravity-zh.exe）与构建产物名（antigravity-tool.exe）不同：
+// 后者是 Rust workspace 的产物名，前者是面向用户的安装器名。
+const EXE_SOURCE = 'antigravity-tool.exe';
 const BAT_FILES = ['一键安装.bat', '一键还原.bat', '快速同步词典.bat'];
 
 // 清单顺序即 zip 内顺序，便于人工核对与 diff
@@ -25,13 +28,13 @@ function collectEntries(root, { requireExe = true } = {}) {
     items.push({ name, data: fs.readFileSync(file) });
   };
 
-  const exePath = path.join(root, 'dist', EXE_NAME);
+  const exePath = path.join(root, 'dist', EXE_SOURCE);
   if (!fs.existsSync(exePath)) {
     if (requireExe) {
       throw new Error(
         `缺少发布文件: ${EXE_NAME}（${exePath}）\n`
         + '  zip 里没有 exe 就没有任何可用的安装入口（.bat 依赖的 scripts/ 不在打包清单内）。\n'
-        + '  请先运行: npm run build:exe\n'
+        + '  请先运行: npm run build:rust\n'
         + '  只想预览清单可加 --dry-run。'
       );
     }
@@ -123,7 +126,7 @@ function selfTest() {
     fs.mkdirSync(path.join(root, 'dist'), { recursive: true });
     fs.writeFileSync(path.join(root, 'package.json'), JSON.stringify({ name: 'antigravity-zh', version: '9.9.9' }));
     // 假 exe 只写填充字节，避免碰真的 pkg 产物（构建一次要几分钟且会覆盖 dist/）
-    fs.writeFileSync(path.join(root, 'dist', EXE_NAME), Buffer.alloc(4096, 0x5a));
+    fs.writeFileSync(path.join(root, 'dist', EXE_SOURCE), Buffer.alloc(4096, 0x5a));
     const copy = (rel) => {
       const dest = path.join(root, rel);
       fs.mkdirSync(path.dirname(dest), { recursive: true });

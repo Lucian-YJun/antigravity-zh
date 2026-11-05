@@ -10,7 +10,8 @@
   - **替换语义以 Rust 为准**（单遍、全量、字面量、最左优先）；详见 AGENTS.md 的同名章节。
 - **质量门禁体系**:
   - `npm test`: 27 个门禁步骤（11 个集成套件 + 8 个模块单测 + `cargo test`/`clippy` + 7 个对抗套件）。套件数会变，以 `package.json` 的 `test` 脚本为准。
-  - `patch.js --dry-run`: 预览各 scope 的规则命中/跳过情况。**部分未匹配属正常版本差异**（官方模块重构后目标文件可能改名或消失，例如某版本的 `dist/ideInstall/wizardHtml.js` 就不存在）。
+  - `patch.js --dry-run`: 预览各 scope 的规则命中/跳过情况。**个别规则未匹配属正常版本差异**
+    （实测当前客户端 7 个目标文件、30 条规则中，29 条恰好命中一次、1 条为 0 次、0 条多命中）。
   - `tests/fixtures/dict-baseline-v1.2.1.json`: 1607 条冻结基线，由 `test-dict-normalize.js` 驱动**真实的** `tr()` 逐条比对，防止既有译文被意外改动。
 
 ---

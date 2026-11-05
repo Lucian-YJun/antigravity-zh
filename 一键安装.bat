@@ -7,31 +7,32 @@ echo   Antigravity 中文汉化补丁 - 一键安装
 echo ==============================================
 echo.
 
-rem Prefer the self-contained exe shipped in the release zip: it embeds the Node
-rem runtime, so end users need nothing installed. The old version called
-rem "node scripts/patch.js" directly, but the zip contains neither scripts/ nor
-rem node_modules/, so following the README could never work.
+rem Antigravity-zh.exe is the native Rust installer shipped in the release zip:
+rem no Node.js, no npm install, no environment setup required.
+rem If it is absent we are in a source checkout, so fall back to the Node
+rem implementation (scripts/patch.js) for development.
 rem
 rem Deliberately no goto/label jumps and no %errorlevel% read inside a
 rem parenthesised block: label seeks are unreliable with UTF-8 multibyte text,
 rem and block-internal expansion yields a stale value. "if errorlevel 1" reads
 rem the live exit status, so it is correct inside blocks.
+
 set "RC=0"
 set "MODE=exe"
-if not exist "Antigravity-zh-patch.exe" set "MODE=src"
+if not exist "Antigravity-zh.exe" set "MODE=src"
 
 if "%MODE%"=="exe" (
-    "Antigravity-zh-patch.exe" %*
+    "Antigravity-zh.exe" install %*
     if errorlevel 1 set "RC=1"
 )
 
 if "%MODE%"=="src" (
-    echo [提示] 未找到 Antigravity-zh-patch.exe，按源码检出模式运行。
+    echo [提示] 未找到 Antigravity-zh.exe，按源码检出模式运行。
     echo.
     where node >nul 2>nul
     if errorlevel 1 (
-        echo [错误] 既没有 Antigravity-zh-patch.exe，也没有 Node.js 环境。
-        echo   请下载官方发布包（内含 exe），或安装 Node.js 后从源码运行。
+        echo [错误] 既没有 Antigravity-zh.exe，也没有 Node.js 环境。
+        echo   请下载官方发布包（内含安装器），或安装 Node.js 后从源码运行。
         echo.
         pause
         exit /b 1

@@ -14,7 +14,9 @@ use crate::error::CliError;
 #[command(
     name = "antigravity-tool",
     about = "Antigravity Native Rust Localization Toolchain",
-    version = "1.3.1"
+    // 裸 version 让 clap 取 CARGO_PKG_VERSION（即 workspace.package.version）。
+    // 此前这里写死了 "1.3.1"，于是发到 1.4.0 时 --version 仍报 1.3.1。
+    version
 )]
 pub struct Cli {
     #[command(subcommand)]
@@ -466,13 +468,24 @@ fn run_sync(
         }
     }
 
+    // 与 Node 侧 scripts/sync-dict.js 对齐：先定位已安装的 zh-patch，再校验词典，
+    // 校验通过才写入安装目录；CDP 推送只是尽力而为，失败不影响「文件已同步」。
+    // 旧实现只做 CDP 推送、从不复制文件 —— 用 Rust 版跑「快速同步词典」等于什么都没同步，
+    // 且没有 DevTools 端口时直接报错退出，与 Node 的降级行为相反。
+    let res_dir = env::get_resources_dir(None)?;
+    let kit_dir = env::get_zh_patch_dir(&res_dir);
+    if !kit_dir.is_dir() {
+        return Err(CliError::Execution(format!(
+            "未找到已安装的 zh-patch 组件（{}），请先运行 install 子命令。",
+            kit_dir.display()
+        )));
+    }
+
+    let assets = env::resolve_source_assets(project_root).ok();
     let target_dict = if let Some(dict) = dict_path {
         dict.to_path_buf()
-    } else if let Some(root) = project_root {
-        let assets = env::resolve_source_assets(Some(root))?;
-        assets.source_dict
-    } else if let Ok(assets) = env::resolve_source_assets(None) {
-        assets.source_dict
+    } else if let Some(a) = &assets {
+        a.source_dict.clone()
     } else {
         PathBuf::from("src/cockpit-zh.json")
     };
@@ -484,17 +497,51 @@ fn run_sync(
         )));
     }
 
-    let active_port = match port {
+    // 先校验再动安装目录：手工改词典写坏一个逗号时，不能覆盖掉安装目录里可用的那份。
+    let raw = std::fs::read_to_string(&target_dict)?;
+    let parsed: serde_json::Value = serde_json::from_str(&raw).map_err(|e| {
+        CliError::Execution(format!(
+            "词典不是合法 JSON，已中止同步（安装目录未被改动）: {}\n  {}",
+            target_dict.display(),
+            e
+        ))
+    })?;
+    if parsed.get("dict").and_then(|v| v.as_object()).is_none() {
+        return Err(CliError::Execution(format!(
+            "词典缺少 dict 字段，已中止同步（安装目录未被改动）: {}",
+            target_dict.display()
+        )));
+    }
+
+    let deployed_dict = kit_dir.join("cockpit-zh.json");
+    std::fs::copy(&target_dict, &deployed_dict)?;
+    println!("✅ 词典已同步到 {}", deployed_dict.display());
+    if let Some(a) = &assets {
+        if a.source_i18n.is_file() {
+            let deployed_i18n = kit_dir.join("zh-i18n.js");
+            std::fs::copy(&a.source_i18n, &deployed_i18n)?;
+            println!("✅ 翻译引擎已同步到 {}", deployed_i18n.display());
+        }
+    }
+
+    // CDP 推送：没有端口或连接失败都降级，不当作同步失败。
+    let active_port = match port.or_else(CdpClient::detect_port) {
         Some(p) => p,
-        None => CdpClient::detect_port().ok_or_else(|| {
-            CliError::Execution("Could not detect active DevTools port. Is Antigravity running?".into())
-        })?,
+        None => {
+            println!("💡 未检测到运行中的 Antigravity（或未开启 DevTools 端口），词典将在下次切换视图或重启时生效。");
+            return Ok(());
+        }
     };
 
     println!("Connecting to CDP on port {}", active_port);
-
-    let count = CdpClient::sync_dictionary(&target_dict, active_port)?;
-    println!("Synchronized dictionary to {} renderer target(s)", count);
+    match CdpClient::sync_dictionary(&deployed_dict, active_port) {
+        Ok(n) if n > 0 => println!("⚡ 已向 {} 个活动窗口推送最新词典并完成全量重译！", n),
+        Ok(_) => println!("💡 词典文件已就绪，将在下次切换视图或重启时使用。"),
+        Err(e) => eprintln!(
+            "⚠️ 实时推送失败（{}）；词典文件已就绪，将在下次切换视图或重启时生效。",
+            e
+        ),
+    }
     Ok(())
 }
 

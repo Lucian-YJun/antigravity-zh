@@ -139,6 +139,51 @@ test('clean-dict-variants.js: findRedundantVariants 在副本上计算，dry-run
   assert(Object.keys(snapshot).length === 4, '快照本身不应受影响');
 });
 
+// ---- .bat 启动器的格式约束 ----
+//
+// 这些都是实测踩出来的、只有真跑 bat 才会暴露的问题：
+//  * LF-only 行尾：cmd 按字节读取批处理，LF 会让命令解析错位；
+//  * 非 ASCII 出现在 rem 行：多字节字符同样会让解析器错位，把注释当命令执行
+//    （实测出现 "'ts' is not recognized"）；
+//  * goto 标签跳转：标签按字节偏移定位，遇到多字节文本会落在字符中间。
+// 中文只允许出现在 echo 之后（显示是正常的）。
+test('.bat 启动器：CRLF 行尾，rem 行纯 ASCII，且不使用 goto 标签', () => {
+  const bats = ['一键安装.bat', '一键还原.bat', '快速同步词典.bat'];
+  for (const f of bats) {
+    const text = fs.readFileSync(path.join(ROOT, f), 'utf8');
+    assert(!/(^|[^\r])\n/.test(text), `${f}: 存在 LF-only 行尾（cmd 会解析错位）`);
+    const lines = text.split('\r\n');
+    lines.forEach((line, i) => {
+      const t = line.trim().toLowerCase();
+      assert(!/^\s*goto\s+:/.test(t), `${f}:${i + 1} 使用了 goto 标签跳转（多字节文本下会错位）`);
+      if (!/[^\x00-\x7F]/.test(line)) return;
+      if (/^rem\b/.test(t)) assert.fail(`${f}:${i + 1} rem 行含非 ASCII 字符: ${line.trim().slice(0, 60)}`);
+      assert(/\becho\b/.test(t), `${f}:${i + 1} 非 echo 行含非 ASCII 字符: ${line.trim().slice(0, 60)}`);
+    });
+  }
+});
+
+test('版本号只维护一份：package.json / rust workspace / 发布 manifest 一致', () => {
+  const pkgVersion = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8')).version;
+  const cargo = fs.readFileSync(path.join(ROOT, 'rust', 'Cargo.toml'), 'utf8');
+  const m = /\[workspace\.package\][\s\S]*?\bversion\s*=\s*"([^"]+)"/.exec(cargo);
+  assert(m, 'rust/Cargo.toml 里找不到 workspace.package.version');
+  assert.strictEqual(m[1], pkgVersion,
+    `package.json=${pkgVersion} 与 rust/Cargo.toml=${m[1]} 不一致`);
+
+  // 版本号曾被写死在 clap 属性里，导致 --version 长期报旧版本
+  const cliSrc = fs.readFileSync(path.join(ROOT, 'rust', 'crates', 'cli', 'src', 'commands.rs'), 'utf8');
+  assert(!/version\s*=\s*"\d+\.\d+\.\d+"/.test(cliSrc),
+    'commands.rs 里写死了版本号；应使用裸 `version` 让 clap 读 CARGO_PKG_VERSION');
+
+  const manifestPath = path.join(ROOT, 'dist', 'build-manifest.json');
+  if (fs.existsSync(manifestPath)) {
+    const mv = JSON.parse(fs.readFileSync(manifestPath, 'utf8')).version;
+    assert.strictEqual(mv, pkgVersion,
+      `dist/build-manifest.json=${mv} 与 package.json=${pkgVersion} 不一致，请重新 npm run build:rust`);
+  }
+});
+
 // ---- add-terms.js 的 --dict 边界（第一轮 L7） ----
 
 test('add-terms.js: --dict 作为最后一个参数时必须报错而不是回落到真实词典', () => {
