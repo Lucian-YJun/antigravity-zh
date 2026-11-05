@@ -264,6 +264,57 @@ check('热载后歧义组各自精确形态仍按原样翻译', tr('Alpha') === 
 w.__antigravityZh.setData({ dict: { 'Alpha': '甲', 'ALPHA.': '甲' }, rules: [] });
 check('热载后同译文变体正常经归一化命中', tr('ALPHA.') === '甲', `实际 ${JSON.stringify(tr('ALPHA.'))}`);
 
+// ---- 6b. 归一化歧义组的规则兜底 ----
+// search automations / search customizations / build with google plugins 在词典里
+// 各有 2~8 条写法（大小写 + ... / …），归一化后同键但译文不完全相同，compileNorm
+// 会整组作废 —— 于是「词典没逐字收录」的写法会静默回落英文。
+// 这四条新增规则按模式兜住这类变体，不依赖词典精确条目，也不必改动冻结基线。
+w.__antigravityZh.setData({ dict: dictFile.dict, rules: dictFile.rules });
+const ruleFallbackCases = [
+  // 带省略号的变体：该归一化组因「...」与「…」两种译文而整组作废，
+  // 词典未逐字收录的写法会回落英文，由新增规则兜住。
+  ['Search Automations...', '搜索自动化...'],
+  ['search automations…', '搜索自动化…'],
+  ['SEARCH AUTOMATIONS...', '搜索自动化...'],
+  ['SEARCH AUTOMATIONS…', '搜索自动化…'],
+  ['Search Customizations.', '搜索自定义项。'],
+  ['search customizations…', '搜索自定义项…'],
+  ['SEARCH CUSTOMIZATIONS…', '搜索自定义项…'],
+  // 无标点的那条在词典里是唯一值，归一化即可覆盖任意大小写，不需要规则
+  ['SEARCH AUTOMATIONS', '搜索自动化'],
+  ['Search automations', '搜索自动化'],
+  // 词典精确条目优先于规则，因此这里得到的是词典里的值
+  ['Build With Google Plugins', 'Build With Google 插件'],
+  ['build with google plugins', 'Build with Google 插件'],
+  ['Build with google plugins', 'Build with Google 插件'],
+  // 带数字的后缀形态：旧版只能靠精确条目，未收录的数量会回落英文
+  ['12 files changed', '12 个文件已更改'],
+  ['1 File Changed', '1 个文件已更改'],
+  ['3 files changed', '3 个文件已更改'],
+  // 其余三组的裸形态（大小写变体 + 尾随标点，标点原样保留）
+  ['FILES CHANGED', '已更改的文件'],
+  ['FILES CHANGED.', '已更改的文件.'],
+  ['ALLOW ONCE', '仅允许一次'],
+  ['ALLOW ONCE!', '仅允许一次!'],
+  ['IT REQUIRES', '需要'],
+  ['IT REQUIRES?', '需要?'],
+];
+for (const [input, want] of ruleFallbackCases) {
+  const got = tr(input);
+  check(`规则兜底 ${JSON.stringify(input)}`, got === want, `期望 ${JSON.stringify(want)}，实际 ${JSON.stringify(got)}`);
+}
+// 记录一个已知的词典不一致（内容问题，非代码问题）：同一条原文的两种写法译成了
+// 不同的 "With/with" —— 「Build With Google Plugins」→「Build With Google 插件」
+// 而「Build with Google Plugins」→「Build with Google 插件」。归一化歧义组会因此
+// 整组作废，未收录的写法落到规则上，得到 "Build with Google 插件"。
+// 若要统一措辞，需改译文并同步冻结基线，属刻意的内容变更。
+check(
+  '记录已知不一致：Build With/with 的译文大小写不统一',
+  dictFile.dict['Build With Google Plugins'] === 'Build With Google 插件'
+    && dictFile.dict['Build with Google Plugins'] === 'Build with Google 插件',
+  '词典已不再保持该状态，请同步更新本断言与相关注释'
+);
+
 // ---- 7. 规模兜底 ----
 // 这里只做「异常膨胀」的兜底，不是覆盖率目标：官方每次更新都可能新增界面文案，
 // 词典本就该随之增长。真正的防膨胀靠 test-dict.js 的变体冗余检查（同一归一化键

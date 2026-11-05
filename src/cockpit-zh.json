@@ -2449,6 +2449,41 @@
     [
       "^Failed to save \"(.+)\"$",
       "保存“$1”失败"
+    ],
+    [
+      "^search automations(\\.\\.\\.|…)?$",
+      "搜索自动化$1",
+      "i"
+    ],
+    [
+      "^search customizations(\\.\\.\\.|…)?$",
+      "搜索自定义项$1",
+      "i"
+    ],
+    [
+      "^build with google plugins$",
+      "Build with Google 插件",
+      "i"
+    ],
+    [
+      "^(\\d+) files? changed$",
+      "$1 个文件已更改",
+      "i"
+    ],
+    [
+      "^files changed([.!?])?$",
+      "已更改的文件$1",
+      "i"
+    ],
+    [
+      "^allow once([.!?])?$",
+      "仅允许一次$1",
+      "i"
+    ],
+    [
+      "^it requires([.!?])?$",
+      "需要$1",
+      "i"
     ]
   ]
 }

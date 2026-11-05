@@ -368,6 +368,15 @@ const TRANSLATOR_BODY = [
     'function compileRules(rules){var out=[],always=[],byChar={};rules=rules||[];',
     '  for(var i=0;i<rules.length;i++){try{var re=new RegExp(rules[i][0],rules[i][2]||"");var en=[re,rules[i][1]];out.push(en);',
     '    var fc=firstChars(rules[i][0]);',
+    // firstChars 只看 ^ 之后的字面字符，不理会 flags 里的 i：
+    // /^search.../i 会被只放进 "s" 桶，界面上的 "Search ..." 永远进不到那个桶，
+    // 规则静默失效。这里按 i 标志把字母场景的两个大小写都并入桶，成本只在首次编译。
+    '    var rf=rules[i][2]||"";',
+    '    if(fc&&rf.indexOf("i")>=0){var ex=[];for(var q=0;q<fc.length;q++){var cx=fc[q];',
+    '      if(ex.indexOf(cx)<0)ex.push(cx);',
+    '      var lo=cx.toLowerCase(),up=cx.toUpperCase();',
+    '      if(lo!==cx&&ex.indexOf(lo)<0)ex.push(lo);',
+    '      if(up!==cx&&ex.indexOf(up)<0)ex.push(up);}fc=ex;}',
     '    if(!fc){always.push(en);}',
     '    else{for(var k=0;k<fc.length;k++){var ch=fc[k];(byChar[ch]=byChar[ch]||[]).push(en);}}}catch(e){}}',
     '  return {all:out,always:always,byChar:byChar};}',
