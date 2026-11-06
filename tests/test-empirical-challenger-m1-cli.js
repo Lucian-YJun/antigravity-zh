@@ -660,11 +660,27 @@ runTest('PROCESS', 'process kill-sidecars executes cleanly with code 0 without p
   assert(res.stdout.includes('Terminated') && res.stdout.includes('sidecar process(es)'));
 });
 
+// 本用例有两种合法结果：在 IDE 外部终端能正常关闭（code 0）；在 IDE 内部终端
+// 则会命中产品刻意的安全护栏——拒绝关闭作为当前进程祖先的 IDE 进程（code 1）。
+// 两者都不是缺陷，但任何 panic、缺少护栏特征或其他退出码都必须判 FAIL。
+function isAncestorGuardRejection(res) {
+  const output = res.stdout + res.stderr;
+  return /祖先进程|当前进程的祖先|拒绝执行/.test(output);
+}
+
 runTest('PROCESS', 'process close with 1s timeout returns cleanly with code 0 without panic', () => {
   const res = runTool(DIST_BIN, ['process', 'close', '--timeout', '1']);
-  assert.strictEqual(res.status, 0);
   assert(!res.panicked, 'Panic detected in process close');
-  assert(res.stdout.includes('Requesting graceful close'));
+  if (res.status === 0) {
+    assert(res.stdout.includes('Requesting graceful close'));
+  } else if (res.status === 1) {
+    assert(
+      isAncestorGuardRejection(res),
+      `exit 1 without ancestor-guard signature; stdout: ${res.stdout} | stderr: ${res.stderr}`
+    );
+  } else {
+    assert.fail(`Unexpected exit status ${res.status}; stdout: ${res.stdout} | stderr: ${res.stderr}`);
+  }
 });
 
 // ============================================================================

@@ -5,11 +5,11 @@
   1. **主进程原生补丁层**: `scripts/patch.js` 将 `resources/app.asar` 解包到 `resources/app/`，对 `dist/` 下的 7 个文件应用 `src/native/*.replacements.json` 规则进行静态代码替换，并把原包改名为 `app.asar.orig` 备份（Electron 优先加载 `app.asar`，所以必须让它不在原位，`app/` 才会生效）。`src/zh-i18n.js` 与 `src/cockpit-zh.json` 部署到 `resources/zh-patch/`。
   2. **渲染进程同帧拦截层**: 网页加载完成后动态注入 `src/zh-i18n.js`，基于 `MutationObserver` 与 `TreeWalker` 进行微任务同帧 DOM 文本节点替换，结合 `src/cockpit-zh.json` 的静态字典与正则规则，同时具备 Monaco/Terminal 整树剪枝与 IME 输入法防抖保护。
 - **双实现轨道**:
-  - `scripts/` + `src/`（Node）是**当前出货**的实现，经 `pkg` 打包为 `dist/Antigravity-zh-patch.exe`。
-  - `rust/`（四个 crate）是并行的原生重写，产出 `dist/antigravity-tool.exe`，**不进发布 zip**。
+  - `rust/`（四个 crate）是**当前出货**的安装器：产出 `antigravity-tool.exe`，发布名 `Antigravity-zh.exe`（进入发布 zip，用户无需 Node）。
+  - `scripts/` + `src/`（Node）为源码检出/开发回退（无 exe 时走 `node scripts/patch.js`）；`pkg` 版 `Antigravity-zh-patch.exe` 已不进发布包。
   - **替换语义以 Rust 为准**（单遍、全量、字面量、最左优先）；详见 AGENTS.md 的同名章节。
 - **质量门禁体系**:
-  - `npm test`: 27 个门禁步骤（11 个集成套件 + 8 个模块单测 + `cargo test`/`clippy` + 7 个对抗套件）。套件数会变，以 `package.json` 的 `test` 脚本为准。
+  - `npm test`: 门禁含集成套件、模块单测、`cargo test`/`clippy`、对抗套件；具体组成以 `package.json` 的 `test` 脚本为准。
   - `patch.js --dry-run`: 预览各 scope 的规则命中/跳过情况。**个别规则未匹配属正常版本差异**
     （实测当前客户端 7 个目标文件、30 条规则中，29 条恰好命中一次、1 条为 0 次、0 条多命中）。
   - `tests/fixtures/dict-baseline-v1.2.1.json`: 1607 条冻结基线，由 `test-dict-normalize.js` 驱动**真实的** `tr()` 逐条比对，防止既有译文被意外改动。
@@ -81,5 +81,5 @@
 - `scripts/scan-ui.js`: 界面漏译扫描（需 CDP 端口）
 - `scripts/package-release.js` / `scripts/publish-release.js`: 发布打包与 GitHub Release
 - `tests/`: 27 个测试脚本 + `fixtures/dict-baseline-v1.2.1.json` 冻结基线
-- `rust/`: 四个 crate 的并行原生实现（asar / replacer / installer / cli）
+- `rust/`: 四个 crate 的原生实现（asar / replacer / installer / cli），为当前出货安装器
 - `patches/`: 历史留存，已合入主线，勿再 `git apply`

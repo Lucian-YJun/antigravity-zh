@@ -38,7 +38,7 @@ npm run sync
 ## 改完必须验证
 
 ```bash
-npm test        # 26 个门禁步骤：10 个集成套件 + 8 个模块单测 + cargo test/clippy + 7 个对抗套件
+npm test        # 含集成套件、模块单测、cargo test/clippy、对抗套件；步骤数以 package.json 的 test 脚本为准
 ```
 
 测试里已经包含「变体冗余」检查，所以**即使有人绕过脚本直接改 JSON，也会被拦下**。
