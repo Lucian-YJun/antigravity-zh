@@ -81,9 +81,18 @@ impl BackupManager {
     }
 
     /// Persists backup metadata formatted as pretty JSON.
+    ///
+    /// Written through a temporary file and renamed into place, matching
+    /// `writeJsonFile` in `scripts/lib/backup-manager.js`. A direct write can be
+    /// torn by a crash or a full disk; a corrupt meta makes `read_meta` return
+    /// `None`, which `is_backup_stale` reports as "unverifiable" and which
+    /// `Deployer::revert` then acts on by deleting `app.asar.orig`.
     pub fn write_meta<P: AsRef<Path>>(path: P, meta: &BackupMeta) -> Result<(), InstallerError> {
+        let target = path.as_ref();
         let json = serde_json::to_string_pretty(meta)?;
-        fs::write(path.as_ref(), json)?;
+        let tmp = target.with_extension("json.tmp");
+        fs::write(&tmp, json)?;
+        fs::rename(&tmp, target)?;
         Ok(())
     }
 
@@ -96,13 +105,19 @@ impl BackupManager {
 
     /// Determines whether the existing backup is stale due to an upstream client update.
     /// Invalidation condition: `current_asar` size or SHA-256 diverges from `meta.source`.
+    ///
+    /// Returns `true` whenever the backup cannot be *proven* to match the current
+    /// archive — including when the archive itself is absent. This deliberately
+    /// matches `isBackupStaleFor` in `scripts/lib/backup-manager.js`: "I cannot
+    /// verify it" is treated as "do not trust it", which is the fail-safe
+    /// direction for a routine that decides whether to overwrite a backup.
     pub fn is_backup_stale<P: AsRef<Path>, Q: AsRef<Path>>(
         meta_path: P,
         current_asar_path: Q,
     ) -> bool {
         let current_path = current_asar_path.as_ref();
         if !current_path.exists() {
-            return false;
+            return true;
         }
 
         let meta = match Self::read_meta(meta_path) {
@@ -112,7 +127,9 @@ impl BackupManager {
 
         let current_meta = match fs::metadata(current_path) {
             Ok(m) => m,
-            Err(_) => return false,
+            // The file vanished between the exists() check and stat(); treat as
+            // unverifiable rather than silently claiming the backup is fine.
+            Err(_) => return true,
         };
 
         // Fast path: size divergence immediately invalidates backup

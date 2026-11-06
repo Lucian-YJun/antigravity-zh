@@ -1,0 +1,5 @@
+# Windows 批处理由 cmd.exe 按字节逐行解析，LF-only 行尾会让命令解析错位
+# （实测 rem 行被当成命令执行）。索引里统一存 LF 以保持 diff 可读，
+# 检出到工作区时强制转 CRLF；这样干净检出即使 core.autocrlf=false 也正确，
+# 不再依赖贡献者本机的全局配置。
+*.bat text eol=crlf

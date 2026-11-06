@@ -6,15 +6,69 @@ use antigravity_asar::{extract_all, pack_dir, AsarReader, PackOptions};
 use antigravity_installer::{
     env, BackupManager, CdpClient, Deployer, ProcessManager,
 };
-use antigravity_replacer::{BatchReplacer, StringReplacer};
+use antigravity_replacer::{BatchReplacer, ReplacementSummary, SkipReason, StringReplacer};
 
 use crate::error::CliError;
+
+/// Source files used by `sync`. Kept separate from `run_sync` so the
+/// explicit-root policy can be tested without an installed zh-patch or CDP.
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct SyncSources {
+    target_dict: PathBuf,
+    source_i18n: Option<PathBuf>,
+}
+
+/// Resolves sync inputs without silently changing the project root.
+///
+/// No explicit root: preserve the existing best-effort search (and the legacy
+/// CWD-relative dictionary fallback when that search fails).
+///
+/// Explicit root: the caller chose a specific checkout, so an incomplete asset
+/// set must never fall back to `src/cockpit-zh.json` relative to the CWD. An
+/// explicitly supplied `--dict` remains authoritative (its historical
+/// behavior); in that case i18n copying is still best-effort and only from the
+/// chosen root. Otherwise the root's asset resolution error is propagated.
+fn resolve_sync_sources(
+    dict_path: Option<&Path>,
+    project_root: Option<&Path>,
+) -> Result<SyncSources, antigravity_installer::InstallerError> {
+    if let Some(root) = project_root {
+        let assets_result = env::resolve_source_assets(Some(root));
+        if let Some(dict) = dict_path {
+            return Ok(SyncSources {
+                target_dict: dict.to_path_buf(),
+                source_i18n: assets_result.ok().map(|a| a.source_i18n),
+            });
+        }
+        let assets = assets_result?;
+        return Ok(SyncSources {
+            target_dict: assets.source_dict,
+            source_i18n: Some(assets.source_i18n),
+        });
+    }
+
+    let assets = env::resolve_source_assets(None).ok();
+    let target_dict = if let Some(dict) = dict_path {
+        dict.to_path_buf()
+    } else if let Some(a) = &assets {
+        a.source_dict.clone()
+    } else {
+        PathBuf::from("src/cockpit-zh.json")
+    };
+
+    Ok(SyncSources {
+        target_dict,
+        source_i18n: assets.map(|a| a.source_i18n),
+    })
+}
 
 #[derive(Parser, Debug)]
 #[command(
     name = "antigravity-tool",
     about = "Antigravity Native Rust Localization Toolchain",
-    version = "1.3.1"
+    // 裸 version 让 clap 取 CARGO_PKG_VERSION（即 workspace.package.version）。
+    // 此前这里写死了 "1.3.1"，于是发到 1.4.0 时 --version 仍报 1.3.1。
+    version
 )]
 pub struct Cli {
     #[command(subcommand)]
@@ -198,6 +252,59 @@ impl Cli {
     }
 }
 
+/// Prints one line per scope, mirroring the per-scope logging of
+/// `patchAllTargets` in `scripts/lib/replacement-engine.js`: a skipped scope gets
+/// its own warning line instead of disappearing, so a renamed or missing staged
+/// file can no longer pass for a clean install.
+///
+/// Returns `(patched, skipped)`.
+fn report_batch_summaries(summaries: &[ReplacementSummary]) -> (usize, usize) {
+    let mut patched = 0usize;
+    let mut skipped = 0usize;
+
+    for summary in summaries {
+        match &summary.skipped {
+            Some(reason) => {
+                skipped += 1;
+                let missing_path = match reason {
+                    SkipReason::RulesMissing(path) => format!("规则文件 {}", path.display()),
+                    SkipReason::TargetMissing(path) => format!("目标文件 {}", path.display()),
+                };
+                println!(
+                    "{}",
+                    format!("  ⚠️ [{}] 文件缺失，跳过（{}）", summary.scope, missing_path).yellow()
+                );
+            }
+            None => {
+                patched += 1;
+                // rules_hit / total_rules 才是可比的两个数；旧版把「替换处数」
+                // 除以「规则总数」，多命中时会打出 "2/1 matches" 这种自相矛盾的行。
+                println!(
+                    "  ✅ [{}] {}: {}/{} 条规则命中（{} 处替换）",
+                    summary.scope,
+                    summary.target_file.display(),
+                    summary.rules_hit,
+                    summary.total_rules,
+                    summary.matched_rules
+                );
+                if !summary.multi_match.is_empty() {
+                    println!(
+                        "{}",
+                        format!(
+                            "     ⚠️ {} 条规则命中多于一次（下标 {:?}），已按全量替换处理；请确认规则不是过宽。",
+                            summary.multi_match.len(),
+                            summary.multi_match
+                        )
+                        .yellow()
+                    );
+                }
+            }
+        }
+    }
+
+    (patched, skipped)
+}
+
 fn run_install(
     dry_run: bool,
     close: bool,
@@ -254,7 +361,15 @@ fn run_install(
         }
 
         let deployer = Deployer::new(&res_dir);
-        let _ = deployer.recover_interrupted_deploy();
+        // 不静默丢弃 Result：恢复失败意味着安装目录可能仍处在上次中断的半交换状态
+        // （app.asar 已改名、新目录未落位），在这种状态上继续安装风险很高。
+        if let Err(err) = deployer.recover_interrupted_deploy() {
+            return Err(CliError::Execution(format!(
+                "无法归位上次中断的部署（{}）；请先手动检查 {} 下的 app.new / app.old / app.asar.orig.* 残留后重试。",
+                err,
+                res_dir.display()
+            )));
+        }
     } else {
         println!("{}", "[Preview Mode] IDE checks and process terminations skipped.".yellow());
     }
@@ -283,7 +398,18 @@ fn run_install(
         )));
     }
 
-    let temp_staging = std::env::temp_dir().join(format!("antigravity-staging-{}", std::process::id()));
+    // PID alone is not unique enough: a crashed run leaves the directory behind and
+    // PIDs get recycled, so the next run would reuse a stale tree. Node's deployer
+    // uses a timestamp for the same reason.
+    let stamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_nanos())
+        .unwrap_or(0);
+    let temp_staging = std::env::temp_dir().join(format!(
+        "antigravity-staging-{}-{}",
+        std::process::id(),
+        stamp
+    ));
     if temp_staging.exists() {
         std::fs::remove_dir_all(&temp_staging)?;
     }
@@ -306,22 +432,29 @@ fn run_install(
     );
 
     println!("Applying native replacement rules from: {}", assets.native_patches_dir.display());
+    // The asset search walks the exe dir, the CWD and up to four CWD ancestors.
+    // Print the winner so a stale or foreign checkout cannot silently supply the
+    // dictionary and rules with no visible trace.
+    println!("  (assets resolved from: {})", assets.resolved_from.display());
+    println!("  i18n: {}", assets.source_i18n.display());
+    println!("  dict: {}", assets.source_dict.display());
 
     let batch = BatchReplacer::new(&assets.native_patches_dir);
     let summaries = batch.execute_batch(&temp_staging, dry_run)?;
     let total_matched: usize = summaries.iter().map(|s| s.matched_rules).sum();
+    let (patched, skipped) = report_batch_summaries(&summaries);
     println!(
-        "Native rules applied: {} matches across {} scopes",
-        total_matched,
-        summaries.len()
+        "Native rules applied: {} matches across {} scopes ({} skipped)",
+        total_matched, patched, skipped
     );
-    for s in &summaries {
+    if skipped > 0 {
         println!(
-            "  [{}] {}: {}/{} matches",
-            s.scope,
-            s.target_file.display(),
-            s.matched_rules,
-            s.total_rules
+            "{}",
+            format!(
+                "⚠️ {} 个 scope 未打补丁，界面可能残留英文；请核对 src/native 规则表与解包后的文件名。",
+                skipped
+            )
+            .yellow()
         );
     }
 
@@ -387,16 +520,21 @@ fn run_sync(
         }
     }
 
-    let target_dict = if let Some(dict) = dict_path {
-        dict.to_path_buf()
-    } else if let Some(root) = project_root {
-        let assets = env::resolve_source_assets(Some(root))?;
-        assets.source_dict
-    } else if let Ok(assets) = env::resolve_source_assets(None) {
-        assets.source_dict
-    } else {
-        PathBuf::from("src/cockpit-zh.json")
-    };
+    // 与 Node 侧 scripts/sync-dict.js 对齐：先定位已安装的 zh-patch，再校验词典，
+    // 校验通过才写入安装目录；CDP 推送只是尽力而为，失败不影响「文件已同步」。
+    // 旧实现只做 CDP 推送、从不复制文件 —— 用 Rust 版跑「快速同步词典」等于什么都没同步，
+    // 且没有 DevTools 端口时直接报错退出，与 Node 的降级行为相反。
+    let res_dir = env::get_resources_dir(None)?;
+    let kit_dir = env::get_zh_patch_dir(&res_dir);
+    if !kit_dir.is_dir() {
+        return Err(CliError::Execution(format!(
+            "未找到已安装的 zh-patch 组件（{}），请先运行 install 子命令。",
+            kit_dir.display()
+        )));
+    }
+
+    let sync_sources = resolve_sync_sources(dict_path, project_root)?;
+    let target_dict = sync_sources.target_dict;
 
     if !target_dict.exists() {
         return Err(CliError::Execution(format!(
@@ -405,17 +543,51 @@ fn run_sync(
         )));
     }
 
-    let active_port = match port {
+    // 先校验再动安装目录：手工改词典写坏一个逗号时，不能覆盖掉安装目录里可用的那份。
+    let raw = std::fs::read_to_string(&target_dict)?;
+    let parsed: serde_json::Value = serde_json::from_str(&raw).map_err(|e| {
+        CliError::Execution(format!(
+            "词典不是合法 JSON，已中止同步（安装目录未被改动）: {}\n  {}",
+            target_dict.display(),
+            e
+        ))
+    })?;
+    if parsed.get("dict").and_then(|v| v.as_object()).is_none() {
+        return Err(CliError::Execution(format!(
+            "词典缺少 dict 字段，已中止同步（安装目录未被改动）: {}",
+            target_dict.display()
+        )));
+    }
+
+    let deployed_dict = kit_dir.join("cockpit-zh.json");
+    std::fs::copy(&target_dict, &deployed_dict)?;
+    println!("✅ 词典已同步到 {}", deployed_dict.display());
+    if let Some(source_i18n) = sync_sources.source_i18n.as_deref() {
+        if source_i18n.is_file() {
+            let deployed_i18n = kit_dir.join("zh-i18n.js");
+            std::fs::copy(source_i18n, &deployed_i18n)?;
+            println!("✅ 翻译引擎已同步到 {}", deployed_i18n.display());
+        }
+    }
+
+    // CDP 推送：没有端口或连接失败都降级，不当作同步失败。
+    let active_port = match port.or_else(CdpClient::detect_port) {
         Some(p) => p,
-        None => CdpClient::detect_port().ok_or_else(|| {
-            CliError::Execution("Could not detect active DevTools port. Is Antigravity running?".into())
-        })?,
+        None => {
+            println!("💡 未检测到运行中的 Antigravity（或未开启 DevTools 端口），词典将在下次切换视图或重启时生效。");
+            return Ok(());
+        }
     };
 
     println!("Connecting to CDP on port {}", active_port);
-
-    let count = CdpClient::sync_dictionary(&target_dict, active_port)?;
-    println!("Synchronized dictionary to {} renderer target(s)", count);
+    match CdpClient::sync_dictionary(&deployed_dict, active_port) {
+        Ok(n) if n > 0 => println!("⚡ 已向 {} 个活动窗口推送最新词典并完成全量重译！", n),
+        Ok(_) => println!("💡 词典文件已就绪，将在下次切换视图或重启时使用。"),
+        Err(e) => eprintln!(
+            "⚠️ 实时推送失败（{}）；词典文件已就绪，将在下次切换视图或重启时生效。",
+            e
+        ),
+    }
     Ok(())
 }
 
@@ -499,9 +671,20 @@ fn run_replacer(cmd: ReplacerCommands) -> Result<(), CliError> {
             let replacer = StringReplacer::from_json_file(&rules)?;
             let summary = replacer.apply_to_file(&target, "single", dry_run)?;
             println!(
-                "Applied rules: {}/{} matches (modified: {})",
-                summary.matched_rules, summary.total_rules, summary.modified
+                "Applied rules: {}/{} 条规则命中（{} 处替换，modified: {}）",
+                summary.rules_hit, summary.total_rules, summary.matched_rules, summary.modified
             );
+            if !summary.multi_match.is_empty() {
+                println!(
+                    "{}",
+                    format!(
+                        "  ⚠️ {} 条规则命中多于一次（下标 {:?}），已按全量替换处理",
+                        summary.multi_match.len(),
+                        summary.multi_match
+                    )
+                    .yellow()
+                );
+            }
         }
         ReplacerCommands::Batch {
             rules_dir,
@@ -511,14 +694,9 @@ fn run_replacer(cmd: ReplacerCommands) -> Result<(), CliError> {
             let batch = BatchReplacer::new(&rules_dir);
             let summaries = batch.execute_batch(&staging_dir, dry_run)?;
             println!("Batch replacement completed ({} scopes):", summaries.len());
-            for s in summaries {
-                println!(
-                    "  [{}] {}: {}/{} matches",
-                    s.scope,
-                    s.target_file.display(),
-                    s.matched_rules,
-                    s.total_rules
-                );
+            let (patched, skipped) = report_batch_summaries(&summaries);
+            if skipped > 0 {
+                println!("  {} scopes patched, {} scopes skipped", patched, skipped);
             }
         }
     }
@@ -552,12 +730,59 @@ fn run_check(resources_dir: Option<&Path>) -> Result<(), CliError> {
     );
 
     let meta_file = env::get_meta_path(&res_dir);
-    if meta_file.exists() {
+    if !asar_orig.exists() {
+        println!(
+            "  Backup status: {}",
+            "no backup recorded (patch is not installed)".white()
+        );
+    } else if !meta_file.exists() {
+        // 旧版在 meta 缺失时整行不打印 —— 对「健康检查」命令来说，
+        // 最该报警的情形反而被静默省略了。
+        println!(
+            "  Backup status: {}",
+            "UNKNOWN - app.asar.orig exists but app.asar.orig.meta.json does not; \
+             the backup cannot be verified against the current client"
+                .red()
+        );
+    } else if !asar_file.exists() {
+        // app.asar 不在原位是「补丁已安装」的正常状态（Electron 优先加载 app/ 目录），
+        // 此时没有可比对的对象，不能报 Stale 制造误解。
+        println!(
+            "  Backup status: {}",
+            "present (patch installed; app.asar is renamed away so staleness is not comparable)"
+                .green()
+        );
+    } else {
         let is_stale = BackupManager::is_backup_stale(&meta_file, &asar_file);
         println!(
             "  Backup status: {}",
-            if is_stale { "Stale (upstream updated)".yellow() } else { "Valid".green() }
+            if is_stale {
+                "Stale (upstream updated)".yellow()
+            } else {
+                "Valid".green()
+            }
         );
+    }
+
+    let app_dir = env::get_app_dir(&res_dir);
+    let zh_dir = env::get_zh_patch_dir(&res_dir);
+    println!(
+        "  Patched tree (app/): {}",
+        if app_dir.exists() { "Present".green() } else { "Absent".white() }
+    );
+    println!(
+        "  Localization kit (zh-patch/): {}",
+        if zh_dir.exists() { "Present".green() } else { "Absent".white() }
+    );
+    for leftover in ["app.new", "app.old", "zh-patch.new", "zh-patch.old", "app.asar.orig.tmp", "app.asar.orig.old"] {
+        let p = res_dir.join(leftover);
+        if p.exists() {
+            println!(
+                "  {}: {}",
+                leftover,
+                "LEFTOVER from an interrupted deploy (next run will clean it up)".yellow()
+            );
+        }
     }
 
     let ide_running = ProcessManager::is_ide_running()?;
@@ -567,4 +792,128 @@ fn run_check(resources_dir: Option<&Path>) -> Result<(), CliError> {
     );
 
     Ok(())
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+
+    fn temp_dir(label: &str) -> PathBuf {
+        static COUNTER: AtomicUsize = AtomicUsize::new(0);
+        let tmp = std::env::temp_dir().join(format!(
+            "agy-cli-sync-sources-{}-{}-{}",
+            std::process::id(),
+            label,
+            COUNTER.fetch_add(1, Ordering::Relaxed)
+        ));
+        let _ = fs::remove_dir_all(&tmp);
+        fs::create_dir_all(&tmp).expect("create temp dir");
+        tmp
+    }
+
+    fn make_assets(root: &Path) -> (PathBuf, PathBuf, PathBuf) {
+        let src = root.join("src");
+        fs::create_dir_all(src.join("native")).expect("create src/native");
+        let dict = root.join("cockpit-zh.json");
+        let i18n = src.join("zh-i18n.js");
+        fs::write(&dict, b"{}").expect("write dict");
+        fs::write(&i18n, b"// i18n").expect("write i18n");
+        (dict, i18n, src.join("native"))
+    }
+
+    #[test]
+    fn test_resolve_sync_sources_explicit_root_with_incomplete_assets_is_err() {
+        let tmp = temp_dir("incomplete");
+        let root = tmp.join("root");
+        fs::create_dir_all(&root).expect("create root");
+
+        // No dict/i18n/native: the old `.ok()` + CWD fallback would silently
+        // return `src/cockpit-zh.json` relative to the *caller's* CWD.
+        assert!(
+            matches!(
+                resolve_sync_sources(None, Some(&root)),
+                Err(antigravity_installer::InstallerError::Env(_))
+            ),
+            "explicit root with incomplete assets must propagate the error"
+        );
+
+        let _ = fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn test_resolve_sync_sources_explicit_root_resolves_from_that_root() {
+        let tmp = temp_dir("explicit-ok");
+        let root = tmp.join("root");
+        let (dict, i18n, _) = make_assets(&root);
+
+        let sources = resolve_sync_sources(None, Some(&root)).expect("resolve explicit root");
+        assert_eq!(sources.target_dict, dict);
+        assert_eq!(sources.source_i18n.as_deref(), Some(i18n.as_path()));
+
+        let _ = fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn test_resolve_sync_sources_explicit_dict_is_authoritative() {
+        let tmp = temp_dir("explicit-dict");
+        let root = tmp.join("incomplete-root");
+        fs::create_dir_all(&root).expect("create root");
+        let explicit = tmp.join("my-dict.json");
+
+        // An explicitly supplied --dict wins even when asset resolution fails;
+        // i18n copying stays best-effort (None here).
+        let sources = resolve_sync_sources(Some(&explicit), Some(&root))
+            .expect("explicit dict must not fail on asset error");
+        assert_eq!(sources.target_dict, explicit);
+        assert_eq!(sources.source_i18n, None);
+
+        let _ = fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn test_resolve_sync_sources_explicit_dict_keeps_i18n_from_chosen_root() {
+        let tmp = temp_dir("explicit-dict-i18n");
+        let root = tmp.join("root");
+        let (_, i18n, _) = make_assets(&root);
+        let explicit = tmp.join("my-dict.json");
+
+        let sources = resolve_sync_sources(Some(&explicit), Some(&root))
+            .expect("resolve with explicit dict");
+        assert_eq!(sources.target_dict, explicit);
+        assert_eq!(sources.source_i18n.as_deref(), Some(i18n.as_path()));
+
+        let _ = fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn test_resolve_sync_sources_explicit_dict_overrides_resolved_root_dict() {
+        let tmp = temp_dir("explicit-dict-override");
+        let root = tmp.join("root");
+        let (resolved_dict, _, _) = make_assets(&root);
+        let explicit = tmp.join("override.json");
+
+        let sources = resolve_sync_sources(Some(&explicit), Some(&root))
+            .expect("resolve with override");
+        assert_eq!(sources.target_dict, explicit);
+        assert_ne!(sources.target_dict, resolved_dict);
+
+        let _ = fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn test_resolve_sync_sources_no_root_preserves_cwd_fallback() {
+        // With no explicit root, asset discovery is best-effort. If it fails,
+        // the historical CWD-relative dictionary fallback is kept and i18n is
+        // not reported. This test only asserts the invariant that holds in any
+        // environment: the result is always Ok and never propagates an error.
+        let sources = resolve_sync_sources(None, None).expect("no-root resolution never fails");
+        if sources.source_i18n.is_none() {
+            assert_eq!(sources.target_dict, PathBuf::from("src/cockpit-zh.json"));
+        } else {
+            assert!(sources.target_dict.is_file(), "resolved dict must exist");
+        }
+    }
 }

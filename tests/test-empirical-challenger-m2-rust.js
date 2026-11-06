@@ -11,8 +11,22 @@ const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+// ⚠️ 本文件的适用范围（请先读这段，别被 PASS 数量误导）
+//
+// SUITE 3 (AHO) 与 SUITE 4 (PROC) 断言的是**本文件内用 JS 重写的模型**
+// （自建的 isSidecarProcess、String.replaceAll 顺序替换），而不是 Rust 二进制 ——
+// 全文件从未 spawn 过 antigravity-tool.exe。因此它们**无法发现 Node/Rust 双轨分歧**。
+//
+// Rust 侧的真实覆盖来自：
+//   - `cargo test --workspace`（npm test 的 test:cargo 步骤）
+//   - tests/test-empirical-challenger-m1-cli.js（真的会 spawn dist/antigravity-tool.exe）
+//   - tests/test-replacement-engine.js 里的「Rust 语义对拍」用例
+//     （2000 组随机输入 vs 独立参考模型，替换契约以 Rust 为准）
+//
+// 本文件保留的价值是格式层面的对拍（pickle 头部布局、规则 schema、边界模拟），
+// 那部分确实读了真实的 src/native/*.json 与 chromium-pickle-js。
 const pickle = require('chromium-pickle-js');
-const asar = require('asar');
+const asar = require('@electron/asar');
 
 let totalTests = 0;
 let passedTests = 0;
@@ -212,56 +226,106 @@ runTest('RULES', 'Deserializer rejects malformed rules: numbers, booleans, neste
 });
 
 // ============================================================================
-// SUITE 3: AHO-CORASICK / REPLACEMENT ENGINE EQUIVALENCE & UTF-8 INTEGRITY
+// SUITE 3: DUAL-TRACK REPLACEMENT PARITY (real Rust binary vs shipping Node engine)
 // ============================================================================
-console.log('\n--- SUITE 3: Multi-Pattern Replacement & UTF-8 Integrity ---');
+console.log('\n--- SUITE 3: Multi-Pattern Replacement & UTF-8 Integrity (dual-track, real binary) ---');
 
-runTest('AHO', 'LeftmostFirst single-pass vs sequential replacement on non-overlapping patterns', () => {
+// 旧版的这三条断言的是本文件内用 String.replaceAll 重写的 JS 模型，从未 spawn 过
+// Rust 二进制，因此结构上不可能发现 Node/Rust 双轨分歧（而分歧确实存在过：
+// Node 只替换首处且顺序重扫，Rust 是单遍全量）。
+// 现在改成真正的双轨对拍：同一份输入与规则分别喂给
+//   (a) dist/antigravity-tool.exe            —— Rust，替换语义的契约基准
+//   (b) scripts/lib/replacement-engine.js    —— Node，实际出货的实现
+// 两者必须逐字节相同，且等于人工推导出的期望值。
+const { spawnSync: spawnSyncAho } = require('child_process');
+const osAho = require('os');
+const DIST_TOOL = path.join(__dirname, '..', 'dist', 'antigravity-tool.exe');
+const nodeEngine = require('../scripts/lib/replacement-engine');
+
+function dualTrack(input, rules) {
+  if (!fs.existsSync(DIST_TOOL)) {
+    throw new Error(`缺少 ${DIST_TOOL}，无法做双轨对拍；请先运行 npm run build:rust`);
+  }
+  const tmp = fs.mkdtempSync(path.join(osAho.tmpdir(), 'm2rust-aho-'));
+  try {
+    const rulesFile = path.join(tmp, 'rules.json');
+    fs.writeFileSync(rulesFile, JSON.stringify(rules));
+    const rustTarget = path.join(tmp, 'rust.js');
+    fs.writeFileSync(rustTarget, input);
+    const res = spawnSyncAho(
+      DIST_TOOL,
+      ['replacer', 'apply', '--rules', rulesFile, '--target', rustTarget],
+      { encoding: 'utf8', windowsHide: true }
+    );
+    assert.strictEqual(res.status, 0, `rust tool exited ${res.status}: ${res.stderr || res.stdout}`);
+    return {
+      rust: fs.readFileSync(rustTarget, 'utf8'),
+      node: nodeEngine.applyReplacements(input, rules).content,
+    };
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+}
+
+runTest('AHO', 'non-overlapping patterns: Rust binary and Node engine agree byte-for-byte', () => {
   const rules = [
     ['Apple', '苹果'],
     ['Banana', '香蕉'],
     ['Orange', '橙子'],
   ];
-
   const input = 'I like Apple and Banana, but Orange is fine too.';
-  // Sequential replacement:
-  let sequential = input;
-  for (const [s, r] of rules) {
-    sequential = sequential.replaceAll(s, r);
-  }
-
-  // LeftmostFirst replacement:
-  // When patterns are non-overlapping, LeftmostFirst produces identical result to sequential
-  assert.strictEqual(sequential, 'I like 苹果 and 香蕉, but 橙子 is fine too.');
+  const expected = 'I like 苹果 and 香蕉, but 橙子 is fine too.';
+  const { rust, node } = dualTrack(input, rules);
+  assert.strictEqual(rust, expected, 'Rust output wrong');
+  assert.strictEqual(node, expected, 'Node output wrong');
+  assert.strictEqual(node, rust, 'Node/Rust divergence');
 });
 
-runTest('AHO', 'Multi-byte UTF-8 boundaries: Chinese, 4-byte surrogate pairs, emojis', () => {
+runTest('AHO', 'multi-byte UTF-8 boundaries agree: CJK, 4-byte char, ZWJ emoji', () => {
   const rules = [
     ['你好', 'HELLO'],
     ['世界', 'WORLD'],
     ['𠮷野家', 'YOSHINOYA'], // 4-byte UTF-8 char U+20BB7
     ['👨‍👩‍👧‍👦', 'FAMILY'],       // Multi-codepoint emoji with ZWJ
   ];
-
-  let text = '测试：你好，欢迎来到𠮷野家！与世界和👨‍👩‍👧‍👦一起。';
-  for (const [s, r] of rules) {
-    text = text.replaceAll(s, r);
-  }
-
-  assert.strictEqual(text, '测试：HELLO，欢迎来到YOSHINOYA！与WORLD和FAMILY一起。');
+  const input = '测试：你好，欢迎来到𠮷野家！与世界和👨‍👩‍👧‍👦一起。';
+  const expected = '测试：HELLO，欢迎来到YOSHINOYA！与WORLD和FAMILY一起。';
+  const { rust, node } = dualTrack(input, rules);
+  assert.strictEqual(rust, expected, 'Rust output wrong');
+  assert.strictEqual(node, expected, 'Node output wrong');
+  assert.strictEqual(node, rust, 'Node/Rust divergence on multi-byte input');
 });
 
-runTest('AHO', 'LeftmostFirst prefix overlap precedence matching Rust unit test invariant', () => {
+runTest('AHO', 'prefix overlap precedence agrees (LeftmostFirst invariant)', () => {
   const rules = [
     ['test', 'A'],
     ['testing', 'B'],
   ];
-
-  // In Aho-Corasick LeftmostFirst with ["test", "testing"],
-  // at position 0 "test" is pattern 0 and matches first.
+  // Aho-Corasick LeftmostFirst 在同一位置优先取先声明者，所以 "test" 胜出，
+  // 余下 "ing" 原样保留。Node 侧的正则交替语义与此一致。
   const input = 'We are testing now.';
-  // If "test" matches, remainder is "ing now." -> "We are Aing now."
-  assert.strictEqual(input.replace('test', 'A'), 'We are Aing now.');
+  const expected = 'We are Aing now.';
+  const { rust, node } = dualTrack(input, rules);
+  assert.strictEqual(rust, expected, 'Rust output wrong');
+  assert.strictEqual(node, expected, 'Node output wrong');
+  assert.strictEqual(node, rust, 'Node/Rust divergence on overlapping prefixes');
+});
+
+runTest('AHO', 'replace-all and single-pass semantics agree across tracks', () => {
+  // 全量：同一规则命中多处时两边都必须全部替换
+  const all = dualTrack('token token token', [['token', 'replaced']]);
+  assert.strictEqual(all.rust, 'replaced replaced replaced');
+  assert.strictEqual(all.node, all.rust, 'Node/Rust divergence on repeat occurrences');
+
+  // 单遍：后一条规则不得匹配前一条刚写入的文本
+  const once = dualTrack('abc', [['abc', 'xyz'], ['xyz', 'QQQ']]);
+  assert.strictEqual(once.rust, 'xyz');
+  assert.strictEqual(once.node, once.rust, 'Node/Rust divergence on single-pass semantics');
+
+  // 字面量：$ 序列不得被当成替换模式
+  const dollar = dualTrack('X', [['X', '[$&]$$']]);
+  assert.strictEqual(dollar.rust, '[$&]$$');
+  assert.strictEqual(dollar.node, dollar.rust, 'Node/Rust divergence on $ sequences');
 });
 
 // ============================================================================

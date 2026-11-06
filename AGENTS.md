@@ -38,10 +38,50 @@ npm run sync
 ## 改完必须验证
 
 ```bash
-npm test        # 14 个套件，含词典格式、变体冗余、翻译行为、安装流程
+npm test        # 含集成套件、模块单测、cargo test/clippy、对抗套件；步骤数以 package.json 的 test 脚本为准
 ```
 
 测试里已经包含「变体冗余」检查，所以**即使有人绕过脚本直接改 JSON，也会被拦下**。
+
+注意：套件数会变，以 `package.json` 的 `test` 脚本为准，不要把具体数字写死在文档里。
+
+## 替换语义以 Rust 为准
+
+`src/native/*.replacements.json` 的替换行为，Node 与 Rust 两侧必须完全一致，
+**以 Rust 的 Aho-Corasick 语义为契约**：
+
+- **单遍扫描**：替换产物不会被重新扫描（逐条 `String.replace` 会让后面的规则
+  匹配到前面刚写进去的文本）。
+- **全量替换**：同一规则命中多处时全部替换（`String.replace(str, ..)` 只换第一处）。
+- **字面量替换**：译文里的 `$&` / `$$` / `` $` `` / `$'` 是普通字符，
+  不能被当成替换模式展开。Node 侧必须用 `replace(old, () => new)` 的函数形式。
+- **最左优先**：同一位置按规则声明顺序取舍（`["test","A"]` 与 `["testing","B"]`
+  对 `testing` 都产出 `Aing`）。
+
+Node 实现在 `scripts/lib/replacement-engine.js`，Rust 在
+`rust/crates/replacer/src/automaton.rs`。改任何一侧都要同步另一侧，
+`tests/test-replacement-engine.js` 里有对 Rust 参考模型的随机对拍用例。
+
+PROJECT.md 要求 `targetString` 在目标文件中**唯一匹配**；命中多于一次不再报错
+（按全量替换处理），但会打印 `multiMatch` 警告——多处命中通常意味着规则写得太宽。
+
+## 加正则规则
+
+`rules` 没有配套脚本，直接改 `src/cockpit-zh.json` 的 `rules` 数组，元素是
+`[正则, 替换, flags?]`。写之前注意引擎的三个约束：
+
+- **首字符必须能被静态判定**。`compileRules` 用 `firstChars()` 按首字符分桶，
+  只有 `^` 后紧跟字面字符、`[..]` 字符类、`\d` 或 `(\d` 才进桶。写成 `^.*foo`
+  或 `^(?:a|b)` 会落到 `always` 分支——每条文本都要试一遍，热路径会明显变慢。
+- **`i` 标志是支持的**：`compileRules` 会按 `i` 把首字母的两个大小写都并入分桶。
+  （历史坑：`firstChars` 曾不理会 `i`，于是 `/^search.../i` 只进 `s` 桶、
+  界面上的 `Search ...` 永远匹配不到，规则静默失效。已修复，`test-dict.js`
+  的正则校验会拦下语法问题。）
+- **规则在「精确匹配 → 归一化匹配」之后**。所以规则用来兜住「词典没逐字收录的
+  写法变体」，而不是用来覆盖词典——想改某条已有译文的措辞，请改 `dict`。
+
+`test-dict-normalize.js` 里有对兜底规则的运行时断言（用真实的 `tr()` 跑），
+加规则后顺手在里面补一条用例。
 
 ## 词典规模不是目标
 

@@ -7,11 +7,18 @@ const os = require('os');
 const { CRC_TABLE, crc32, dosDateTime, buildZip, readZip } = require('./lib/zip');
 
 const ROOT = path.resolve(__dirname, '..');
-const EXE_NAME = 'Antigravity-zh-patch.exe';
+const EXE_NAME = 'Antigravity-zh.exe';
+// 发布包里给用户看到的名字（Antigravity-zh.exe）与构建产物名（antigravity-tool.exe）不同：
+// 后者是 Rust workspace 的产物名，前者是面向用户的安装器名。
+const EXE_SOURCE = 'antigravity-tool.exe';
 const BAT_FILES = ['一键安装.bat', '一键还原.bat', '快速同步词典.bat'];
 
 // 清单顺序即 zip 内顺序，便于人工核对与 diff
-function collectEntries(root) {
+// requireExe=false 仅用于 --dry-run 预览：那时 exe 可能还没构建，允许缺席。
+// 真正打包时必须为 true —— zip 里没有 exe 就等于没有任何可用的安装入口
+// （三个 .bat 全都调用 node scripts/patch.js，而 scripts/ 并不在 zip 清单里），
+// 旧版只 warn 不拦，实测会产出一个 14 条目、完全装不上的发布包。
+function collectEntries(root, { requireExe = true } = {}) {
   const items = [];
   const add = (name, file, required = true) => {
     if (!fs.existsSync(file)) {
@@ -21,9 +28,17 @@ function collectEntries(root) {
     items.push({ name, data: fs.readFileSync(file) });
   };
 
-  const exePath = path.join(root, 'dist', EXE_NAME);
+  const exePath = path.join(root, 'dist', EXE_SOURCE);
   if (!fs.existsSync(exePath)) {
-    console.warn(`⚠️ 未找到 dist/${EXE_NAME}，本次只打包脚本与词典；先运行 npm run build:exe 可补上 exe。`);
+    if (requireExe) {
+      throw new Error(
+        `缺少发布文件: ${EXE_NAME}（${exePath}）\n`
+        + '  zip 里没有 exe 就没有任何可用的安装入口（.bat 依赖的 scripts/ 不在打包清单内）。\n'
+        + '  请先运行: npm run build:rust\n'
+        + '  只想预览清单可加 --dry-run。'
+      );
+    }
+    console.warn(`⚠️ 未找到 dist/${EXE_NAME}，本次为预览模式，只列出脚本与词典。`);
   } else {
     add(EXE_NAME, exePath);
   }
@@ -43,12 +58,44 @@ function collectEntries(root) {
   return items;
 }
 
+// 必需条目按「名字核对」，不硬编码总条目数。
+// 硬编码的数字一旦与清单增删不同步就会在真打包时误报——本文件初版就把 8 写成了 9，
+// 而没有任何测试覆盖这条路径，所以只有真跑一次 release:package 才会暴露。
+const REQUIRED_ENTRIES = [
+  EXE_NAME,
+  ...BAT_FILES,
+  'src/cockpit-zh.json',
+  'src/zh-i18n.js',
+  'README.md',
+  'RELEASE_NOTES.md',
+];
+
 function packageRelease(root = ROOT, outDir = path.join(root, 'dist')) {
   const version = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8')).version;
   const zipName = `Antigravity-zh-patch-v${version}.zip`;
   const zipPath = path.join(outDir, zipName);
 
   const entries = collectEntries(root);
+  const names = new Set(entries.map(e => e.name));
+  const missing = REQUIRED_ENTRIES.filter(n => !names.has(n));
+  if (missing.length) {
+    throw new Error(`发布清单缺少必需条目: ${missing.join(', ')}`);
+  }
+  if (!names.has(EXE_NAME)) {
+    throw new Error(`发布清单里没有 ${EXE_NAME}，拒绝产出无法安装的发布包`);
+  }
+  // native 替换表的数量必须与 src/native 下实际的 .json 文件一致，防止漏打包
+  const nativeOnDisk = fs
+    .readdirSync(path.join(root, 'src', 'native'))
+    .filter(f => f.endsWith('.json'))
+    .length;
+  const nativeInZip = entries.filter(e => e.name.startsWith('src/native/')).length;
+  if (nativeInZip !== nativeOnDisk) {
+    throw new Error(
+      `src/native 打包不完整: 磁盘上 ${nativeOnDisk} 个替换表，清单里只有 ${nativeInZip} 个`
+    );
+  }
+
   const buffer = buildZip(entries);
   fs.mkdirSync(outDir, { recursive: true });
   fs.writeFileSync(zipPath, buffer);
@@ -79,7 +126,7 @@ function selfTest() {
     fs.mkdirSync(path.join(root, 'dist'), { recursive: true });
     fs.writeFileSync(path.join(root, 'package.json'), JSON.stringify({ name: 'antigravity-zh', version: '9.9.9' }));
     // 假 exe 只写填充字节，避免碰真的 pkg 产物（构建一次要几分钟且会覆盖 dist/）
-    fs.writeFileSync(path.join(root, 'dist', EXE_NAME), Buffer.alloc(4096, 0x5a));
+    fs.writeFileSync(path.join(root, 'dist', EXE_SOURCE), Buffer.alloc(4096, 0x5a));
     const copy = (rel) => {
       const dest = path.join(root, rel);
       fs.mkdirSync(path.dirname(dest), { recursive: true });
@@ -125,7 +172,7 @@ if (require.main === module) {
   if (process.argv.includes('--self-test')) {
     selfTest();
   } else if (process.argv.includes('--dry-run')) {
-    const entries = collectEntries(root);
+    const entries = collectEntries(root, { requireExe: false });
     console.log(`预览：${entries.length} 个条目`);
     for (const entry of entries) console.log(`   - ${entry.name} (${entry.data.length} B)`);
   } else {

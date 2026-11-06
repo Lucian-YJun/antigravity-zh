@@ -141,3 +141,73 @@ fn test_replacer_high_volume_stress() {
         (large_input.len() as f64 / (1024.0 * 1024.0)) / elapsed.as_secs_f64()
     );
 }
+
+#[test]
+fn test_batch_reports_every_skipped_scope_instead_of_dropping_it() {
+    use antigravity_replacer::{BatchReplacer, SkipReason};
+
+    let tmp = std::env::temp_dir().join(format!("replacer-test-batch-{}", std::process::id()));
+    let rules_dir = tmp.join("rules");
+    let staging = tmp.join("staging");
+    let empty_staging = tmp.join("empty_staging");
+
+    let _ = std::fs::remove_dir_all(&tmp);
+    std::fs::create_dir_all(&rules_dir).unwrap();
+    std::fs::create_dir_all(staging.join("dist")).unwrap();
+    std::fs::create_dir_all(&empty_staging).unwrap();
+
+    std::fs::write(
+        rules_dir.join("utils.replacements.json"),
+        r#"[["Hello","你好"]]"#,
+    )
+    .unwrap();
+    std::fs::write(staging.join("dist").join("utils.js"), "Hello world").unwrap();
+
+    let summaries = BatchReplacer::new(&rules_dir)
+        .execute_batch(&staging, false)
+        .expect("batch run");
+
+    // 每个配置的 scope 都必须在报告里出现，不能再被静默丢掉。
+    assert_eq!(summaries.len(), 7);
+
+    let utils = summaries
+        .iter()
+        .find(|s| s.scope == "utils")
+        .expect("utils scope reported");
+    assert!(utils.skipped.is_none(), "utils was patched, not skipped");
+    assert_eq!(utils.matched_rules, 1);
+    assert_eq!(utils.total_rules, 1);
+    assert!(utils.modified);
+    assert_eq!(
+        std::fs::read_to_string(staging.join("dist").join("utils.js")).unwrap(),
+        "你好 world"
+    );
+
+    let skipped: Vec<_> = summaries.iter().filter(|s| s.skipped.is_some()).collect();
+    assert_eq!(skipped.len(), 6);
+    for summary in &skipped {
+        assert!(
+            matches!(summary.skipped, Some(SkipReason::RulesMissing(_))),
+            "missing rule file should be reported as RulesMissing, got {:?}",
+            summary.skipped
+        );
+        assert_eq!(summary.matched_rules, 0);
+        assert_eq!(summary.total_rules, 0);
+    }
+
+    // 规则文件在、staging 里的目标文件没了（上游改名）——必须报 TargetMissing。
+    let second_run = BatchReplacer::new(&rules_dir)
+        .execute_batch(&empty_staging, true)
+        .expect("batch run on empty staging");
+    let utils_missing = second_run
+        .iter()
+        .find(|s| s.scope == "utils")
+        .expect("utils scope reported");
+    assert!(
+        matches!(utils_missing.skipped, Some(SkipReason::TargetMissing(_))),
+        "expected TargetMissing, got {:?}",
+        utils_missing.skipped
+    );
+
+    let _ = std::fs::remove_dir_all(&tmp);
+}

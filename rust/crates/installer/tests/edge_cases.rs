@@ -108,8 +108,17 @@ fn test_backup_metadata_and_stale_detection_matrix() {
     let current_asar = tmp.join("app.asar");
     let meta_path = tmp.join("app.asar.orig.meta.json");
 
-    // Case 1: Missing current file -> false (not stale)
-    assert!(!BackupManager::is_backup_stale(&meta_path, &current_asar));
+    // Case 1: Missing current file -> true (unverifiable, therefore not trusted).
+    //
+    // This deliberately matches `isBackupStaleFor` in scripts/lib/backup-manager.js,
+    // which returns `!(meta && current && same)` and so reports "stale" whenever the
+    // current archive is absent. "I cannot prove this backup matches the install"
+    // must never be reported as "this backup is fine", because callers use the
+    // answer to decide whether it is safe to overwrite or delete the backup.
+    // All three callers (Deployer::revert, run_install, run_check) guard with an
+    // explicit exists() check first, so the everyday "patch installed, app.asar is
+    // renamed away" state is still reported sensibly.
+    assert!(BackupManager::is_backup_stale(&meta_path, &current_asar));
 
     // Case 2: Current file exists, but metadata file is missing -> true (stale / unverifiable)
     fs::write(&current_asar, b"v1 content").expect("write asar");
@@ -357,3 +366,101 @@ fn test_cdp_chunked_decode_multibyte_utf8_boundary_split() {
     assert_eq!(decoded3, full_text);
 }
 
+
+
+#[test]
+fn test_recover_interrupted_deploy_propagates_remove_dir_failure() {
+    let tmp = std::env::temp_dir().join(format!(
+        "agy-deployer-test-recover-err-{}",
+        std::process::id()
+    ));
+    let _ = fs::remove_dir_all(&tmp);
+    fs::create_dir_all(&tmp).expect("create temp dir");
+
+    // A normal, healthy state so no rename is attempted: only the residual
+    // cleanup path can fail. `app.new` is a *file*, so `remove_dir_all` must
+    // return an I/O error rather than be swallowed by `let _ =`.
+    fs::write(tmp.join("app.asar"), b"ASAR").expect("write asar");
+    fs::write(tmp.join("app.asar.orig"), b"ORIG").expect("write orig");
+    fs::create_dir_all(tmp.join("app")).expect("create app dir");
+    fs::create_dir_all(tmp.join("zh-patch")).expect("create zh dir");
+    fs::write(tmp.join("app.new"), b"not-a-directory").expect("write app.new as a file");
+
+    let deployer = Deployer::new(&tmp);
+    let result = deployer.recover_interrupted_deploy();
+    assert!(
+        matches!(result, Err(antigravity_installer::InstallerError::Io(_))),
+        "recovery failure must be propagated, got {result:?}"
+    );
+    assert!(tmp.join("app.new").exists(), "the failing residual path must remain visible");
+
+    let _ = fs::remove_dir_all(&tmp);
+}
+
+#[test]
+fn test_recover_interrupted_deploy_no_residuals_is_ok() {
+    let tmp = std::env::temp_dir().join(format!(
+        "agy-deployer-test-recover-clean-{}",
+        std::process::id()
+    ));
+    let _ = fs::remove_dir_all(&tmp);
+    fs::create_dir_all(&tmp).expect("create temp dir");
+
+    fs::write(tmp.join("app.asar"), b"ASAR").expect("write asar");
+    fs::write(tmp.join("app.asar.orig"), b"ORIG").expect("write orig");
+    fs::create_dir_all(tmp.join("app")).expect("create app dir");
+    fs::create_dir_all(tmp.join("zh-patch")).expect("create zh dir");
+
+    Deployer::new(&tmp)
+        .recover_interrupted_deploy()
+        .expect("clean recovery must succeed");
+
+    let _ = fs::remove_dir_all(&tmp);
+}
+
+#[test]
+fn test_recover_interrupted_deploy_restores_from_residual_backup() {
+    let tmp = std::env::temp_dir().join(format!(
+        "agy-deployer-test-recover-restore-{}",
+        std::process::id()
+    ));
+    let _ = fs::remove_dir_all(&tmp);
+    fs::create_dir_all(&tmp).expect("create temp dir");
+
+    // Interrupted first install: only the temporary original backup remains.
+    fs::write(tmp.join("app.asar.orig.tmp"), b"PRISTINE").expect("write tmp backup");
+    fs::write(tmp.join("app.asar.orig.meta.json"), b"{}").expect("write meta");
+
+    Deployer::new(&tmp)
+        .recover_interrupted_deploy()
+        .expect("recovery must restore the backup");
+
+    assert_eq!(fs::read(tmp.join("app.asar.orig")).unwrap(), b"PRISTINE");
+    assert!(!tmp.join("app.asar.orig.tmp").exists(), "tmp backup must be cleaned up");
+    assert!(tmp.join("app.asar.orig.meta.json").exists(), "meta is kept when a backup exists");
+
+    let _ = fs::remove_dir_all(&tmp);
+}
+
+#[test]
+fn test_recover_interrupted_deploy_prunes_meta_without_backup() {
+    let tmp = std::env::temp_dir().join(format!(
+        "agy-deployer-test-recover-meta-{}",
+        std::process::id()
+    ));
+    let _ = fs::remove_dir_all(&tmp);
+    fs::create_dir_all(&tmp).expect("create temp dir");
+
+    fs::write(tmp.join("app.asar"), b"ASAR").expect("write asar");
+    fs::write(tmp.join("app.asar.orig.meta.json"), b"{}").expect("write stale meta");
+    fs::create_dir_all(tmp.join("app")).expect("create app dir");
+    fs::create_dir_all(tmp.join("zh-patch")).expect("create zh dir");
+
+    Deployer::new(&tmp)
+        .recover_interrupted_deploy()
+        .expect("recovery must prune stale meta");
+
+    assert!(!tmp.join("app.asar.orig.meta.json").exists(), "stale meta must be removed");
+
+    let _ = fs::remove_dir_all(&tmp);
+}

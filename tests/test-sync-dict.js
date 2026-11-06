@@ -68,12 +68,17 @@ check('空字符串不受信', isTrustedDebuggerUrl('', 9222) === false);
 check('端口为 NaN 时不受信', isTrustedDebuggerUrl('ws://127.0.0.1:9222/x', NaN) === false);
 
 // 4. require 无副作用：曾经的顶层直执行会复制文件、请求 CDP 端口
+// 同步流程现在被包进 runSync()，供 patch.js 的 --sync 分支在 exe 形态下调用，
+// 因此导出面上多了一个 runSync —— 但「require 不执行任何同步」的语义不变：
+// 若顶层仍会执行，子进程会因找不到 zh-patch 而 exit(1)，这里就拿不到 stdout。
 const requireOut = execFileSync(process.execPath, [
   '-e',
-  "const m=require('./scripts/sync-dict.js');process.stdout.write(Object.keys(m).sort().join(','))",
+  "const m=require('./scripts/sync-dict.js');"
+  + "process.stdout.write(Object.keys(m).sort().join(',')+'|'+typeof m.runSync)",
 ], { cwd: path.join(__dirname, '..'), encoding: 'utf8' });
-check('require 只导出三个判定函数，不执行同步流程',
-  requireOut === 'isAntigravityPage,isLoopbackHost,isTrustedDebuggerUrl', requireOut);
+check('require 无副作用，导出三个判定函数与 runSync',
+  requireOut === 'isAntigravityPage,isLoopbackHost,isTrustedDebuggerUrl,runSync|function',
+  requireOut);
 
 console.log(`\n词典热同步测试: ${pass} 通过, ${fail} 失败`);
 process.exit(fail ? 1 : 0);

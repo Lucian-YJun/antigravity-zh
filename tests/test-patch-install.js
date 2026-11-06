@@ -86,7 +86,7 @@ function buildAsar(tag) {
   // asar.createPackage 是异步的，放进子进程同步等待
   execFileSync(process.execPath, [
     '-e',
-    `require('asar').createPackage(${JSON.stringify(src)}, ${JSON.stringify(out)})` +
+    `require('@electron/asar').createPackage(${JSON.stringify(src)}, ${JSON.stringify(out)})` +
     `.catch(e => { console.error(e); process.exit(1); })`,
   ], { stdio: 'inherit', cwd: path.join(__dirname, '..') });
   return out;

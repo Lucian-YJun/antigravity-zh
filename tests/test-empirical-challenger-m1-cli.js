@@ -69,10 +69,22 @@ function runTest(suite, name, fn) {
 
 console.log('=== STARTING EMPIRICAL ADVERSARIAL STRESS TEST SUITE (M1 CLI) ===\n');
 
+// 缺产物不再静默 exit(0)：旧行为会让这 36 个 Rust CLI 测试在任何没跑过
+// `npm run build:rust` 的机器（包括 CI）上整片消失，而 npm test 依然全绿。
+const ALLOW_MISSING_ARTIFACTS = process.env.AGY_ZH_ALLOW_MISSING_ARTIFACTS === '1';
 if (!fs.existsSync(DIST_BIN) || !fs.existsSync(RELEASE_BIN)) {
-  console.log('⚠️ [SKIP] Target binaries not found (dist/antigravity-tool.exe or rust/target/release/antigravity-tool.exe).');
-  console.log('   Run `npm run build:rust` before executing M1 CLI empirical stress test suite.');
-  process.exit(0);
+  const msg = [
+    '目标二进制缺失: dist/antigravity-tool.exe 或 rust/target/release/antigravity-tool.exe',
+    '   请先运行 `npm run build:rust`。',
+    '   缺产物即视为失败，以免本套件静默消失而整体仍然全绿。',
+    '   确实只想跑其余套件时，显式设置 AGY_ZH_ALLOW_MISSING_ARTIFACTS=1。',
+  ].join('\n');
+  if (ALLOW_MISSING_ARTIFACTS) {
+    console.log('⚠️ [SKIP]\n' + msg);
+    process.exit(0);
+  }
+  console.error('❌ ' + msg);
+  process.exit(1);
 }
 
 // ============================================================================
@@ -89,12 +101,43 @@ runTest('BIN', 'Target binaries exist and are non-empty', () => {
   assert(relStat.size > 500000, `Release binary unexpectedly small: ${relStat.size} bytes`);
 });
 
-runTest('BIN', 'Binary SHA256 parity between dist/ and rust/target/release/', () => {
+runTest('BIN', 'dist/ copy is byte-identical to rust/target/release/', () => {
+  // 注意这一条的真实含义：它只证明 build:rust 里的 copyFileSync 生效了。
+  // 因为 dist/ 就是从 target/release/ 复制来的，两者永远相等 —— 它无法发现
+  // 「改了 .rs 却忘了重新构建」这种真正的过期风险。那由下一条守卫。
   const distBuf = fs.readFileSync(DIST_BIN);
   const relBuf = fs.readFileSync(RELEASE_BIN);
   const distHash = crypto.createHash('sha256').update(distBuf).digest('hex');
   const relHash = crypto.createHash('sha256').update(relBuf).digest('hex');
   assert.strictEqual(distHash, relHash, `Hash mismatch: dist=${distHash} vs release=${relHash}`);
+});
+
+runTest('BIN', 'dist binary is not stale relative to the Rust sources', () => {
+  // 这条才有实际价值：源码改过但二进制没重新构建时，上面那条依然全绿，
+  // 于是「测试通过」的二进制和仓库里的源码根本不是同一个东西。
+  const rustRoot = path.join(__dirname, '..', 'rust');
+  const binMtime = fs.statSync(DIST_BIN).mtimeMs;
+  const newest = { mtime: 0, file: '' };
+  const walk = (dir) => {
+    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+      if (e.name === 'target' || e.name === '.git') continue;
+      const full = path.join(dir, e.name);
+      if (e.isDirectory()) {
+        walk(full);
+      } else if (/\.(rs|toml|lock)$/.test(e.name)) {
+        const m = fs.statSync(full).mtimeMs;
+        if (m > newest.mtime) { newest.mtime = m; newest.file = full; }
+      }
+    }
+  };
+  walk(rustRoot);
+  assert(
+    binMtime >= newest.mtime,
+    `dist/antigravity-tool.exe 比最新的 Rust 源文件还旧，本套件跑的不是当前源码构建出的二进制。\n`
+    + `       二进制 mtime: ${new Date(binMtime).toISOString()}\n`
+    + `       最新源文件:   ${newest.file} @ ${new Date(newest.mtime).toISOString()}\n`
+    + `       请运行 \`npm run build:rust\`。`
+  );
 });
 
 // ============================================================================
@@ -107,7 +150,13 @@ for (const [binName, binPath] of [['dist', DIST_BIN], ['release', RELEASE_BIN]])
     const res = runTool(binPath, ['--version']);
     assert.strictEqual(res.status, 0);
     assert(!res.panicked, 'Panic detected');
-    assert(res.stdout.includes('antigravity-tool 1.3.1'), `Unexpected version: ${res.stdout}`);
+    // 从 package.json 读取期望版本，不再写死 —— 写死时版本一升就红，
+    // 而真正该守的是「二进制自报版本与仓库版本一致」。
+    const expected = require(path.join(__dirname, '..', 'package.json')).version;
+    assert(
+      res.stdout.includes(`antigravity-tool ${expected}`),
+      `Unexpected version: ${res.stdout.trim()} (expected antigravity-tool ${expected})`
+    );
   });
 
   runTest('DISPATCH', `${binName}: --help lists all 7 registered subcommands`, () => {
@@ -439,12 +488,19 @@ try {
     assert(!res.panicked, 'Panic detected during extraction');
 
     if (fs.existsSync(canaryPath)) {
+      // canary 被写到目标目录之外 = 确定的路径穿越 / 任意文件写回归，绝不能只「报告」
+      // 一下就让本套件 exit(0)。先清理，再同时记入高危 findings（末尾 blockingFindings
+      // 门禁会拦）并 assert.fail 直接把本用例判 FAIL（计入 failedTests，带完整现场）。
+      fs.unlinkSync(canaryPath);
       findings.push({
-        severity: 'MEDIUM_SECURITY_HARDENING',
+        severity: 'CRITICAL_SECURITY_REGRESSION',
         title: 'Asar extraction does not sanitize relative path navigation (Zip Slip escape)',
         detail: `Archive containing '..' written outside target destination to ${canaryPath}`,
       });
-      fs.unlinkSync(canaryPath);
+      assert.fail(
+        `Zip Slip regression: '..' entry escaped the extraction target and wrote ${canaryPath}. `
+        + `stdout: ${res.stdout} | stderr: ${res.stderr}`
+      );
     }
   });
 
@@ -514,7 +570,14 @@ try {
     ]);
     assert.strictEqual(resDry.status, 0);
     assert(!resDry.panicked, 'Panic detected in dry-run');
-    assert(resDry.stdout.includes('2/2 matches'));
+    // 输出格式已改：旧版把「替换处数」除以「规则总数」，多命中时会打出
+    // "2/1 matches" 这种自相矛盾的行。现在分别报「命中规则数/规则总数」与「替换处数」。
+    assert(resDry.stdout.includes('2/2 条规则命中'), `unexpected output: ${resDry.stdout}`);
+    assert(resDry.stdout.includes('2 处替换'), `missing occurrence count: ${resDry.stdout}`);
+    assert(
+      resDry.stdout.includes('modified: false'),
+      `dry-run must report modified: false (nothing was written): ${resDry.stdout}`
+    );
     assert.strictEqual(
       fs.readFileSync(targetFile, 'utf8'),
       'console.log("Hello World");\nconsole.log("Goodbye");',
@@ -532,14 +595,18 @@ try {
     ]);
     assert.strictEqual(resLive.status, 0);
     assert(!resLive.panicked, 'Panic detected in live run');
-    assert(resLive.stdout.includes('2/2 matches'));
+    assert(resLive.stdout.includes('2/2 条规则命中'), `unexpected output: ${resLive.stdout}`);
+    assert(
+      resLive.stdout.includes('modified: true'),
+      `live run must report modified: true: ${resLive.stdout}`
+    );
     assert.strictEqual(
       fs.readFileSync(targetFile, 'utf8'),
       'console.log("你好世界");\nconsole.log("再见");'
     );
   });
 
-  runTest('REPLACER', 'batch replacer with nonexistent dirs completes with 0 scopes without panic', () => {
+  runTest('REPLACER', 'batch replacer with nonexistent dirs reports every skipped scope without panic', () => {
     const nonExistDir1 = path.join(replacerTmpDir, 'no_rules');
     const nonExistDir2 = path.join(replacerTmpDir, 'no_staging');
     const res = runTool(DIST_BIN, [
@@ -552,7 +619,20 @@ try {
     ]);
     assert.strictEqual(res.status, 0);
     assert(!res.panicked, 'Panic detected');
-    assert(res.stdout.includes('0 scopes'));
+    // 7 个 scope 的规则文件都不存在：必须逐条报「文件缺失，跳过」，
+    // 不能再像旧版那样把它们静默丢掉、假装是 0 scopes 的正常空跑。
+    assert(
+      res.stdout.includes('Batch replacement completed (7 scopes)'),
+      `missing scope report; stdout: ${res.stdout}`
+    );
+    assert(
+      res.stdout.includes('文件缺失，跳过'),
+      `missing per-scope skip warning; stdout: ${res.stdout}`
+    );
+    assert(
+      res.stdout.includes('7 scopes skipped'),
+      `missing skipped total; stdout: ${res.stdout}`
+    );
   });
 
 } finally {
@@ -587,11 +667,35 @@ runTest('PROCESS', 'process kill-sidecars executes cleanly with code 0 without p
   assert(res.stdout.includes('Terminated') && res.stdout.includes('sidecar process(es)'));
 });
 
-runTest('PROCESS', 'process close with 1s timeout returns cleanly with code 0 without panic', () => {
+// 本用例有两种合法结果：在 IDE 外部终端能正常关闭（code 0）；在 IDE 内部终端
+// 则会命中产品刻意的安全护栏——拒绝关闭作为当前进程祖先的 IDE 进程（code 1）。
+// 两者都不是缺陷，但任何 panic、缺少护栏特征或其他退出码都必须判 FAIL。
+// 只认这条具体错误的完整结构，避免任何含「拒绝执行」四字的无关 exit 1 被误判通过：
+//   1) main.rs 的 `Error:` + CliError::Installer 的 `Installer operation failed:`
+//      + InstallerError::ProcessRunning 的 `Process still active:`（错误类型标识）；
+//   2) rust/crates/installer/src/process.rs:473 的 `是当前进程的祖先进程`；
+//   3) 同文件 474 行的 `因此拒绝执行`。
+// 三者必须同时出现，单独一个词不再算命中。
+function isAncestorGuardRejection(res) {
+  const output = res.stdout + res.stderr;
+  const signature =
+    /Error:\s*Installer operation failed:\s*Process still active:[\s\S]*?是当前进程的祖先进程[\s\S]*?因此拒绝执行/;
+  return signature.test(output);
+}
+
+runTest('PROCESS', 'process close with 1s timeout exits 0 cleanly or 1 with ancestor-guard signature, without panic', () => {
   const res = runTool(DIST_BIN, ['process', 'close', '--timeout', '1']);
-  assert.strictEqual(res.status, 0);
   assert(!res.panicked, 'Panic detected in process close');
-  assert(res.stdout.includes('Requesting graceful close'));
+  if (res.status === 0) {
+    assert(res.stdout.includes('Requesting graceful close'));
+  } else if (res.status === 1) {
+    assert(
+      isAncestorGuardRejection(res),
+      `exit 1 without ancestor-guard signature; stdout: ${res.stdout} | stderr: ${res.stderr}`
+    );
+  } else {
+    assert.fail(`Unexpected exit status ${res.status}; stdout: ${res.stdout} | stderr: ${res.stderr}`);
+  }
 });
 
 // ============================================================================
@@ -667,7 +771,21 @@ if (findings.length > 0) {
 }
 console.log('================================================================\n');
 
-if (failedTests > 0) {
+// findings 此前只被打印、从不参与退出码判定：一条真实的 zip-slip / 路径穿越
+// 回归（SUITE 6 的 .. canary）会照常让本套件以 exit(0) 收场。
+// 现在 SUITE 6 的 canary 命中会直接 assert.fail（计入 failedTests），同时被标为
+// CRITICAL 记入 findings；末尾 blockingFindings 再兜一层，任何 CRITICAL/HIGH/SEVERE
+// 发现都会 exit(1)。低危 findings 仍只报告，避免噪声门禁。
+const blockingFindings = findings.filter(f => /critical|high|severe/i.test(String(f.severity || '')));
+
+if (failedTests > 0 || blockingFindings.length > 0) {
+  if (blockingFindings.length > 0) {
+    console.error(`\n❌ ${blockingFindings.length} 条高危安全发现（此前不会让测试失败）：`);
+    for (const f of blockingFindings) {
+      console.error(`   - [${f.severity}] ${f.title}`);
+      if (f.detail) console.error(`     ${f.detail}`);
+    }
+  }
   process.exit(1);
 } else {
   process.exit(0);

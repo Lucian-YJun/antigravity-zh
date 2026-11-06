@@ -284,7 +284,7 @@ async function runBenchmark() {
   results.curve = curve;
 
   const broken = curve.filter(r => !r.isolatedIntact);
-  console.log(`\n  单帧阻塞最坏: ${Math.max(...curve.map(r => r.syncBlockMs)).toFixed(2)} ms（时间片上限 ${8} ms 量级）`);
+  console.log(`\n  单帧阻塞最坏: ${Math.max(...curve.map(r => r.syncBlockMs)).toFixed(2)} ms（分片目标 8 ms；此处记录实测最坏值）`);
   console.log(`  全部完成最坏: ${Math.max(...curve.map(r => r.totalMs)).toFixed(2)} ms`);
   console.log(`  代码块 / Monaco 隔离: ${broken.length === 0 ? '全部档位完好' : '被破坏 ' + broken.length + ' 档'}`);
   console.log(`  二次 retranslate 幂等: ${curve.every(r => r.idempotent) ? '全部档位通过' : '存在不幂等档位'}`);
@@ -292,6 +292,49 @@ async function runBenchmark() {
   results.worstTotalMs = Math.max(...curve.map(r => r.totalMs));
   results.isolationIntact = broken.length === 0;
   results.allIdempotent = curve.every(r => r.idempotent);
+
+  // 4. 阈值门禁
+  //
+  // 这些数字不是性能目标，而是「灾难性回归」探测器。每项都留了 5~40 倍余量：
+  // 正常的机器快慢、GC 抖动、CI 噪声都不会触发，只有算法级退化（例如误把
+  // 索引查找改成线性扫描、或引入 O(n²)）才会红。因此不依赖「基准机」。
+  //
+  // 实测定标（本机 2026-11，Node 24）：
+  //   exactHit 197 万 ops/s、ruleHit 55.7 万 ops/s、missCommon 534 万 ops/s
+  //   characterData 109 μs、10 节点批 1.44 ms
+  //   单帧阻塞最坏 37.6 ms、端到端最坏 1.23 ms/节点
+  console.log('\n--- 4. 阈值门禁 (Catastrophic Regression Gate) ---');
+  const checks = [];
+  const gate = (name, actual, ok, limit) => {
+    checks.push({ name, actual, ok, limit });
+    console.log(`  ${ok ? '✅' : '❌'} ${name.padEnd(34)} ${String(actual).padEnd(24)} 阈值 ${limit}`);
+  };
+
+  const perNode = (r) => r.totalMs / r.textNodes;
+  const worstPerNode = Math.max(...curve.map(perNode));
+  const smallPerNode = perNode(curve[0]);
+  const bigPerNode = perNode(curve[curve.length - 1]);
+  const scaleRatio = bigPerNode / smallPerNode;
+
+  gate('词典精确命中吞吐', `${results.exactHit.opsSec} ops/s`, results.exactHit.opsSec >= 100000, '>= 100,000 ops/s');
+  gate('正则规则命中吞吐', `${results.ruleHit.opsSec} ops/s`, results.ruleHit.opsSec >= 40000, '>= 40,000 ops/s');
+  gate('未命中路径吞吐（代码场景）', `${results.missCommon.opsSec} ops/s`, results.missCommon.opsSec >= 200000, '>= 200,000 ops/s');
+  gate('characterData 响应', `${results.avgCharDataTime.toFixed(1)} μs`, results.avgCharDataTime <= 5000, '<= 5,000 μs');
+  gate('10 节点批处理', `${results.avgBatchTime.toFixed(2)} ms`, results.avgBatchTime <= 100, '<= 100 ms');
+  gate('单帧阻塞最坏', `${results.worstSyncBlockMs.toFixed(1)} ms`, results.worstSyncBlockMs <= 400, '<= 400 ms');
+  gate('端到端单位成本', `${worstPerNode.toFixed(2)} ms/节点`, worstPerNode <= 8, '<= 8 ms/节点');
+  gate('端到端随规模恶化', `${scaleRatio.toFixed(2)}x`, scaleRatio <= 4, '<= 4x（O(n²) 探测）');
+  gate('代码块 / Monaco 隔离', broken.length === 0 ? '完好' : `破坏 ${broken.length} 档`, broken.length === 0, '全部完好');
+  gate('二次 retranslate 幂等', curve.every(r => r.idempotent) ? '通过' : '存在不幂等', curve.every(r => r.idempotent), '全部幂等');
+
+  const failedChecks = checks.filter(c => !c.ok);
+  results.gate = { checks, failed: failedChecks.length };
+  console.log(
+    `\n  门禁结果: ${checks.length - failedChecks.length}/${checks.length} 通过`
+    + (failedChecks.length
+      ? `\n  ❌ 失败项: ${failedChecks.map(c => `${c.name}（实测 ${c.actual}，未达阈值 ${c.limit}）`).join('、')}`
+      : ' ✅')
+  );
 
   console.log('\n========================================');
   return results;
@@ -307,7 +350,10 @@ if (require.main === module) {
     runBenchmark()
       .then((r) => {
         fs.rmSync(SIM, { recursive: true, force: true });
-        process.exit(r.isolationIntact ? 0 : 1);
+        // 退出码由阈值门禁决定，而不再只看隔离区是否完好 ——
+        // 否则性能基准跑了也等于没跑（数字只打印、从不影响成败）。
+        const gateFailed = r.gate ? r.gate.failed : 1;
+        process.exit(r.isolationIntact && gateFailed === 0 ? 0 : 1);
       })
       .catch((e) => {
         console.error(e);

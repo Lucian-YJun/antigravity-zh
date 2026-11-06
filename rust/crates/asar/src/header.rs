@@ -55,6 +55,87 @@ impl AsarHeader {
         }
     }
 
+    /// Counts the directory nodes recorded in the archive tree, excluding the
+    /// implicit root. Empty directories that asar stored as bare directory nodes
+    /// are included, since they exist in the header regardless of file entries.
+    pub fn count_directories(&self) -> usize {
+        Self::collect_directory_count(&self.files)
+    }
+
+    fn collect_directory_count(nodes: &BTreeMap<String, AsarNode>) -> usize {
+        nodes
+            .values()
+            .map(|node| match node {
+                AsarNode::Directory { files } => 1 + Self::collect_directory_count(files),
+                AsarNode::File { .. } => 0,
+            })
+            .sum()
+    }
+
+    /// Lists every directory node recorded in the tree as a slash-delimited path,
+    /// excluding the implicit root. Empty directories are included.
+    pub fn list_directories(&self) -> Vec<String> {
+        let mut out = Vec::new();
+        Self::collect_directory_paths(&self.files, String::new(), &mut out);
+        out
+    }
+
+    fn collect_directory_paths(
+        nodes: &BTreeMap<String, AsarNode>,
+        prefix: String,
+        out: &mut Vec<String>,
+    ) {
+        for (name, node) in nodes {
+            if let AsarNode::Directory { files } = node {
+                let path = if prefix.is_empty() {
+                    name.clone()
+                } else {
+                    format!("{}/{}", prefix, name)
+                };
+                out.push(path.clone());
+                Self::collect_directory_paths(files, path, out);
+            }
+        }
+    }
+
+    /// Records a directory node, creating any intermediate segments as needed.
+    ///
+    /// Inserting file entries only ever creates the *intermediate* segments of a
+    /// file path, so a directory that contains no files would never reach the
+    /// header. `@electron/asar` records it as `{"files":{}}` (verified by diffing
+    /// both headers for the same tree), so this is required for format parity.
+    pub fn insert_directory(&mut self, relative_path: &str) -> Result<(), AsarError> {
+        let clean = relative_path.replace('\\', "/");
+        let segments: Vec<&str> = clean
+            .trim_matches('/')
+            .split('/')
+            .filter(|s| !s.is_empty())
+            .collect();
+
+        if segments.is_empty() {
+            return Ok(());
+        }
+
+        let mut current_map = &mut self.files;
+        for seg in segments {
+            let key = seg.to_string();
+            current_map = match current_map
+                .entry(key)
+                .or_insert_with(|| AsarNode::Directory {
+                    files: BTreeMap::new(),
+                }) {
+                AsarNode::Directory { files } => files,
+                AsarNode::File { .. } => {
+                    return Err(AsarError::InvalidPath(format!(
+                        "Path conflict: '{}' is already a file, cannot be a directory",
+                        seg
+                    )));
+                }
+            };
+        }
+        Ok(())
+    }
+
     /// Finds a node within the tree using a relative slash-delimited path.
     pub fn find_node(&self, internal_path: &str) -> Option<&AsarNode> {
         let clean = internal_path.replace('\\', "/");
@@ -78,11 +159,7 @@ impl AsarHeader {
                     current_map = files;
                 }
                 Some(file @ AsarNode::File { .. }) => {
-                    if i == segments.len() - 1 {
-                        return Some(file);
-                    } else {
-                        return None;
-                    }
+                    return if i == segments.len() - 1 { Some(file) } else { None };
                 }
                 None => return None,
             }
@@ -100,6 +177,23 @@ impl AsarHeader {
         executable: bool,
         unpacked: bool,
     ) -> Result<(), AsarError> {
+        self.insert_file_with_integrity(relative_path, size, offset, executable, unpacked, None)
+    }
+
+    /// Inserts a file entry together with its integrity metadata.
+    ///
+    /// Passing a computed [`IntegrityMeta`] writes the same `integrity` object
+    /// that `@electron/asar` emits, which keeps archives produced here
+    /// format-compatible with the Node toolchain. Pass `None` to omit the field.
+    pub fn insert_file_with_integrity<O: Into<Option<u64>>>(
+        &mut self,
+        relative_path: &str,
+        size: u64,
+        offset: O,
+        executable: bool,
+        unpacked: bool,
+        integrity: Option<IntegrityMeta>,
+    ) -> Result<(), AsarError> {
         let offset = offset.into();
         let clean = relative_path.replace('\\', "/");
         let segments: Vec<&str> = clean
@@ -113,8 +207,8 @@ impl AsarHeader {
         }
 
         let mut current_map = &mut self.files;
-        for i in 0..segments.len() - 1 {
-            let seg = segments[i].to_string();
+        for seg_ref in &segments[..segments.len() - 1] {
+            let seg = seg_ref.to_string();
             current_map = match current_map
                 .entry(seg)
                 .or_insert_with(|| AsarNode::Directory {
@@ -124,7 +218,7 @@ impl AsarHeader {
                 AsarNode::File { .. } => {
                     return Err(AsarError::InvalidPath(format!(
                         "Path conflict: intermediate segment '{}' is a file",
-                        segments[i]
+                        seg_ref
                     )));
                 }
             };
@@ -138,7 +232,7 @@ impl AsarHeader {
                 offset,
                 executable,
                 unpacked,
-                integrity: None,
+                integrity,
             },
         );
 

@@ -42,8 +42,11 @@ const isRevert = args.includes('--revert');
 const isDryRun = args.includes('--dry-run');
 const isClose = args.includes('--close');
 const isRelaunch = args.includes('--relaunch');
+// --sync 让「快速同步词典.bat」在免安装 Node 的 exe 形态下也能工作：
+// 内嵌 exe 的入口是本文件，没有 sync 子命令，必须显式分派。
+const isSync = args.includes('--sync');
 
-console.log(`🚀 Antigravity 中文汉化补丁 (Next-Gen)${isDryRun ? ' [预览模式]' : ''}${isRevert ? ' [还原]' : ''}\n`);
+console.log(`🚀 Antigravity 中文汉化补丁 (Next-Gen)${isDryRun ? ' [预览模式]' : ''}${isRevert ? ' [还原]' : ''}${isSync ? ' [词典同步]' : ''}\n`);
 
 // ---- 环境检查 ----
 function checkEnvironment() {
@@ -210,7 +213,9 @@ function runInstall() {
 
     let asar;
     try {
-        asar = require('asar');
+        // 旧包名 `asar` 已被上游正式弃用（"Please use @electron/asar moving forward.
+        // There is no API change, just a package name change"），这里已迁移。
+        asar = require('@electron/asar');
     } catch {
         console.error('❌ 缺少依赖，请先在本目录运行: npm install');
         process.exit(1);
@@ -272,7 +277,11 @@ function runInstall() {
     }
 }
 
-if (isRevert) {
+if (isSync) {
+    // 分派到词典热同步。sync-dict.js 已改为可 require 的函数式入口，
+    // require 本身不产生副作用。
+    require('./sync-dict').runSync();
+} else if (isRevert) {
     runRevert();
 } else {
     runInstall();

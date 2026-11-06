@@ -146,6 +146,20 @@ function recoverInterruptedDeploy(paths) {
       console.log(`⚠️ 已从上次中断的部署中恢复 ${path.basename(origPath)}`);
       break;
     }
+  } else {
+    // 中断发生在「asar → orig.tmp」之后、「orig.tmp → orig」之前：
+    // app.asar 已经不在原位，而 orig.tmp 里装的正是当前版本的唯一副本。
+    // 这种情况必须把 orig.tmp 放回 app.asar，绝不能当成残骸删掉——
+    // 否则下一次安装会拿旧版 app.asar.orig 当源包，客户端被静默降级且不可恢复。
+    // （与 rust/crates/installer/src/deployer.rs 的 recover_interrupted_deploy 保持一致）
+    if (!fs.existsSync(asarPath) && fs.existsSync(backupTmpPath)) {
+      fs.renameSync(backupTmpPath, asarPath);
+      console.log(`⚠️ 已从上次中断的部署中恢复 ${path.basename(asarPath)}`);
+    }
+    if (!fs.existsSync(origPath) && fs.existsSync(backupOldPath)) {
+      fs.renameSync(backupOldPath, origPath);
+      console.log(`⚠️ 已从上次中断的部署中恢复 ${path.basename(origPath)}`);
+    }
   }
 
   for (const [live, candidates] of [
@@ -176,7 +190,10 @@ function recoverInterruptedDeploy(paths) {
     fs.rmSync(backupOldPath, { force: true });
   }
 
-  // 备份与当前包不同源时，meta 一并作废，避免下次误信过期溯源
+  // 备份已不存在时 meta 随之作废，避免下次误信过期溯源。
+  // 注意：备份「存在但与当前包不同源」的情况不在这里删 meta——
+  // isBackupStaleFor 每次都用实际文件重新算指纹，过期与否是动态判定的，
+  // 提前删掉反而会丢失 recordedAt 这类溯源信息。
   if (!fs.existsSync(origPath)) fs.rmSync(backupMetaPath, { force: true });
   fs.rmSync(`${backupMetaPath}.tmp`, { force: true });
 }

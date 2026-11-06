@@ -4,7 +4,9 @@ use std::path::{Path, PathBuf};
 use aho_corasick::{AhoCorasick, MatchKind};
 
 use crate::error::ReplacerError;
-use crate::rules::{load_rules_from_file, load_rules_from_str, ReplacementRule, ReplacementSummary};
+use crate::rules::{
+    load_rules_from_file, load_rules_from_str, ReplacementRule, ReplacementSummary, SkipReason,
+};
 
 /// Multi-pattern string replacement engine utilizing the Aho-Corasick automaton.
 pub struct StringReplacer {
@@ -47,18 +49,47 @@ impl StringReplacer {
     /// Performs single-pass replacement across the input string.
     /// Returns the modified string and the number of matches replaced.
     pub fn apply(&self, input: &str) -> (String, usize) {
-        let mut count = 0;
-        let mut result = String::with_capacity(input.len());
+        let report = self.apply_detailed(input);
+        (report.text, report.replacements)
+    }
+
+    /// Single-pass replacement with full reporting.
+    ///
+    /// `replacements` counts occurrences written, while `rules_hit` counts the
+    /// distinct rules that matched at least once. The two differ whenever a
+    /// target string occurs more than once — which PROJECT.md forbids, so
+    /// `multi_match` surfaces those rule indices instead of hiding them.
+    /// Mirrors `applyReplacements` in `scripts/lib/replacement-engine.js`.
+    pub fn apply_detailed(&self, input: &str) -> ApplyReport {
+        let mut replacements = 0usize;
+        let mut hits: Vec<usize> = Vec::new();
+        let mut text = String::with_capacity(input.len());
 
         self.automaton
-            .replace_all_with(input, &mut result, |mat, _, dst| {
-                count += 1;
+            .replace_all_with(input, &mut text, |mat, _, dst| {
+                replacements += 1;
                 let pattern_idx = mat.pattern().as_usize();
+                hits.push(pattern_idx);
                 dst.push_str(&self.rules[pattern_idx].replace);
                 true
             });
 
-        (result, count)
+        let mut per_rule: BTreeMap<usize, usize> = BTreeMap::new();
+        for idx in &hits {
+            *per_rule.entry(*idx).or_insert(0) += 1;
+        }
+        let multi_match: Vec<usize> = per_rule
+            .iter()
+            .filter(|(_, n)| **n > 1)
+            .map(|(idx, _)| *idx)
+            .collect();
+
+        ApplyReport {
+            text,
+            replacements,
+            rules_hit: per_rule.len(),
+            multi_match,
+        }
     }
 
     /// Applies replacements directly to a file on disk.
@@ -74,21 +105,40 @@ impl StringReplacer {
         }
 
         let content = fs::read_to_string(target_path)?;
-        let (replaced, match_count) = self.apply(&content);
-        let modified = match_count > 0;
+        let report = self.apply_detailed(&content);
+        let wrote = report.replacements > 0 && !dry_run;
+        // `modified` 必须表示「磁盘上的文件真的被改了」。旧实现用
+        // `replacements > 0`，于是 dry-run 也报 modified: true，与事实相反。
+        let modified = wrote;
 
-        if modified && !dry_run {
-            fs::write(target_path, replaced)?;
+        if wrote {
+            fs::write(target_path, report.text)?;
         }
 
         Ok(ReplacementSummary {
             scope: scope.to_string(),
             target_file: target_path.to_path_buf(),
             total_rules: self.rules.len(),
-            matched_rules: match_count,
+            matched_rules: report.replacements,
+            rules_hit: report.rules_hit,
+            multi_match: report.multi_match,
             modified,
+            skipped: None,
         })
     }
+}
+
+/// Outcome of one single-pass replacement run.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ApplyReport {
+    /// The rewritten text.
+    pub text: String,
+    /// Total occurrences replaced.
+    pub replacements: usize,
+    /// Distinct rules that matched at least once.
+    pub rules_hit: usize,
+    /// Rule indices that matched more than once (violates the unique-match contract).
+    pub multi_match: Vec<usize>,
 }
 
 /// Batch replacer executing scoped replacements across an entire staging directory.
@@ -144,10 +194,20 @@ impl BatchReplacer {
                 .join(format!("{}.replacements.json", scope));
 
             if !rules_file.exists() {
+                summaries.push(skipped_summary(
+                    scope,
+                    &target_file,
+                    SkipReason::RulesMissing(rules_file.clone()),
+                ));
                 continue;
             }
 
             if !target_file.exists() {
+                summaries.push(skipped_summary(
+                    scope,
+                    &target_file,
+                    SkipReason::TargetMissing(target_file.clone()),
+                ));
                 continue;
             }
 
@@ -157,6 +217,21 @@ impl BatchReplacer {
         }
 
         Ok(summaries)
+    }
+}
+
+/// Builds a summary for a scope that was not attempted, so the missing file
+/// surfaces in the report instead of vanishing from the output.
+fn skipped_summary(scope: &str, target_file: &Path, reason: SkipReason) -> ReplacementSummary {
+    ReplacementSummary {
+        scope: scope.to_string(),
+        target_file: target_file.to_path_buf(),
+        total_rules: 0,
+        matched_rules: 0,
+        rules_hit: 0,
+        multi_match: Vec::new(),
+        modified: false,
+        skipped: Some(reason),
     }
 }
 

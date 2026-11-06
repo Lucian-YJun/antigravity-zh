@@ -86,7 +86,14 @@ function validateDictionary(dict) {
   for (const [k, v] of Object.entries(dict || {})) {
     if (k === '' || v === '') problems.push(`空 key 或空值: ${JSON.stringify(k)}`);
     if (k !== k.trim()) problems.push(`key 首尾空格: ${JSON.stringify(k)}`);
-    if (typeof v === 'string' && v !== v.trim()) problems.push(`值首尾空格: ${JSON.stringify(k)}`);
+    // 非字符串值（数字、数组、嵌套对象）此前能通过校验：typeof 守卫让 trim 检查
+    // 被跳过，而 `v === ''` 对它们又为假。这类值到了引擎侧会变成 "undefined" 之类的
+    // 界面文本，必须在体检阶段就拦下。
+    if (typeof v !== 'string') {
+      problems.push(`值不是字符串: ${JSON.stringify(k)} = ${JSON.stringify(v)}`);
+      continue;
+    }
+    if (v !== v.trim()) problems.push(`值首尾空格: ${JSON.stringify(k)}`);
   }
   return problems;
 }

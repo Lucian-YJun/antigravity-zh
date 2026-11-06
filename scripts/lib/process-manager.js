@@ -135,6 +135,23 @@ function killResidualSidecars() {
 }
 
 /**
+ * 找出「正在承载当前脚本」的 Antigravity IDE 进程 PID。
+ * 判定：该进程不是 sidecar（即真正的 IDE），且出现在当前脚本的祖先进程链里。
+ * @returns {number[] | null} PID 列表；返回 null 表示无法判定（枚举或祖先链取不到），
+ *   调用方必须按 fail-safe 处理，不得贸然关闭。
+ */
+function findHostingIdePids() {
+  const procs = listAntigravityProcesses();
+  // 枚举失败就无法证明「待关闭的 IDE 不是我们的宿主」。按本仓库既定的 fail-safe
+  // 原则（宁可拒绝执行也不误杀 IDE），返回 null 让调用方拒绝自动关闭。
+  if (procs === null) return null;
+  const ancestors = new Set(getAncestorPids());
+  // getAncestorPids 成功时至少包含自身 PID，为空即代表取链失败。
+  if (ancestors.size === 0) return null;
+  return procs.filter(p => !p.isSidecar && ancestors.has(p.pid)).map(p => p.pid);
+}
+
+/**
  * 纯 JS 睡眠（不依赖外部系统命令）。
  * @param {number} ms
  */
@@ -144,10 +161,27 @@ function sleep(ms) {
 
 /**
  * 向应用发送关闭请求并等待其自行退出；超时则放弃。
+ *
+ * 若待关闭的 IDE 正是当前脚本的祖先进程（即脚本运行在 IDE 内置终端里），
+ * 则拒绝执行：关掉它会连带杀掉当前控制台，安装会在中途断掉。
+ * killResidualSidecars 已有同样的保护，这里补齐 --close 路径。
  * @param {number} [timeoutSec=12]
  * @returns {boolean}
  */
 function gracefulCloseAntigravity(timeoutSec = 12) {
+  const hosting = findHostingIdePids();
+  if (hosting === null) {
+    console.error('⚠️ 无法确认待关闭的 Antigravity 是否正是承载本脚本的宿主进程。');
+    console.error('   为避免关掉当前终端导致安装中途中断，已拒绝自动关闭。');
+    console.error('   请手动完全退出 Antigravity（含系统托盘图标）后重试。');
+    return false;
+  }
+  if (hosting.length > 0) {
+    console.error(`❌ Antigravity (PID ${hosting.join(', ')}) 是当前脚本的祖先进程：`);
+    console.error('   本脚本正运行在它内部的终端里，关闭它会连带杀掉当前控制台，');
+    console.error('   使安装中途中断。请在 Antigravity 之外的 cmd / PowerShell 窗口中重试。');
+    return false;
+  }
   console.log('🔄 检测到 Antigravity 正在运行，尝试优雅关闭（不强制结束进程）...');
   try {
     execSync('taskkill /IM Antigravity.exe', { stdio: ['ignore', 'pipe', 'pipe'] });
@@ -192,6 +226,7 @@ module.exports = {
   listAntigravityProcesses,
   isAntigravityRunning,
   getAncestorPids,
+  findHostingIdePids,
   killResidualSidecars,
   sleep,
   gracefulCloseAntigravity,
