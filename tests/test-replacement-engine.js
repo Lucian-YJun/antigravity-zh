@@ -5,6 +5,7 @@ const os = require('os');
 const {
   DEFAULT_TARGETS,
   applyReplacements,
+  applyReplacementsWithFallback,
   loadRules,
   patchTargetFile,
   patchAllTargets,
@@ -171,6 +172,98 @@ test('正则元字符在 target 里按字面量处理', () => {
   const meta = 'a.b*c (d) [e] {f} ^g$ |h\\i';
   assert.strictEqual(applyReplacements(meta, [[meta, 'OK']]).content, 'OK');
   assert.strictEqual(applyReplacements('xa.b*cy', [['a.b*c', 'Z']]).content, 'xZy');
+});
+
+// 3b. 强制 fallback 路径回归（Codex finding I4）。
+// 旧 fallback 是「逐条 String.replace」，会让后一条规则匹配到前一条刚写入的产物，
+// 破坏单遍语义。applyReplacementsWithFallback 让测试不用构造超大规则集就能覆盖这条分支。
+test('模块导出: 原有 8 个导出保持不变，新增 forceFallback 入口', () => {
+  const engine = require('../scripts/lib/replacement-engine');
+  for (const key of [
+    'DEFAULT_TARGETS', 'escapeRegExp', 'normalizeRule', 'applyReplacements',
+    'loadRules', 'patchTargetFile', 'patchAllTargets', 'patchTargetFiles',
+  ]) {
+    assert.notStrictEqual(engine[key], undefined, `导出缺失: ${key}`);
+  }
+  assert.strictEqual(typeof engine.applyReplacementsWithFallback, 'function');
+});
+
+test('fallback: 单遍反例 A→B / B→C 对 "A" 输出 "B"（正常路径同值）', () => {
+  const rules = [['A', 'B'], ['B', 'C']];
+  const normal = applyReplacements('A', rules);
+  const fb = applyReplacementsWithFallback('A', rules);
+  assert.strictEqual(normal.content, 'B');
+  assert.strictEqual(fb.content, 'B', 'fallback 把新写入的 B 又替换成了 C');
+  assert.deepStrictEqual(fb, normal);
+  // 显式走 options 与该入口等价
+  assert.deepStrictEqual(applyReplacements('A', rules, { forceFallback: true }), fb);
+});
+
+test('fallback: 全量替换 A→X 对 "A A A"（含计数与 multiMatch）', () => {
+  const rules = [['A', 'X']];
+  const normal = applyReplacements('A A A', rules);
+  const fb = applyReplacementsWithFallback('A A A', rules);
+  assert.strictEqual(normal.content, 'X X X');
+  assert.deepStrictEqual(fb, normal);
+  assert.strictEqual(fb.replacements, 3);
+  assert.deepStrictEqual(fb.multiMatch, [0]);
+});
+
+test('fallback: 译文里的 $& / $$ / $` / $\' / $1 / $99 按字面量写入', () => {
+  for (const rep of ['X$&Y', '保存 $$', "A$'B", 'B$`C', '$1', '$99']) {
+    const rules = [['Hello', rep]];
+    const fb = applyReplacementsWithFallback('Hello world', rules);
+    assert.strictEqual(fb.content, `${rep} world`, `$ 序列被展开了: ${JSON.stringify(rep)}`);
+    assert.deepStrictEqual(fb, applyReplacements('Hello world', rules));
+  }
+});
+
+test('fallback: 最左优先 test/testing 对 "testing" 输出 "Aing"', () => {
+  const rules = [['test', 'A'], ['testing', 'B']];
+  const fb = applyReplacementsWithFallback('We are testing now.', rules);
+  assert.strictEqual(fb.content, 'We are Aing now.');
+  assert.deepStrictEqual(fb, applyReplacements('We are testing now.', rules));
+});
+
+test('fallback: 重复字面量、结构体规则、正则元字符、代理对均与正常路径一致', () => {
+  const cases = [
+    ['ab ab', [['ab', 'X'], ['ab', 'Y']]],
+    ['a ab', [['a', 'P'], ['ab', 'Q'], ['a', 'R']]],
+    ['Hello world', [{ search: 'Hello', replace: '你好' }]],
+    ['xa.b*cy', [['a.b*c', 'Z']]],
+    ['😀a😀b', [['a', '中'], ['😀', '文']]],
+    ['123 456', [[123, 'x'], ['456', 'four-five-six']]],
+    ['', [['foo', 'bar']]],
+    ['no match', [['zzz', 'q']]],
+  ];
+  for (const [content, rules] of cases) {
+    const ctx = `input=${JSON.stringify(content)} rules=${JSON.stringify(rules)}`;
+    assert.deepStrictEqual(
+      applyReplacementsWithFallback(content, rules),
+      applyReplacements(content, rules),
+      `fallback 与正常路径分歧 ${ctx}`
+    );
+  }
+});
+
+test('fallback 随机对拍: 2000 组与正常路径及 Rust 参考模型全字段一致', () => {
+  const alphabet = ['a', 'b', 'c', 'ab', 'bc', 'abc', '$', '&', "'", '`', '1', '你', '😀'];
+  let seed = 20261106;
+  const rnd = (n) => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed % n; };
+  const mkStr = (len) => Array.from({ length: len }, () => alphabet[rnd(alphabet.length)]).join('');
+  for (let c = 0; c < 2000; c++) {
+    const input = mkStr(2 + rnd(14));
+    const nRules = 1 + rnd(4);
+    const rules = Array.from({ length: nRules }, () => [mkStr(1 + rnd(3)), mkStr(rnd(5))]);
+    const normal = applyReplacements(input, rules);
+    const fb = applyReplacementsWithFallback(input, rules);
+    const want = rustReferenceModel(input, rules);
+    const ctx = `input=${JSON.stringify(input)} rules=${JSON.stringify(rules)}`;
+    assert.deepStrictEqual(fb, normal, `fallback 与正常路径分歧 ${ctx}`);
+    assert.strictEqual(fb.content, want.out, `fallback 与参考模型内容分歧 ${ctx}`);
+    assert.strictEqual(fb.replacements, want.occurrences, `fallback 替换处数分歧 ${ctx}`);
+    assert.strictEqual(fb.appliedCount, want.rulesHit, `fallback 命中规则数分歧 ${ctx}`);
+  }
 });
 
 // 4. loadRules 与 patchTargetFile 磁盘交互测试

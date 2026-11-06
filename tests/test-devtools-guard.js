@@ -163,6 +163,24 @@ test('.bat 启动器：CRLF 行尾，rem 行纯 ASCII，且不使用 goto 标签
   }
 });
 
+// 上一条断言能在干净检出的机器上通过，前提是 .gitattributes 明确声明了 .bat 的
+// CRLF 规则：索引里存 LF 可读，检出时由 eol=crlf 转回 CRLF。否则贡献者本机
+// core.autocrlf=true 能过，评审者 core.autocrlf=false 的干净检出直接拿到 LF-only。
+test('.gitattributes 声明 *.bat 的 eol=crlf，干净检出不退化成 LF-only', () => {
+  const attrPath = path.join(ROOT, '.gitattributes');
+  assert(fs.existsSync(attrPath),
+    '.gitattributes 缺失：core.autocrlf=false 的干净检出会拿到 LF-only 的 .bat');
+  const lines = fs.readFileSync(attrPath, 'utf8').split(/\r?\n/)
+    .map((line) => line.replace(/#.*$/, '').trim())
+    .filter(Boolean);
+  const batRule = lines.find((line) => /\*\.bat\b/.test(line));
+  assert(batRule, `.gitattributes 里没有 *.bat 规则: ${lines.join(' | ')}`);
+  assert(/(^|\s)text(\s|$)/.test(batRule), `*.bat 规则未声明 text: ${batRule}`);
+  assert(/(^|\s)eol=crlf(\s|$)/.test(batRule), `*.bat 规则未声明 eol=crlf: ${batRule}`);
+  const broad = lines.find((line) => /^\*\s/.test(line) && /\beol=/.test(line));
+  assert(!broad, `不要给全仓库加泛化的 eol 规则（会波及其他文件）: ${broad}`);
+});
+
 test('版本号只维护一份：package.json / rust workspace / 发布 manifest 一致', () => {
   const pkgVersion = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8')).version;
   const cargo = fs.readFileSync(path.join(ROOT, 'rust', 'Cargo.toml'), 'utf8');

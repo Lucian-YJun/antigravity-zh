@@ -60,6 +60,100 @@ function normalizeRule(rule, index) {
 }
 
 /**
+ * fallback 引擎：一次线性扫描，找出所有「不重叠、最左优先」的命中区间后一次性重建字符串。
+ *
+ * 与正常路径的 content.replace(pattern, fn) 严格同语义，但完全不依赖正则编译，
+ * 因此不受 V8 正则体积上限约束。四条 Rust 契约：
+ *   1. 单遍：扫描只读原始 content，替换产物不参与后续匹配。
+ *   2. 全量：每个命中处都替换，不是只换第一处。
+ *   3. 字面量：直接拼接 newStr，不做 $& / $$ / $` / $' 展开。
+ *   4. 最左优先：同一位置按 normalized 的声明顺序取第一条命中的规则。
+ *
+ * 按首字符分桶把候选规则收敛到同首字母的规则，避免「每位置 × 每条规则」的
+ * O(n·m) 扫描；桶内保持声明顺序，取舍与正则交替一致。重复字面量只保留最先
+ * 声明者，与正常路径的 indexByLiteral 及正则交替的「首个可匹配分支」一致。
+ * 与 String.replace(/.../g) 一样按 UTF-16 code unit 步进（正则未加 u 标志），
+ * 所以含代理对的文本两侧行为也一致。
+ *
+ * @param {string} content
+ * @param {[string, string][]} normalized
+ * @param {Map<string, number>} indexByLiteral
+ * @returns {{ content: string, appliedCount: number, matchedRules: number, replacements: number, multiMatch: number[] }}
+ */
+function applyReplacementsLinearScan(content, normalized, indexByLiteral) {
+  const byFirstChar = new Map();
+  normalized.forEach(([oldStr], k) => {
+    if (indexByLiteral.get(oldStr) !== k) return; // 重复字面量：只保留最先声明者
+    const c = oldStr[0];
+    let bucket = byFirstChar.get(c);
+    if (!bucket) {
+      bucket = [];
+      byFirstChar.set(c, bucket);
+    }
+    bucket.push(k);
+  });
+
+  const matchedRuleIdx = new Set();
+  const hitCount = new Map();
+  let replacements = 0;
+  let out = '';
+  let last = 0;
+  let i = 0;
+
+  while (i < content.length) {
+    const candidates = byFirstChar.get(content[i]);
+    let chosen = -1;
+    if (candidates) {
+      for (let j = 0; j < candidates.length; j++) {
+        if (content.startsWith(normalized[candidates[j]][0], i)) {
+          chosen = candidates[j];
+          break;
+        }
+      }
+    }
+    if (chosen < 0) {
+      i++;
+      continue;
+    }
+    const [oldStr, newStr] = normalized[chosen];
+    out += content.slice(last, i) + newStr;
+    i += oldStr.length;
+    last = i;
+    replacements++;
+    matchedRuleIdx.add(chosen);
+    hitCount.set(chosen, (hitCount.get(chosen) || 0) + 1);
+  }
+  out += content.slice(last);
+
+  const multiMatch = [];
+  for (const [idx, n] of hitCount) if (n > 1) multiMatch.push(idx);
+  multiMatch.sort((a, b) => a - b);
+
+  return {
+    content: out,
+    appliedCount: matchedRuleIdx.size,
+    matchedRules: matchedRuleIdx.size,
+    replacements,
+    multiMatch,
+  };
+}
+
+/**
+ * 强制走线性扫描 fallback 的入口（测试 / 诊断用）。
+ *
+ * 真实运行里 fallback 只在 new RegExp 抛错（规则集超出 V8 正则上限）时触发；
+ * 这个入口让测试不必真的构造一个超大规则集就能覆盖那条分支。
+ * 参数与返回值和 applyReplacements 完全一致。
+ *
+ * @param {string} content
+ * @param {Array<[string, string] | {search: string, replace: string}>} rules
+ * @returns {{ content: string, appliedCount: number, matchedRules: number, replacements: number, multiMatch: number[] }}
+ */
+function applyReplacementsWithFallback(content, rules) {
+  return applyReplacements(content, rules, { forceFallback: true });
+}
+
+/**
  * 纯字符串替换引擎：将规则批量应用于文本内容。
  *
  * 语义与 Rust 侧的 Aho-Corasick(LeftmostFirst) 严格一致（本项目以 Rust 为准）：
@@ -73,11 +167,13 @@ function normalizeRule(rule, index) {
  *
  * @param {string} content
  * @param {Array<[string, string] | {search: string, replace: string}>} rules
+ * @param {{ forceFallback?: boolean }} [options]
+ *   forceFallback 仅供测试使用：跳过正则编译，直接走线性扫描 fallback。
  * @returns {{ content: string, appliedCount: number, matchedRules: number, replacements: number, multiMatch: number[] }}
  *   appliedCount / matchedRules 为「命中过的规则条数」，replacements 为「实际替换处数」，
  *   multiMatch 列出命中多于一次的规则下标（违反 PROJECT.md 的「唯一匹配」契约，需要人工确认）。
  */
-function applyReplacements(content, rules) {
+function applyReplacements(content, rules, options = {}) {
   const untouched = { content, appliedCount: 0, matchedRules: 0, replacements: 0, multiMatch: [] };
   if (!Array.isArray(rules) || rules.length === 0) return untouched;
 
@@ -96,34 +192,17 @@ function applyReplacements(content, rules) {
 
   let pattern;
   try {
-    pattern = new RegExp(normalized.map(([oldStr]) => escapeRegExp(oldStr)).join('|'), 'g');
+    // forceFallback 仅供测试：跳过正则编译，直接走与编译失败时同一条线性扫描实现。
+    pattern = options && options.forceFallback
+      ? null
+      : new RegExp(normalized.map(([oldStr]) => escapeRegExp(oldStr)).join('|'), 'g');
   } catch {
-    // 规则多到超出正则引擎上限时退回逐条替换：仍是字面量语义，只是失去单遍保证。
-    let fallback = content;
-    const hit = new Set();
-    let total = 0;
-    const multi = [];
-    for (let i = 0; i < normalized.length; i++) {
-      const [oldStr, newStr] = normalized[i];
-      let count = 0;
-      while (fallback.includes(oldStr)) {
-        fallback = fallback.replace(oldStr, () => newStr);
-        count++;
-        if (count > normalized.length * 4 + 64) break; // 防御性上限
-      }
-      if (count > 0) {
-        hit.add(i);
-        total += count;
-        if (count > 1) multi.push(i);
-      }
-    }
-    return {
-      content: fallback,
-      appliedCount: hit.size,
-      matchedRules: hit.size,
-      replacements: total,
-      multiMatch: multi,
-    };
+    // 规则多到超出正则引擎上限时改用线性扫描：不依赖正则编译，且保持单遍 /
+    // 全量 / 字面量 / 最左优先四条语义（逐条 String.replace 会破坏单遍）。
+    pattern = null;
+  }
+  if (pattern === null) {
+    return applyReplacementsLinearScan(content, normalized, indexByLiteral);
   }
 
   const matchedRuleIdx = new Set();
@@ -265,6 +344,7 @@ module.exports = {
   escapeRegExp,
   normalizeRule,
   applyReplacements,
+  applyReplacementsWithFallback,
   loadRules,
   patchTargetFile,
   patchAllTargets,

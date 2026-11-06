@@ -488,12 +488,19 @@ try {
     assert(!res.panicked, 'Panic detected during extraction');
 
     if (fs.existsSync(canaryPath)) {
+      // canary 被写到目标目录之外 = 确定的路径穿越 / 任意文件写回归，绝不能只「报告」
+      // 一下就让本套件 exit(0)。先清理，再同时记入高危 findings（末尾 blockingFindings
+      // 门禁会拦）并 assert.fail 直接把本用例判 FAIL（计入 failedTests，带完整现场）。
+      fs.unlinkSync(canaryPath);
       findings.push({
-        severity: 'MEDIUM_SECURITY_HARDENING',
+        severity: 'CRITICAL_SECURITY_REGRESSION',
         title: 'Asar extraction does not sanitize relative path navigation (Zip Slip escape)',
         detail: `Archive containing '..' written outside target destination to ${canaryPath}`,
       });
-      fs.unlinkSync(canaryPath);
+      assert.fail(
+        `Zip Slip regression: '..' entry escaped the extraction target and wrote ${canaryPath}. `
+        + `stdout: ${res.stdout} | stderr: ${res.stderr}`
+      );
     }
   });
 
@@ -663,12 +670,20 @@ runTest('PROCESS', 'process kill-sidecars executes cleanly with code 0 without p
 // 本用例有两种合法结果：在 IDE 外部终端能正常关闭（code 0）；在 IDE 内部终端
 // 则会命中产品刻意的安全护栏——拒绝关闭作为当前进程祖先的 IDE 进程（code 1）。
 // 两者都不是缺陷，但任何 panic、缺少护栏特征或其他退出码都必须判 FAIL。
+// 只认这条具体错误的完整结构，避免任何含「拒绝执行」四字的无关 exit 1 被误判通过：
+//   1) main.rs 的 `Error:` + CliError::Installer 的 `Installer operation failed:`
+//      + InstallerError::ProcessRunning 的 `Process still active:`（错误类型标识）；
+//   2) rust/crates/installer/src/process.rs:473 的 `是当前进程的祖先进程`；
+//   3) 同文件 474 行的 `因此拒绝执行`。
+// 三者必须同时出现，单独一个词不再算命中。
 function isAncestorGuardRejection(res) {
   const output = res.stdout + res.stderr;
-  return /祖先进程|当前进程的祖先|拒绝执行/.test(output);
+  const signature =
+    /Error:\s*Installer operation failed:\s*Process still active:[\s\S]*?是当前进程的祖先进程[\s\S]*?因此拒绝执行/;
+  return signature.test(output);
 }
 
-runTest('PROCESS', 'process close with 1s timeout returns cleanly with code 0 without panic', () => {
+runTest('PROCESS', 'process close with 1s timeout exits 0 cleanly or 1 with ancestor-guard signature, without panic', () => {
   const res = runTool(DIST_BIN, ['process', 'close', '--timeout', '1']);
   assert(!res.panicked, 'Panic detected in process close');
   if (res.status === 0) {
@@ -758,7 +773,9 @@ console.log('================================================================\n'
 
 // findings 此前只被打印、从不参与退出码判定：一条真实的 zip-slip / 路径穿越
 // 回归（SUITE 6 的 .. canary）会照常让本套件以 exit(0) 收场。
-// 现在高危发现直接失败；低危仍只报告，避免噪声门禁。
+// 现在 SUITE 6 的 canary 命中会直接 assert.fail（计入 failedTests），同时被标为
+// CRITICAL 记入 findings；末尾 blockingFindings 再兜一层，任何 CRITICAL/HIGH/SEVERE
+// 发现都会 exit(1)。低危 findings 仍只报告，避免噪声门禁。
 const blockingFindings = findings.filter(f => /critical|high|severe/i.test(String(f.severity || '')));
 
 if (failedTests > 0 || blockingFindings.length > 0) {

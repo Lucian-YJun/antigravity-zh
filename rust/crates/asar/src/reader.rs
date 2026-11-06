@@ -1,10 +1,80 @@
 use std::collections::HashSet;
 use std::fs::{self, File};
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf};
 use rayon::prelude::*;
 
 use crate::error::AsarError;
 use crate::header::{parse_header, AsarHeader, AsarNode, FileEntryInfo};
+
+/// Validates that an archive-relative path can only descend below the
+/// extraction root. ASAR header keys are attacker-controlled strings: on
+/// Windows a leading `/`, a drive prefix (`C:\...`), a drive-relative prefix
+/// (`C:foo`) or a UNC prefix (`\\server\share\...`) makes `PathBuf::join`
+/// discard the destination root entirely. `..` escapes via the normal
+/// parent-directory component.
+///
+/// The header is JSON, so keys are UTF-8. Backslashes are path separators in
+/// Electron/ASAR paths; normalizing them to `/` lets the same checks reject
+/// Windows-style absolute paths even when the extractor runs on Unix.
+///
+/// Only `Normal` and harmless leading `CurDir` components are allowed. This is
+/// shared by single-file extraction, bulk file entries and empty directory
+/// nodes so the three code paths cannot drift apart.
+fn validate_archive_relative_path(path: &Path, context: &str) -> Result<(), AsarError> {
+    let raw = path.to_string_lossy().into_owned();
+    let reject = |reason: &str| {
+        AsarError::InvalidPath(format!(
+            "Path traversal attempt blocked{}: {} ({})",
+            context, raw, reason
+        ))
+    };
+
+    if raw.is_empty() {
+        return Err(reject("empty archive path"));
+    }
+
+    let normalized = raw.replace('\\', "/");
+    let normalized_path = Path::new(&normalized);
+
+    // Backslashes are separators, so inspect the normalized string directly:
+    // a leading `/` means the path was rooted (`/abs`, `//server/share`, or
+    // `\abs` after normalization). Windows' `Path::components()` can normalize
+    // that root marker away when a `./` prefix is present, but `PathBuf::join`
+    // still discards dest_root. `..` is caught by the component loop below.
+    if normalized.starts_with('/') {
+        return Err(reject("rooted path"));
+    }
+
+    for candidate in [path, normalized_path] {
+        if candidate.is_absolute() {
+            return Err(reject("absolute path"));
+        }
+        for component in candidate.components() {
+            match component {
+                Component::Normal(_) | Component::CurDir => {}
+                Component::Prefix(_) => return Err(reject("Windows path prefix")),
+                Component::RootDir => return Err(reject("rooted path")),
+                Component::ParentDir => return Err(reject("parent directory")),
+            }
+        }
+    }
+
+    // On Unix `Path::components()` treats `C:\...` as one Normal component,
+    // and a drive-relative `C:foo` has no RootDir. Reject any drive-like
+    // segment so the validator is platform-independent. `//server/share` is
+    // already caught by RootDir, but keep the explicit UNC check for clarity.
+    if normalized.starts_with("//") {
+        return Err(reject("UNC path"));
+    }
+    if normalized.split('/').any(|segment| {
+        let bytes = segment.as_bytes();
+        bytes.len() >= 2 && bytes[0].is_ascii_alphabetic() && bytes[1] == b':'
+    }) {
+        return Err(reject("Windows drive prefix"));
+    }
+
+    Ok(())
+}
 
 /// Statistics recorded during archive extraction.
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
@@ -119,12 +189,7 @@ impl AsarReader {
         internal_path: &str,
         dest_path: P,
     ) -> Result<u64, AsarError> {
-        if Path::new(internal_path).components().any(|c| matches!(c, std::path::Component::ParentDir)) {
-            return Err(AsarError::InvalidPath(format!(
-                "Path traversal attempt blocked: {}",
-                internal_path
-            )));
-        }
+        validate_archive_relative_path(Path::new(internal_path), "")?;
 
         let dest = dest_path.as_ref();
         if let Some(parent) = dest.parent() {
@@ -164,14 +229,12 @@ impl AsarReader {
 
         let entries = self.list_files();
 
-        // Sanitize path components to prevent path traversal (Zip Slip)
+        // Sanitize path components to prevent path traversal (Zip Slip).
+        // The unified validator rejects rooted paths, Windows prefixes/UNC
+        // paths and parent-directory components; checking only `..` let a
+        // malicious header key such as `/abs` or `C:\abs` replace dest_root.
         for entry in &entries {
-            if entry.path.components().any(|c| matches!(c, std::path::Component::ParentDir)) {
-                return Err(AsarError::InvalidPath(format!(
-                    "Path traversal attempt blocked: {}",
-                    entry.path.display()
-                )));
-            }
+            validate_archive_relative_path(&entry.path, "")?;
         }
 
         let mut dirs_to_create = HashSet::new();
@@ -190,15 +253,7 @@ impl AsarReader {
         // traversal for the same reason the file entries are.
         for dir in self.header.list_directories() {
             let rel = Path::new(&dir);
-            if rel
-                .components()
-                .any(|c| matches!(c, std::path::Component::ParentDir))
-            {
-                return Err(AsarError::InvalidPath(format!(
-                    "Path traversal attempt blocked in directory node: {}",
-                    dir
-                )));
-            }
+            validate_archive_relative_path(rel, " in directory node")?;
             if !dir.is_empty() {
                 dirs_to_create.insert(dest_root.join(rel));
             }
@@ -261,5 +316,62 @@ impl AsarReader {
             total_directories: self.header.count_directories(),
             total_bytes,
         })
+    }
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn assert_rejected(path: &str) -> String {
+        match validate_archive_relative_path(Path::new(path), "") {
+            Err(AsarError::InvalidPath(msg)) => msg,
+            other => panic!("expected InvalidPath for {path:?}, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn test_validate_archive_relative_path_accepts_safe_relative_paths() {
+        for path in ["a/b.txt", "./a/b.txt", "中文/文件.js", "single.txt"] {
+            validate_archive_relative_path(Path::new(path), "")
+                .unwrap_or_else(|e| panic!("{path:?} must be accepted, got {e:?}"));
+        }
+    }
+
+    #[test]
+    fn test_validate_archive_relative_path_rejects_parent_directory() {
+        for path in ["../escape", "a/../../escape"] {
+            let msg = assert_rejected(path);
+            assert!(msg.contains("parent directory"), "{path:?}: {msg}");
+        }
+    }
+
+    #[test]
+    fn test_validate_archive_relative_path_rejects_rooted_paths() {
+        for path in ["/abs/file", "/abs", "\\abs\\file", "\\abs"] {
+            let msg = assert_rejected(path);
+            assert!(msg.contains("rooted path"), "{path:?}: {msg}");
+        }
+    }
+
+    #[test]
+    fn test_validate_archive_relative_path_rejects_windows_drive_prefixes() {
+        for path in ["C:\\abs\\file", "C:foo", "Z:\\", "./C:\\abs.txt"] {
+            assert_rejected(path);
+        }
+    }
+
+    #[test]
+    fn test_validate_archive_relative_path_rejects_unc_paths() {
+        for path in ["\\\\server\\share\\file", "//server/share/file"] {
+            assert_rejected(path);
+        }
+    }
+
+    #[test]
+    fn test_validate_archive_relative_path_rejects_empty_path() {
+        let msg = assert_rejected("");
+        assert!(msg.contains("empty archive path"), "{msg}");
     }
 }

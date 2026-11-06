@@ -357,3 +357,162 @@ fn test_asar_unpacked_fallback_from_orig() {
     let _ = std::fs::remove_dir_all(&tmp);
 }
 
+
+// --- Zip Slip regression coverage -----------------------------------------
+//
+// The validator itself is covered by unit tests in reader.rs. These tests build
+// real ASAR archives whose header keys are attacker-controlled and verify the
+// two public extraction entry points reject them *before* touching the disk.
+
+use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicUsize, Ordering};
+
+fn json_escape(value: &str) -> String {
+    let mut out = String::with_capacity(value.len());
+    for ch in value.chars() {
+        match ch {
+            '"' => out.push_str("\\\""),
+            '\\' => out.push_str("\\\\"),
+            c if c.is_control() => out.push_str(&format!("\\u{:04x}", c as u32)),
+            c => out.push(c),
+        }
+    }
+    out
+}
+
+/// Writes a Chromium-Pickle ASAR archive. `files_json` is the raw value of the
+/// top-level `"files"` object, so malicious JSON keys can be injected verbatim.
+fn write_asar(path: &Path, files_json: &str, payload: &[u8]) {
+    let mut json = format!("{{\"files\":{files_json}}}");
+    // Keep the JSON length 4-byte aligned: parse_header then starts the payload
+    // exactly at `16 + json_len`, with no padding bytes to account for.
+    while json.len() % 4 != 0 {
+        json.push(' ');
+    }
+    let json_len = json.len() as u32;
+
+    let mut bytes = Vec::with_capacity(16 + json.len() + payload.len());
+    bytes.extend_from_slice(&4u32.to_le_bytes());
+    bytes.extend_from_slice(&(json_len + 8).to_le_bytes());
+    bytes.extend_from_slice(&(json_len + 4).to_le_bytes());
+    bytes.extend_from_slice(&json_len.to_le_bytes());
+    bytes.extend_from_slice(json.as_bytes());
+    bytes.extend_from_slice(payload);
+    std::fs::write(path, &bytes).expect("write ASAR archive");
+}
+
+fn temp_dir(label: &str) -> PathBuf {
+    static COUNTER: AtomicUsize = AtomicUsize::new(0);
+    let tmp = std::env::temp_dir().join(format!(
+        "asar-zip-slip-{}-{}-{}",
+        std::process::id(),
+        label,
+        COUNTER.fetch_add(1, Ordering::Relaxed)
+    ));
+    let _ = std::fs::remove_dir_all(&tmp);
+    std::fs::create_dir_all(&tmp).expect("create temp dir");
+    tmp
+}
+
+fn assert_dir_empty(path: &Path) {
+    let entries: Vec<_> = std::fs::read_dir(path)
+        .expect("dest dir readable")
+        .collect::<Result<_, _>>()
+        .expect("read dest dir");
+    assert!(entries.is_empty(), "unexpected writes under {}: {:?}", path.display(), entries);
+}
+
+fn assert_invalid_path<T: std::fmt::Debug>(result: Result<T, AsarError>, case: &str) {
+    assert!(
+        matches!(result, Err(AsarError::InvalidPath(_))),
+        "{case}: expected AsarError::InvalidPath, got {result:?}"
+    );
+}
+
+const MALICIOUS_KEYS: &[&str] = &[
+    "../canary.txt",
+    "a/../../canary.txt",
+    "/abs/canary.txt",
+    "/abs",
+    "C:\\abs\\canary.txt",
+    "C:canary.txt",
+    "\\\\server\\share\\canary.txt",
+    "//server/share/canary.txt",
+];
+
+#[test]
+fn test_asar_extract_all_rejects_malicious_file_entries_without_writing_outside_dest() {
+    let tmp = temp_dir("extract-all-files");
+    let canary = tmp.join("canary.txt");
+
+    for (i, key) in MALICIOUS_KEYS.iter().enumerate() {
+        let archive = tmp.join(format!("file-{i}.asar"));
+        let dest = tmp.join(format!("file-{i}-dest"));
+        let files_json = format!(
+            "{{\"{}\":{{\"size\":7,\"offset\":\"0\"}}}}",
+            json_escape(key)
+        );
+        write_asar(&archive, &files_json, b"CANARY");
+
+        let reader = antigravity_asar::AsarReader::open(&archive).expect("open archive");
+        let result = reader.extract_all(&dest);
+        assert_invalid_path(result.map(|_| ()), &format!("file key {key:?}"));
+
+        // No file was created under dest, and the classic `..` canary never
+        // escaped into the parent directory.
+        assert_dir_empty(&dest);
+        assert!(!canary.exists(), "{key:?}: escaped to {}", canary.display());
+    }
+
+    let _ = std::fs::remove_dir_all(&tmp);
+}
+
+#[test]
+fn test_asar_extract_all_rejects_malicious_directory_nodes_without_writing_outside_dest() {
+    let tmp = temp_dir("extract-all-dirs");
+    let canary = tmp.join("canary.txt");
+
+    for (i, key) in MALICIOUS_KEYS.iter().enumerate() {
+        let archive = tmp.join(format!("dir-{i}.asar"));
+        let dest = tmp.join(format!("dir-{i}-dest"));
+        // A directory node with a child file: both the directory-node loop and
+        // the file-entry loop must reject the key.
+        let files_json = format!(
+            "{{\"{}\":{{\"files\":{{\"canary.txt\":{{\"size\":7,\"offset\":\"0\"}}}}}}}}",
+            json_escape(key)
+        );
+        write_asar(&archive, &files_json, b"CANARY");
+
+        let reader = antigravity_asar::AsarReader::open(&archive).expect("open archive");
+        let result = reader.extract_all(&dest);
+        assert_invalid_path(result.map(|_| ()), &format!("directory key {key:?}"));
+
+        assert_dir_empty(&dest);
+        assert!(!canary.exists(), "{key:?}: escaped to {}", canary.display());
+    }
+
+    let _ = std::fs::remove_dir_all(&tmp);
+}
+
+#[test]
+fn test_asar_extract_file_rejects_malicious_internal_path() {
+    let tmp = temp_dir("extract-file");
+    let archive = tmp.join("safe.asar");
+    write_asar(&archive, "{\"safe.txt\":{\"size\":4,\"offset\":\"0\"}}", b"SAFE");
+
+    let reader = antigravity_asar::AsarReader::open(&archive).expect("open archive");
+
+    for (i, key) in MALICIOUS_KEYS.iter().enumerate() {
+        let dest = tmp.join(format!("extract-file-{i}.txt"));
+        let result = reader.extract_file(key, &dest);
+        assert_invalid_path(result.map(|_| ()), &format!("extract_file({key:?})"));
+        assert!(!dest.exists(), "{key:?}: extract_file wrote {}", dest.display());
+    }
+
+    // The legitimate path still works, so the guard is not over-broad.
+    let safe_dest = tmp.join("safe-out.txt");
+    reader.extract_file("safe.txt", &safe_dest).expect("extract safe file");
+    assert_eq!(std::fs::read(&safe_dest).unwrap(), b"SAFE");
+
+    let _ = std::fs::remove_dir_all(&tmp);
+}

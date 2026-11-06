@@ -10,6 +10,58 @@ use antigravity_replacer::{BatchReplacer, ReplacementSummary, SkipReason, String
 
 use crate::error::CliError;
 
+/// Source files used by `sync`. Kept separate from `run_sync` so the
+/// explicit-root policy can be tested without an installed zh-patch or CDP.
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct SyncSources {
+    target_dict: PathBuf,
+    source_i18n: Option<PathBuf>,
+}
+
+/// Resolves sync inputs without silently changing the project root.
+///
+/// No explicit root: preserve the existing best-effort search (and the legacy
+/// CWD-relative dictionary fallback when that search fails).
+///
+/// Explicit root: the caller chose a specific checkout, so an incomplete asset
+/// set must never fall back to `src/cockpit-zh.json` relative to the CWD. An
+/// explicitly supplied `--dict` remains authoritative (its historical
+/// behavior); in that case i18n copying is still best-effort and only from the
+/// chosen root. Otherwise the root's asset resolution error is propagated.
+fn resolve_sync_sources(
+    dict_path: Option<&Path>,
+    project_root: Option<&Path>,
+) -> Result<SyncSources, antigravity_installer::InstallerError> {
+    if let Some(root) = project_root {
+        let assets_result = env::resolve_source_assets(Some(root));
+        if let Some(dict) = dict_path {
+            return Ok(SyncSources {
+                target_dict: dict.to_path_buf(),
+                source_i18n: assets_result.ok().map(|a| a.source_i18n),
+            });
+        }
+        let assets = assets_result?;
+        return Ok(SyncSources {
+            target_dict: assets.source_dict,
+            source_i18n: Some(assets.source_i18n),
+        });
+    }
+
+    let assets = env::resolve_source_assets(None).ok();
+    let target_dict = if let Some(dict) = dict_path {
+        dict.to_path_buf()
+    } else if let Some(a) = &assets {
+        a.source_dict.clone()
+    } else {
+        PathBuf::from("src/cockpit-zh.json")
+    };
+
+    Ok(SyncSources {
+        target_dict,
+        source_i18n: assets.map(|a| a.source_i18n),
+    })
+}
+
 #[derive(Parser, Debug)]
 #[command(
     name = "antigravity-tool",
@@ -481,14 +533,8 @@ fn run_sync(
         )));
     }
 
-    let assets = env::resolve_source_assets(project_root).ok();
-    let target_dict = if let Some(dict) = dict_path {
-        dict.to_path_buf()
-    } else if let Some(a) = &assets {
-        a.source_dict.clone()
-    } else {
-        PathBuf::from("src/cockpit-zh.json")
-    };
+    let sync_sources = resolve_sync_sources(dict_path, project_root)?;
+    let target_dict = sync_sources.target_dict;
 
     if !target_dict.exists() {
         return Err(CliError::Execution(format!(
@@ -516,10 +562,10 @@ fn run_sync(
     let deployed_dict = kit_dir.join("cockpit-zh.json");
     std::fs::copy(&target_dict, &deployed_dict)?;
     println!("✅ 词典已同步到 {}", deployed_dict.display());
-    if let Some(a) = &assets {
-        if a.source_i18n.is_file() {
+    if let Some(source_i18n) = sync_sources.source_i18n.as_deref() {
+        if source_i18n.is_file() {
             let deployed_i18n = kit_dir.join("zh-i18n.js");
-            std::fs::copy(&a.source_i18n, &deployed_i18n)?;
+            std::fs::copy(source_i18n, &deployed_i18n)?;
             println!("✅ 翻译引擎已同步到 {}", deployed_i18n.display());
         }
     }
@@ -746,4 +792,128 @@ fn run_check(resources_dir: Option<&Path>) -> Result<(), CliError> {
     );
 
     Ok(())
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+
+    fn temp_dir(label: &str) -> PathBuf {
+        static COUNTER: AtomicUsize = AtomicUsize::new(0);
+        let tmp = std::env::temp_dir().join(format!(
+            "agy-cli-sync-sources-{}-{}-{}",
+            std::process::id(),
+            label,
+            COUNTER.fetch_add(1, Ordering::Relaxed)
+        ));
+        let _ = fs::remove_dir_all(&tmp);
+        fs::create_dir_all(&tmp).expect("create temp dir");
+        tmp
+    }
+
+    fn make_assets(root: &Path) -> (PathBuf, PathBuf, PathBuf) {
+        let src = root.join("src");
+        fs::create_dir_all(src.join("native")).expect("create src/native");
+        let dict = root.join("cockpit-zh.json");
+        let i18n = src.join("zh-i18n.js");
+        fs::write(&dict, b"{}").expect("write dict");
+        fs::write(&i18n, b"// i18n").expect("write i18n");
+        (dict, i18n, src.join("native"))
+    }
+
+    #[test]
+    fn test_resolve_sync_sources_explicit_root_with_incomplete_assets_is_err() {
+        let tmp = temp_dir("incomplete");
+        let root = tmp.join("root");
+        fs::create_dir_all(&root).expect("create root");
+
+        // No dict/i18n/native: the old `.ok()` + CWD fallback would silently
+        // return `src/cockpit-zh.json` relative to the *caller's* CWD.
+        assert!(
+            matches!(
+                resolve_sync_sources(None, Some(&root)),
+                Err(antigravity_installer::InstallerError::Env(_))
+            ),
+            "explicit root with incomplete assets must propagate the error"
+        );
+
+        let _ = fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn test_resolve_sync_sources_explicit_root_resolves_from_that_root() {
+        let tmp = temp_dir("explicit-ok");
+        let root = tmp.join("root");
+        let (dict, i18n, _) = make_assets(&root);
+
+        let sources = resolve_sync_sources(None, Some(&root)).expect("resolve explicit root");
+        assert_eq!(sources.target_dict, dict);
+        assert_eq!(sources.source_i18n.as_deref(), Some(i18n.as_path()));
+
+        let _ = fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn test_resolve_sync_sources_explicit_dict_is_authoritative() {
+        let tmp = temp_dir("explicit-dict");
+        let root = tmp.join("incomplete-root");
+        fs::create_dir_all(&root).expect("create root");
+        let explicit = tmp.join("my-dict.json");
+
+        // An explicitly supplied --dict wins even when asset resolution fails;
+        // i18n copying stays best-effort (None here).
+        let sources = resolve_sync_sources(Some(&explicit), Some(&root))
+            .expect("explicit dict must not fail on asset error");
+        assert_eq!(sources.target_dict, explicit);
+        assert_eq!(sources.source_i18n, None);
+
+        let _ = fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn test_resolve_sync_sources_explicit_dict_keeps_i18n_from_chosen_root() {
+        let tmp = temp_dir("explicit-dict-i18n");
+        let root = tmp.join("root");
+        let (_, i18n, _) = make_assets(&root);
+        let explicit = tmp.join("my-dict.json");
+
+        let sources = resolve_sync_sources(Some(&explicit), Some(&root))
+            .expect("resolve with explicit dict");
+        assert_eq!(sources.target_dict, explicit);
+        assert_eq!(sources.source_i18n.as_deref(), Some(i18n.as_path()));
+
+        let _ = fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn test_resolve_sync_sources_explicit_dict_overrides_resolved_root_dict() {
+        let tmp = temp_dir("explicit-dict-override");
+        let root = tmp.join("root");
+        let (resolved_dict, _, _) = make_assets(&root);
+        let explicit = tmp.join("override.json");
+
+        let sources = resolve_sync_sources(Some(&explicit), Some(&root))
+            .expect("resolve with override");
+        assert_eq!(sources.target_dict, explicit);
+        assert_ne!(sources.target_dict, resolved_dict);
+
+        let _ = fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn test_resolve_sync_sources_no_root_preserves_cwd_fallback() {
+        // With no explicit root, asset discovery is best-effort. If it fails,
+        // the historical CWD-relative dictionary fallback is kept and i18n is
+        // not reported. This test only asserts the invariant that holds in any
+        // environment: the result is always Ok and never propagates an error.
+        let sources = resolve_sync_sources(None, None).expect("no-root resolution never fails");
+        if sources.source_i18n.is_none() {
+            assert_eq!(sources.target_dict, PathBuf::from("src/cockpit-zh.json"));
+        } else {
+            assert!(sources.target_dict.is_file(), "resolved dict must exist");
+        }
+    }
 }

@@ -34,19 +34,57 @@ impl Deployer {
         let asar_orig_old = self.resources_dir.join("app.asar.orig.old");
         let meta_file = env::get_meta_path(&self.resources_dir);
 
+        // Recovery actions must not be silently swallowed: callers abort the
+        // install when a half-swapped directory cannot be restored. Only
+        // absent residual paths mean "nothing to recover"; an existing path
+        // whose rename/remove fails is an error. Treat a concurrent removal
+        // (NotFound) as success, but propagate every other I/O failure.
+        fn rename_if_present(from: &Path, to: &Path) -> Result<(), InstallerError> {
+            if !from.exists() {
+                return Ok(());
+            }
+            match fs::rename(from, to) {
+                Ok(()) => Ok(()),
+                Err(e) if e.kind() == std::io::ErrorKind::NotFound && !from.exists() => Ok(()),
+                Err(e) => Err(InstallerError::Io(e)),
+            }
+        }
+
+        fn remove_dir_if_present(path: &Path) -> Result<(), InstallerError> {
+            if !path.exists() {
+                return Ok(());
+            }
+            match fs::remove_dir_all(path) {
+                Ok(()) => Ok(()),
+                Err(e) if e.kind() == std::io::ErrorKind::NotFound && !path.exists() => Ok(()),
+                Err(e) => Err(InstallerError::Io(e)),
+            }
+        }
+
+        fn remove_file_if_present(path: &Path) -> Result<(), InstallerError> {
+            if !path.exists() {
+                return Ok(());
+            }
+            match fs::remove_file(path) {
+                Ok(()) => Ok(()),
+                Err(e) if e.kind() == std::io::ErrorKind::NotFound && !path.exists() => Ok(()),
+                Err(e) => Err(InstallerError::Io(e)),
+            }
+        }
+
         // 1. Recover asar: if neither asar_file nor asar_orig exists, restore from leftovers
         if !asar_file.exists() && !asar_orig.exists() {
             if asar_orig_tmp.exists() {
-                let _ = fs::rename(&asar_orig_tmp, &asar_orig);
+                rename_if_present(&asar_orig_tmp, &asar_orig)?;
             } else if asar_orig_old.exists() {
-                let _ = fs::rename(&asar_orig_old, &asar_orig);
+                rename_if_present(&asar_orig_old, &asar_orig)?;
             }
         } else {
             if !asar_file.exists() && asar_orig_tmp.exists() {
-                let _ = fs::rename(&asar_orig_tmp, &asar_file);
+                rename_if_present(&asar_orig_tmp, &asar_file)?;
             }
             if !asar_orig.exists() && asar_orig_old.exists() {
-                let _ = fs::rename(&asar_orig_old, &asar_orig);
+                rename_if_present(&asar_orig_old, &asar_orig)?;
             }
         }
 
@@ -58,7 +96,7 @@ impl Deployer {
             if !live.exists() {
                 for candidate in candidates {
                     if candidate.exists() {
-                        let _ = fs::rename(candidate, live);
+                        rename_if_present(candidate, live)?;
                         break;
                     }
                 }
@@ -66,29 +104,21 @@ impl Deployer {
         }
 
         // 3. Clean up residual intermediate directories and backup files
-        if app_new.exists() {
-            let _ = fs::remove_dir_all(&app_new);
+        remove_dir_if_present(&app_new)?;
+        remove_dir_if_present(&zh_new)?;
+        if app_dir.exists() {
+            remove_dir_if_present(&app_old)?;
         }
-        if zh_new.exists() {
-            let _ = fs::remove_dir_all(&zh_new);
-        }
-        if app_dir.exists() && app_old.exists() {
-            let _ = fs::remove_dir_all(&app_old);
-        }
-        if zh_dir.exists() && zh_old.exists() {
-            let _ = fs::remove_dir_all(&zh_old);
+        if zh_dir.exists() {
+            remove_dir_if_present(&zh_old)?;
         }
         if asar_orig.exists() {
-            if asar_orig_tmp.exists() {
-                let _ = fs::remove_file(&asar_orig_tmp);
-            }
-            if asar_orig_old.exists() {
-                let _ = fs::remove_file(&asar_orig_old);
-            }
+            remove_file_if_present(&asar_orig_tmp)?;
+            remove_file_if_present(&asar_orig_old)?;
         }
 
-        if !asar_orig.exists() && meta_file.exists() {
-            let _ = fs::remove_file(&meta_file);
+        if !asar_orig.exists() {
+            remove_file_if_present(&meta_file)?;
         }
 
         Ok(())
