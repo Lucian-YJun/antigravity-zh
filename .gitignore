@@ -1,13 +1,21 @@
+# ── 依赖与系统噪声 ──────────────────────────────
 node_modules/
 .DS_Store
 Thumbs.db
 *.log
-tests/zh-patch-sim*
+
+# ── 构建产物（rust/target 由 rust/.gitignore 的 /target 单独覆盖）──
 dist/
 dist2/
 release/
+tests/zh-patch-sim*
+
+# ── 工具/多智能体遗留（均为本地临时产物，非项目内容，勿提交）──
+# 多智能体 teamwork 会话产生的草料目录
 .agents/
-# Qoder 工具产生的临时文件，非项目内容
+# Qoder 工具产生的临时文件，文件名常是一整句话
 .qoder-credits/
+
+# ── 词典维护脚本的自动备份 ───────────────────────
 # clean-dict-variants.js 在 --write 前写出的词典备份
 src/cockpit-zh.json.bak

@@ -1,8 +1,8 @@
-# 可独立摘出的补丁（历史留存，已合入主线）
+# 可独立摘出的补丁（历史留存，已合入主线，归档于 docs/archive/patches/）
 
 > ⚠️ **本目录下的补丁已经全部合入 `src/zh-i18n.js` 主线，不要再 `git apply`。**
 >
-> 实测 `git apply --check patches/r1-watch-crash-guard.patch` 与
+> 实测 `git apply --check docs/archive/patches/r1-watch-crash-guard.patch` 与
 > `git apply --check --reverse` **双向都失败**——因为 `src/zh-i18n.js` 早已
 > 前进到补丁之外的版本。修复本身在主线里的位置：
 >
@@ -32,7 +32,7 @@ unhandled error 终止进程。这段代码注入的是 Antigravity 主进程，
 应用方式（在仓库根目录）：
 
 ```bash
-git apply patches/r1-watch-crash-guard.patch
+git apply docs/archive/patches/r1-watch-crash-guard.patch
 ```
 
 该补丁与 `0e36578` 中同名的代码块逐字节一致；拆分出来只是为了让这个

@@ -1,17 +1,17 @@
 # Project: Antigravity-zh Localization Completion
 
 ## Architecture
-- **双层架构**:
-  1. **主进程原生补丁层**: `scripts/patch.js` 将 `resources/app.asar` 解包到 `resources/app/`，对 `dist/` 下的 7 个文件应用 `src/native/*.replacements.json` 规则进行静态代码替换，并把原包改名为 `app.asar.orig` 备份（Electron 优先加载 `app.asar`，所以必须让它不在原位，`app/` 才会生效）。`src/zh-i18n.js` 与 `src/cockpit-zh.json` 部署到 `resources/zh-patch/`。
+- **双层架构**（指运行时补丁的两个层次）:
+  1. **主进程原生补丁层**: 安装器将 `resources/app.asar` 解包到 `resources/app/`，对 `dist/` 下的目标文件应用 `src/native/*.replacements.json` 规则进行静态代码替换，并把原包改名为 `app.asar.orig` 备份（Electron 优先加载 `app.asar`，所以必须让它不在原位，`app/` 才会生效）。`src/zh-i18n.js` 与 `src/cockpit-zh.json` 部署到 `resources/zh-patch/`。
   2. **渲染进程同帧拦截层**: 网页加载完成后动态注入 `src/zh-i18n.js`，基于 `MutationObserver` 与 `TreeWalker` 进行微任务同帧 DOM 文本节点替换，结合 `src/cockpit-zh.json` 的静态字典与正则规则，同时具备 Monaco/Terminal 整树剪枝与 IME 输入法防抖保护。
-- **双实现轨道**:
-  - `rust/`（四个 crate）是**当前出货**的安装器：产出 `antigravity-tool.exe`，发布名 `Antigravity-zh.exe`（进入发布 zip，用户无需 Node）。
-  - `scripts/` + `src/`（Node）为源码检出/开发回退（无 exe 时走 `node scripts/patch.js`）；`pkg` 版 `Antigravity-zh-patch.exe` 已不进发布包。
+- **双实现轨道**（指安装器有两套实现，产物一致）:
+  - `rust/`（四个 crate）是**当前出货**的安装器：产出 `antigravity-tool.exe`，发布名 `Antigravity-zh.exe`（进入发布 zip，用户无需 Node）。上面第 1 层的安装动作由它执行。
+  - `scripts/` + `src/`（Node）为源码检出/开发回退（无 exe 时走 `node scripts/patch.js`），负责完成同一套安装动作；`pkg` 版 `Antigravity-zh-patch.exe` 已不进发布包。
   - **替换语义以 Rust 为准**（单遍、全量、字面量、最左优先）；详见 AGENTS.md 的同名章节。
 - **质量门禁体系**:
   - `npm test`: 门禁含集成套件、模块单测、`cargo test`/`clippy`、对抗套件；具体组成以 `package.json` 的 `test` 脚本为准。
   - `patch.js --dry-run`: 预览各 scope 的规则命中/跳过情况。**个别规则未匹配属正常版本差异**
-    （实测当前客户端 7 个目标文件、30 条规则中，29 条恰好命中一次、1 条为 0 次、0 条多命中）。
+    （一次历史实测：当前客户端 7 个目标文件、30 条规则中，29 条恰好命中一次、1 条为 0 次、0 条多命中；数值随官方版本变化）。
   - `tests/fixtures/dict-baseline-v1.2.1.json`: 1607 条冻结基线，由 `test-dict-normalize.js` 驱动**真实的** `tr()` 逐条比对，防止既有译文被意外改动。
 
 ---
@@ -71,15 +71,21 @@
 ---
 
 ## Code Layout
+> 目录职责一览。文件数量与测试套件组成会随官方版本、迭代变化，
+> 一律以各目录实际内容和 `package.json` 的脚本为准，不在此写死计数。
+
 - `src/cockpit-zh.json`: 前端 DOM 翻译核心字典（`dict`）与动态正则规则（`rules`，形如 `[正则, 替换, flags?]` 的数组）
 - `src/zh-i18n.js`: 核心注入器、菜单翻译字典 (`MENU_LABELS`) 与同帧拦截器
-- `src/native/`: 7 个原生进程替换 JSON 文件
-- `scripts/patch.js`: 安装与还原入口（`--dry-run` / `--revert` / `--close` / `--relaunch`）
+- `src/native/`: 各原生进程替换表 JSON（数量随官方新增目标文件增减，以目录实际内容为准）
+- `scripts/patch.js`: Node 回退实现的安装与还原入口（`--dry-run` / `--revert` / `--close` / `--relaunch`）
 - `scripts/lib/`: 模块化实现（env / process-manager / backup-manager / replacement-engine / deployer / cdp-client / dict-manager / zip）
 - `scripts/sync-dict.js`: 词典热同步（复制到 `zh-patch/` 后经 CDP 推送到活动窗口）
 - `scripts/add-terms.js` / `scripts/clean-dict-variants.js`: 词典维护工具（后者默认 dry-run，需 `--write`）
-- `scripts/scan-ui.js`: 界面漏译扫描（需 CDP 端口）
+- `scripts/scan-ui.js` / `scripts/auto-review.js`: 界面漏译扫描与三态自动预筛
 - `scripts/package-release.js` / `scripts/publish-release.js`: 发布打包与 GitHub Release
-- `tests/`: 27 个测试脚本 + `fixtures/dict-baseline-v1.2.1.json` 冻结基线
+- `tests/`: 自动化测试、对抗套件、性能基准 + `fixtures/dict-baseline-v1.2.1.json` 冻结基线（套件组成以 `package.json` 为准）
 - `rust/`: 四个 crate 的原生实现（asar / replacer / installer / cli），为当前出货安装器
-- `patches/`: 历史留存，已合入主线，勿再 `git apply`
+- `docs/`: 维护文档（`i18n-backlog.*` 漏译基准、`pr-assets/` 截图、`archive/` 历史留存）
+- `docs/archive/patches/`: 历史留存的独立补丁，已合入主线，勿再 `git apply`
+- `README.md` / `RELEASE_NOTES.md`: 随发布 zip 交付的说明文档（被发布脚本按文件名硬编码，勿移出根目录）
+- `AGENTS.md`: 词典维护规范，并约定「AI 不得自行合并 PR」（工具约定在根目录）

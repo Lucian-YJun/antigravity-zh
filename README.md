@@ -34,26 +34,37 @@
 
 ## 目录里都有什么
 
+下面是**源码仓库**的结构。`Antigravity-zh.exe` 是构建产物（由 `rust/` 编译到 `dist/`，发布时改名进 zip），仓库根目录里并没有它。
+
 ```text
 antigravity-zh/
-├── Antigravity-zh.exe         # 安装器，Rust 原生，用户拿到的就是它
-├── 一键安装.bat               # 打补丁
-├── 一键还原.bat               # 还原英文原版
-├── 快速同步词典.bat           # 免重启同步自定义词条
-├── src/
-│   ├── zh-i18n.js             # 注入客户端的翻译引擎
-│   ├── cockpit-zh.json        # 词典和动态正则规则表
-│   └── native/                # Electron 菜单等原生进程的替换表
-├── scripts/                   # 打包、发版、词典维护、找漏译的工具
-│   ├── package-release.js     # 生成发布用 zip
-│   ├── publish-release.js     # 调 GitHub API 建 Release 并传产物
-│   ├── add-terms.js           # 加词条（先过冗余体检）
-│   └── scan-ui.js             # 扫界面上还没翻的英文
-├── rust/                      # 上面那个 exe 的源码
-└── tests/                     # 自动化测试与性能基准
+├─ 根目录：用户入口与维护文档（文件名多被发布脚本写死，勿随意移动）
+│  ├─ 一键安装.bat / 一键还原.bat / 快速同步词典.bat   # 三个双击入口
+│  ├─ README.md / RELEASE_NOTES.md                    # 随 zip 交付的说明
+│  ├─ AGENTS.md / PROJECT.md / LICENSE               # 维护规范 / 架构 / 许可
+│  └─ package.json / package-lock.json               # Node 依赖与脚本
+├─ src/                        # 注入客户端的运行时补丁（进发布 zip）
+│  ├─ zh-i18n.js               # 翻译引擎、菜单字典与同帧拦截
+│  ├─ cockpit-zh.json          # 词典与动态正则规则表
+│  └─ native/                  # 各原生进程的 *.replacements.json 替换表
+├─ scripts/                    # 仓库维护工具（不进 zip）
+│  ├─ patch.js                 # Node 回退安装器（无 exe 时使用）
+│  ├─ lib/                     # patch.js 的模块化实现
+│  ├─ add-terms.js / clean-dict-variants.js / auto-review.js / scan-ui.js  # 词典维护与漏译预筛
+│  ├─ sync-dict.js             # 词典热同步
+│  └─ package-release.js / publish-release.js / build-rust-artifact.js    # 打包发版
+├─ rust/                       # 当前出货的原生安装器源码（四个 crate，不进 zip）
+├─ tests/                      # 自动化测试 / 对抗套件 / 性能基准 + fixtures/
+├─ docs/                       # 维护文档
+│  ├─ i18n-backlog.md / .json  # 漏译三态基准
+│  ├─ pr-assets/               # PR 截图
+│  └─ archive/patches/         # 历史留存补丁（已合入主线，勿再 git apply）
+└─ dist/                       # 构建产物（git 忽略）
 ```
 
-发布 zip 里只装 exe、三个 .bat、`src/` 和两份说明文档，`scripts/` 和 `rust/` 都不进去。用户端跑的是 Rust 安装器，`scripts/` 是维护仓库用的，跟安装过程无关。
+发布 zip 里只装 exe、三个 `.bat`、`src/` 和两份说明文档，`scripts/`、`rust/`、`tests/`、`docs/` 都不进去。用户端跑的是 Rust 安装器，`scripts/` 是维护仓库用的，跟安装过程无关。
+
+> 根目录几个文档和 `.bat` 的路径被 `scripts/package-release.js`、`scripts/publish-release.js` 按文件名硬编码，`AGENTS.md` 也被工具约定在根目录——所以它们保持原位，不往 `docs/` 收。
 
 ---
 
