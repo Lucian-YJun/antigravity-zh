@@ -1,126 +1,88 @@
 # Antigravity 中文汉化补丁
 
-为 Google Antigravity 提供界面汉化。基于 Electron asar 解包机制，注入文本翻译逻辑与词典热重载能力。
+给 Antigravity 的界面换上中文。做法是把 Electron 的 asar 解开，往里面注入一份翻译引擎和词典，客户端启动时跟着加载。词典改了不用重启，主进程会盯着文件变动，把新词条推到所有窗口。
 
 ---
 
-## 快速上手（免命令行）
+## 装上去
 
-从 [Releases 页面](https://github.com/Lucian-YJun/antigravity-zh/releases) 下载最新的 `Antigravity-zh-patch-v*.zip`。
+去 [Releases 页面](https://github.com/Lucian-YJun/antigravity-zh/releases) 拿最新的 `Antigravity-zh-patch-v*.zip`，解压后有三件事要做：先把 Antigravity 完全退出（右下角托盘图标也要关掉），再双击 `一键安装.bat`，看到成功提示后重新打开客户端。
 
-1. **完全退出 Antigravity**（确认 Windows 系统托盘右下角的图标已退出）。
-2. 解压下载的压缩包，双击运行 `一键安装.bat`。
-   （安装器是原生 exe，**不需要安装 Node.js，也不需要联网或 npm install**。）
-3. 提示安装成功后，重新启动 Antigravity 即可看到中文界面。
+安装包里的 `Antigravity-zh.exe` 是 Rust 写的原生安装器，不需要 Node.js，也不用联网装依赖。要是双击后提示找不到这个 exe，说明压缩包没解全，重新下载一遍就好。
 
-> 如果官方推送了客户端更新，重新跑一次 `一键安装.bat` 即可恢复汉化。想恢复英文原版，双击运行 `一键还原.bat`。
+官方推送客户端更新后，汉化会被覆盖，再跑一次 `一键安装.bat`。想换回英文原版，双击 `一键还原.bat`。
 
 ---
 
-## 为什么做这个版本
+## 为什么单独做了这一版
 
-原版的汉化补丁在面对复杂界面时常遇到几个很影响使用体验的问题：打开菜单或弹窗时界面会先闪一下英文才跳成中文；在大代码块或长对话场景下，由于高频 DOM 遍历导致界面掉帧；打字时如果输入法状态被干扰还会出现吞字或跳字。
+老的汉化补丁在复杂界面下有几个挺烦人的毛病：菜单和弹窗先闪一下英文才跳成中文；代码块一多、对话一长，高频遍历 DOM 就把界面拖得掉帧；打字的时候输入法状态被打断，吞字、跳字都遇到过。
 
-这个版本主要针对这些细节做重构与平滑处理：
+这一版就是冲着这些细节改的。
 
-### 1. 首屏优先翻译，剩余内容渐进补齐
-页面初次加载时，补丁先处理可视区内的文本，让首屏尽量以中文呈现；其余节点按时间片分批跟进，每批只处理有限数量的文本节点就把控制权交还给浏览器，处理完再继续下一批。因此对于内容极多的界面（例如一次挂载上千个文本节点），整页翻译完成需要短暂的时间（量级在秒级），期间页面保持可交互，不会因为一次性遍历整棵树而卡住。
+页面刚加载时先翻可视区内的文本，首屏尽量直接是中文。剩下的节点按时间片分批补，每批处理有限个文本节点就把控制权还给浏览器，再继续下一批。一次挂上千个文本节点的界面，整页翻完要几秒，期间页面照常能点，不会被一次全树遍历卡住。
 
-### 2. 编辑器与代码块整树剪枝
-遇到 Monaco Editor、CodeMirror、`<pre>`、`<code>`、终端控制台（xterm）等容器时，底层 TreeWalker 遍历器直接返回 `FILTER_REJECT`，物理跳过整棵子树，不检查内部成千上万个代码 Token。页面遍历耗时从原本的近百毫秒压到几毫秒以内。
+碰到 Monaco Editor、CodeMirror、`<pre>`、`<code>`、xterm 终端这类容器，TreeWalker 直接 `FILTER_REJECT` 跳过整棵子树，里面成千上万个代码 Token 一个都不查。遍历耗时从近百毫秒压到几毫秒。
 
-### 3. CJK 字符短路与双代轮转缓存
-- **中文直通**：已经翻译过的中文或原生中文文本，通过首字符编码区间判断直接返回，不走正则，单次耗时降至纳秒级。
-- **双代缓存**：页面上的代码变量、英文未收录词条采用双代轮转 Set 缓存。单代存满 2000 项后自动平滑换代，总容量上限控制在 4000 项以内。既不会因为单 Set 存满而导致缓存击穿、重复跑正则匹配，也不会造成长会话下的内存堆积。
+已经翻过的中文和界面自带的中文，靠首字符编码区间判断直接放行，连正则都不走。代码变量和没收录的英文词条走双代轮转 Set 缓存，单代存满 2000 项就平滑换代，总量压在 4000 项以内，既不会因为一个 Set 撑满导致缓存击穿，也不会在长会话里攒出一堆内存。
 
-### 4. 输入法（IME）与受控组件保护
-- 监听 `compositionstart`、`compositionend` 与 `blur` 事件，在拼音打字或候选字切换期间冻结文本替换，解决敲键盘时中途吞字的问题。
-- 引入节点级熔断：当检测到某个节点被前端框架反复回写（500ms 内多次覆盖回英文）时，对该节点短暂冷却，暂停替换以避免与框架互相拉扯；冷却结束后自动重新尝试翻译，不会因为一次冲突就永久放弃这个节点。
+输入法这块监听 `compositionstart`、`compositionend` 和 `blur`，拼音打字和候选字切换期间冻住文本替换。前端框架偶尔会把某个节点反复回写成英文，补丁给这种节点加了个 500ms 的熔断冷却，先停手，等它稳定了再试，不会因为一次冲突就彻底放弃这个节点。
 
-### 5. 词典本地热更新
-主进程监听 `cockpit-zh.json` 文件变动，保存文件后主进程自动向所有窗口推送新词典并刷新文本，修改翻译用语时无需频繁重启软件。
-
-### 6. Subagent 任务耗时动态显示
-在官方界面中调度子代理（Subagent）或并发执行后台任务时，界面默认只有旋转图标，缺少直观的耗时感知。补丁在输入框上方的任务面板与侧边树节点中加入了轻量计时器，自动统计并显示各个子任务已执行的时间（如 `· 12s`、`· 2m 15s`），排队与执行进度一目了然。
+翻译用语想自己调，直接改 `src/cockpit-zh.json` 保存，双击 `快速同步词典.bat`，一两秒后界面就换新词，不用重启客户端。
 
 ---
 
-## 项目结构
+## 目录里都有什么
 
 ```text
 antigravity-zh/
-├── Antigravity-zh.exe         # 安装器（Rust 原生，无需 Node 或任何运行环境）
-├── 一键安装.bat               # 一键打补丁（调用上面的 exe）
-├── 一键还原.bat               # 还原回英文原版
+├── Antigravity-zh.exe         # 安装器，Rust 原生，用户拿到的就是它
+├── 一键安装.bat               # 打补丁
+├── 一键还原.bat               # 还原英文原版
 ├── 快速同步词典.bat           # 免重启同步自定义词条
 ├── src/
-│   ├── zh-i18n.js             # 注入到界面的翻译引擎
-│   ├── cockpit-zh.json        # 词典与动态正则规则表
-│   └── native/                # Electron 菜单等原生进程替换表
-├── scripts/                   # Node 实现（开发与测试用；发布包不包含）
-│   ├── patch.js               # 解包、打补丁与还原逻辑
-│   ├── sync-dict.js           # 复制组件并经由 CDP 热推送词典
-│   ├── package-release.js     # 生成发布用 zip（内置 zip 写入器）
-│   └── publish-release.js     # 调用 GitHub API 建 Release 并上传产物
-├── rust/                      # 上面那个 exe 的源码（asar / replacer / installer / cli）
-└── tests/                     # 自动化测试与性能基准套件
+│   ├── zh-i18n.js             # 注入客户端的翻译引擎
+│   ├── cockpit-zh.json        # 词典和动态正则规则表
+│   └── native/                # Electron 菜单等原生进程的替换表
+├── scripts/                   # 打包、发版、词典维护、找漏译的工具
+│   ├── package-release.js     # 生成发布用 zip
+│   ├── publish-release.js     # 调 GitHub API 建 Release 并传产物
+│   ├── add-terms.js           # 加词条（先过冗余体检）
+│   └── scan-ui.js             # 扫界面上还没翻的英文
+├── rust/                      # 上面那个 exe 的源码
+└── tests/                     # 自动化测试与性能基准
 ```
+
+发布 zip 里只装 exe、三个 .bat、`src/` 和两份说明文档，`scripts/` 和 `rust/` 都不进去。用户端跑的是 Rust 安装器，`scripts/` 是维护仓库用的，跟安装过程无关。
 
 ---
 
-## 自定义修改词典
+## 自己改词典
 
-如果你对某些界面的翻译有自己的习惯，可以随手修改：
+改词条别直接改 JSON，用 `scripts/add-terms.js`：把英文原文一行一条写进 `draft.txt`，`npm run add-terms draft.txt -- --dry-run` 先看一遍，没问题再 `npm run add-terms draft.txt` 写入，它会自动跑一遍词典体检。改完 `npm run sync` 推到已安装的客户端，一两秒热载生效。
 
-1. 打开 `src/cockpit-zh.json`，找到对应词条修改中文翻译并保存。
-2. 双击运行 `快速同步词典.bat`。
-3. 软件内的界面会在 1~2 秒内自动切换为新译文，不需要重启 Antigravity。
+想找界面上还漏着的英文，`node scripts/scan-ui.js <CDP端口>` 扫一遍。结果里会混进项目名、对话标题、分支名和品牌词，哪些该翻得自己判断，别整批入库。
 
 ---
 
-## 开发者与源码运行
+## 从源码跑与验证
 
-如果你熟悉 Node.js，也可以直接拉取仓库运行源码：
+熟悉 Node.js 的话可以拉仓库跑源码。`npm install` 装好依赖，`npm test` 会按 `package.json` 里登记的顺序把全套测试跑完，每个脚本结束都会打印通过和失败的条数，以实际输出为准。里面既有 Node 侧的模块单测，也有 `cargo test` / `clippy`，还有拿真二进制跑的对抗套件；替换引擎的 Node 实现和 Rust 的 Aho-Corasick 契约有随机对拍，改动任一侧都要同步另一侧。
 
-```bash
-# 安装依赖
-npm install
+发版前 `npm run build` 会先编译 Rust release 产物再打 zip，`npm run test:release` 额外挂上依赖审计、对抗套件和性能基准。发布动作本身由 `scripts/publish-release.js` 完成，它会先确认本地 HEAD 和远端 `origin/main` 一致，避免把 Release 打在旧的 main 上。
 
-# 检测安装路径并打入汉化补丁
-npm run patch
-
-# 客户端更新后快速打补丁（自动关软件并打补丁后重开）
-npm run repatch
-
-# 还原英文原版
-npm run unpatch
-
-# 单独热同步词典
-npm run sync
-
-# 运行性能基准测试
-npm run bench
-
-# 运行自动化测试套件
-npm test
-```
-
-### 测试与验证
-
-项目自带一套基于 Node 脚本的自动化测试（无测试框架，直接运行即可），覆盖词典格式、主进程注入、DOM 树遍历、输入法隔离、Subagent 跨刷新持久化、进程检测与安装流程、以及极限边界场景：
+单独跑某一段也行：
 
 ```bash
-npm run test:dict   # 词典静态格式与正则有效性检查
-npm run test:main   # 主进程注入与菜单逻辑测试
-npm run test:page   # 页面翻译、剪枝、计时器与边界集成测试
-npm run test:process # 进程检测解析与回归断言
+npm run test:dict      # 词典静态格式与规则校验
+npm run test:main      # 主进程注入与菜单逻辑
+npm run test:page      # 页面翻译、剪枝、输入法隔离
+npm run test:process   # 进程检测解析与回归
+npm run bench          # 性能基准
 ```
-
-运行 `npm test` 会执行 `package.json` 中登记的全部测试套件；每个脚本结束时都会打印通过/失败条数，以实际输出为准。
 
 ---
 
 ## 许可与致谢
 
-- 基础词典与原生替换规则参考自 [oljh0/AntigravityChinese](https://github.com/oljh0/AntigravityChinese)（基于 MIT 协议）。
-- 本项目为非官方汉化补丁，仅用于学习交流。
+基础词典和原生替换规则参考了 [oljh0/AntigravityChinese](https://github.com/oljh0/AntigravityChinese)，MIT 协议。这个项目是非官方补丁，学习交流用。

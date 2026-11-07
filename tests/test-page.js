@@ -670,64 +670,6 @@ async function waitFor(cond, timeoutMs = 15000, label = '') {
   await flush();
   check('中文已汉化文本极速透传不篡改', cjkEl.textContent === '这是已经汉化完成的界面内容');
 
-  // 32. Subagent 计时器 2.0：正在运行面板 (running-items-panel) 动态计时测试
-  const runningPanel = d.createElement('div');
-  runningPanel.setAttribute('data-testid', 'running-items-panel');
-  runningPanel.innerHTML = `
-    <div class="overflow-y-auto">
-      <div class="flex items-center">
-        <span class="text-sm truncate">Coding Task Optimizer</span>
-      </div>
-    </div>
-  `;
-  d.getElementById('host').appendChild(runningPanel);
-  // 等待 tick 刷新
-  await new Promise(r => setTimeout(r, 1100));
-  const timerSpan = runningPanel.querySelector('.ag-panel-sub-timer');
-  check('Subagent 计时器：正在运行面板成功追加时长标签', !!timerSpan && /·\s*\d+s/.test(timerSpan.textContent));
-
-  // 33. Subagent 计时器 2.0：优先嗅探原生启动时间 (Native Timestamp Probing)
-  // 模拟一个 65 秒前已启动、但刚刚才被展开渲染的 subagent 节点
-  const sixtyFiveSecAgo = Date.now() - 65000;
-  const lateSubagentNode = d.createElement('div');
-  lateSubagentNode.setAttribute('data-testid', 'subagent-node');
-  lateSubagentNode.setAttribute('data-cascade-id', 'task_native_probe');
-  lateSubagentNode.setAttribute('data-created-at', String(sixtyFiveSecAgo));
-  lateSubagentNode.innerHTML = `
-    <div class="title">DeepCoder</div>
-    <div class="text-xs">工作中</div>
-  `;
-  d.getElementById('host').appendChild(lateSubagentNode);
-  await new Promise(r => setTimeout(r, 1100));
-  const lateTimerSpan = lateSubagentNode.querySelector('.ag-node-sub-timer');
-  check('Subagent 计时器：原生时间戳探测准确，折叠晚展开精准显示真实时长 (1m 05s+)', !!lateTimerSpan && lateTimerSpan.textContent.includes('1m'));
-
-  // 34. Subagent 计时器 2.0：跨页面重载持久化 (sessionStorage Persistence)
-  // 模拟从 sessionStorage 中恢复 2 分钟前的历史任务时间
-  const twoMinAgo = Date.now() - 125000;
-  if (w.sessionStorage) {
-    w.sessionStorage.setItem('__agy_st_task_persisted_reload', String(twoMinAgo));
-  }
-  const persistedNode = d.createElement('div');
-  persistedNode.setAttribute('data-testid', 'subagent-node');
-  persistedNode.setAttribute('data-cascade-id', 'task_persisted_reload');
-  persistedNode.innerHTML = `
-    <div class="title">PersistentAgent</div>
-    <div class="text-xs">工作中</div>
-  `;
-  d.getElementById('host').appendChild(persistedNode);
-  await new Promise(r => setTimeout(r, 1100));
-  const persistedSpan = persistedNode.querySelector('.ag-node-sub-timer');
-  check('Subagent 计时器：跨页面刷新持久化成功，从 sessionStorage 恢复 2m+ 历史时长', !!persistedSpan && persistedSpan.textContent.includes('2m'));
-
-  // 35. Subagent 计时器 2.0：Page Visibility API 可见性调度感知
-  let visEventFired = false;
-  try {
-    d.dispatchEvent(new w.Event('visibilitychange'));
-    visEventFired = true;
-  } catch (e) {}
-  check('Subagent 计时器：Page Visibility 调度事件响应正常无报错', visEventFired);
-
   // 36. 补全未汉化界面条目与动态规则深度验证（图像1-5与文本项6-8、/boost）
   w.__antigravityZh.setData(JSON.parse(fs.readFileSync(path.join(SRC, 'cockpit-zh.json'), 'utf-8')));
   const unlocBox1 = d.createElement('div');

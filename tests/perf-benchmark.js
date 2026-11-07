@@ -133,8 +133,6 @@ async function measureScale(cards) {
     if (monacoEls[i].textContent !== 'Settings and File in editor') isolatedIntact = false;
   }
 
-  if (window.__agTimerInterval) clearInterval(window.__agTimerInterval);
-
   // 再跑一次全量 retranslate，确认不会二次改写（幂等）
   const before = targets.map(n => n.nodeValue).join('\u0000');
   window.__antigravityZh.retranslate();
@@ -260,7 +258,6 @@ async function runBenchmark() {
   const avgBatchTime = batchTimes.reduce((a, b) => a + b, 0) / batchTimes.length;
   console.log(`  小批量插入同帧处理耗时 (10 节点): ${avgBatchTime.toFixed(3)} ms`);
   results.avgBatchTime = avgBatchTime;
-  if (window.__agTimerInterval) clearInterval(window.__agTimerInterval);
   window.close();
 
   // 3. 端到端曲线：挂载 → 最后一个文本节点变中文（含 setTimeout 续摊）
