@@ -322,8 +322,6 @@ check(
 check('词典规模在合理范围内（异常膨胀兜底）', dictKeys.length < 2500, `当前 ${dictKeys.length} 条`);
 check('MENU_LABELS 规模在合理范围内（异常膨胀兜底）',
   Object.keys(zh.MENU_LABELS).length < 400, `当前 ${Object.keys(zh.MENU_LABELS).length} 条`);
-
-if (w.__agTimerInterval) clearInterval(w.__agTimerInterval);
 w.close();
 console.log(`\n词典压缩回归: ${pass} 通过, ${fail} 失败`);
 fs.rmSync(SIM, { recursive: true, force: true });
