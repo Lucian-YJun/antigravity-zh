@@ -1529,6 +1529,85 @@ async function waitFor(cond, timeoutMs = 15000, label = '') {
   // 恢复原始 createTreeWalker
   d.createTreeWalker = origCreateTw;
 
+  // B1/B2：结构性漏译回归 —— data-title 与嵌套 open shadow DOM。
+  // 这里用确定已在主词典里的译文，不依赖其它组新增词条的时序。
+  w.__antigravityZh.setData(JSON.parse(fs.readFileSync(path.join(SRC, 'cockpit-zh.json'), 'utf-8')));
+  const dataTitleEl = d.createElement('div');
+  dataTitleEl.setAttribute('data-title', 'Pinned Conversations');
+  d.getElementById('host').appendChild(dataTitleEl);
+  await flush();
+  check('B1：data-title 属性走白名单翻译', dataTitleEl.getAttribute('data-title') === '置顶对话',
+    () => dataTitleEl.getAttribute('data-title'));
+
+  // 回归：textarea/code/pre 等 reject 元素是「子树文本绝缘」，不是「自身属性绝缘」。
+  // shadowRoot 入队的剪枝 gate 不得挡住 hasTrAttrs/trAttrsOnElement。
+  const rejectAttrBox = d.createElement('div');
+  rejectAttrBox.innerHTML = '<textarea id="reject-attr-textarea" placeholder="Settings" title="Help" aria-label="Save">File</textarea>' +
+    '<div class="monaco-editor" id="reject-attr-monaco" title="Help"><span>File</span></div>' +
+    '<code id="reject-attr-code">File</code><pre id="reject-attr-pre">File</pre>';
+  d.getElementById('host').appendChild(rejectAttrBox);
+  await flush();
+  const rejectTextarea = rejectAttrBox.querySelector('#reject-attr-textarea');
+  const rejectMonaco = rejectAttrBox.querySelector('#reject-attr-monaco');
+  const rejectPre = rejectAttrBox.querySelector('#reject-attr-pre');
+  const rejectCode = rejectAttrBox.querySelector('#reject-attr-code');
+  check('B2 回归：reject 元素自身属性仍翻译且子树文本仍绝缘',
+    rejectTextarea.getAttribute('placeholder') === '设置' &&
+    rejectTextarea.getAttribute('title') === '帮助' &&
+    rejectTextarea.getAttribute('aria-label') === '保存' &&
+    rejectTextarea.textContent === 'File' &&
+    rejectMonaco.textContent === 'File' &&
+    rejectCode.textContent === 'File' &&
+    rejectPre.textContent === 'File',
+    () => ({
+      textarea: [rejectTextarea.getAttribute('placeholder'), rejectTextarea.getAttribute('title'), rejectTextarea.getAttribute('aria-label'), rejectTextarea.textContent],
+      monaco: rejectMonaco.textContent,
+      code: rejectCode.textContent,
+      pre: rejectPre.textContent,
+    }));
+
+  const outerShadowHost = d.createElement('div');
+  d.getElementById('host').appendChild(outerShadowHost);
+  const outerSr = outerShadowHost.attachShadow({ mode: 'open' });
+  const innerShadowHost = d.createElement('div');
+  outerSr.appendChild(innerShadowHost);
+  const innerSr = innerShadowHost.attachShadow({ mode: 'open' });
+  innerSr.innerHTML = '<span id="shadow-text">Close</span><button id="shadow-attr" aria-label="Refresh"></button>' +
+    '<div class="monaco-editor"><span>File</span></div><code>File</code><pre>File</pre>';
+  await waitFor(() => innerSr.getElementById('shadow-text').textContent === '关闭' &&
+    innerSr.getElementById('shadow-attr').getAttribute('aria-label') === '刷新');
+
+  const shadowText = innerSr.getElementById('shadow-text');
+  const shadowAttr = innerSr.getElementById('shadow-attr');
+  check('B2：嵌套 2 层 open shadow DOM 内文本节点被翻译', shadowText.textContent === '关闭',
+    () => shadowText.textContent);
+  check('B2：嵌套 2 层 open shadow DOM 内属性被翻译', shadowAttr.getAttribute('aria-label') === '刷新',
+    () => shadowAttr.getAttribute('aria-label'));
+  check('B2：shadow DOM 内 Monaco / code / pre 子树仍被剪枝',
+    innerSr.querySelector('.monaco-editor span').textContent === 'File' &&
+    innerSr.querySelector('code').textContent === 'File' &&
+    innerSr.querySelector('pre').textContent === 'File',
+    () => [innerSr.querySelector('.monaco-editor span').textContent,
+      innerSr.querySelector('code').textContent, innerSr.querySelector('pre').textContent]);
+
+  // 时间片/续摊机制回归：>30 节点仍走 60ms 延迟通道，shadow 遍历不能把它改成同步全树递归。
+  const lateFrag = d.createDocumentFragment();
+  const lateSpans = [];
+  for (let i = 0; i < 35; i++) {
+    const sp = d.createElement('span');
+    sp.textContent = 'Pin';
+    lateFrag.appendChild(sp);
+    lateSpans.push(sp);
+  }
+  d.getElementById('host').appendChild(lateFrag);
+  await flush();
+  check('B2：新增 shadow 遍历后，大批量节点仍先延迟（时间片/续摊未破坏）',
+    lateSpans[0].textContent === 'Pin', () => lateSpans[0].textContent);
+  await waitFor(() => lateSpans.every(sp => sp.textContent === '置顶'));
+  check('B2：新增 shadow 遍历后，大批量节点经续摊最终全部翻译',
+    lateSpans.every(sp => sp.textContent === '置顶'),
+    () => lateSpans.map(sp => sp.textContent).slice(0, 5));
+
   console.log(`\n页面翻译器: ${pass} 通过, ${fail} 失败`);
   fs.rmSync(SIM, { recursive: true, force: true });
   process.exit(fail ? 1 : 0);

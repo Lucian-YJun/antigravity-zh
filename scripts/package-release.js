@@ -142,8 +142,18 @@ function selfTest() {
     const names = listed.map(e => e.name);
     const nativeNames = names.filter(n => n.startsWith('src/native/'));
     check('条目可解析', listed.length > 0, `${listed.length} 个条目`);
-    check('条目数符合清单（exe + 3 bat + 2 src + 7 native + 2 文档 = 15）', listed.length === 15, `${listed.length}`);
-    check('src/native 下 7 个替换表齐全', nativeNames.length === 7, nativeNames.join(', '));
+    // 条目数按磁盘上实际的替换表数量动态计算：写死 7/15 会在新增 scope 后误报，
+    // 而且自检跑在临时目录里，读的就是本次真要打包进去的那份 src/native。
+    const nativeOnDiskCount = fs
+      .readdirSync(path.join(root, 'src', 'native'))
+      .filter(f => f.endsWith('.json'))
+      .length;
+    const expectedTotal = 1 /* exe */ + BAT_FILES.length + 2 /* 2 src */
+      + nativeOnDiskCount + 2 /* README + RELEASE_NOTES */;
+    check(`条目数符合清单（exe + ${BAT_FILES.length} bat + 2 src + ${nativeOnDiskCount} native + 2 文档 = ${expectedTotal}）`,
+      listed.length === expectedTotal, `${listed.length}`);
+    check(`src/native 下 ${nativeOnDiskCount} 个替换表齐全`,
+      nativeNames.length === nativeOnDiskCount, nativeNames.join(', '));
     check('条目顺序与清单一致', names[0] === EXE_NAME && names[1] === BAT_FILES[0] && names[names.length - 1] === 'RELEASE_NOTES.md');
 
     const second = packageRelease(root);

@@ -329,7 +329,7 @@ const TRANSLATOR_BODY = [
     'var missCurr=new Set(),missPrev=new Set();',
     'var ALPHA_RE=/[a-zA-Z]/;',
     'var EDITOR_CLS_RE=/(?:^|\\s)(?:monaco-editor|monaco-diff-editor|cm-editor|cm-s-default|CodeMirror|xterm|ProseMirror)(?:\\s|$)/;',
-    'var ATTRS=["placeholder","title","aria-label","aria-placeholder","data-tooltip","alt"];',
+    'var ATTRS=["placeholder","title","aria-label","aria-placeholder","data-tooltip","alt","data-title"];',
     'var SKIP_TAGS={SCRIPT:1,STYLE:1,NOSCRIPT:1,CODE:1,PRE:1,TEXTAREA:1,SVG:1,MATH:1,script:1,style:1,noscript:1,code:1,pre:1,textarea:1,svg:1,math:1};',
     'var ATTR_SKIP_SEL="code,pre,script,style,noscript,svg,math,.monaco-editor,.monaco-diff-editor,.cm-editor,.cm-s-default,.CodeMirror,.xterm,.ProseMirror,[contenteditable]:not([contenteditable=\\"false\\"])";',
     'var CONTENT_SKIP_SEL="code,pre,textarea,script,style,noscript,svg,math,.monaco-editor,.monaco-diff-editor,.cm-editor,.cm-s-default,.CodeMirror,.xterm,.ProseMirror,[contenteditable]:not([contenteditable=\\"false\\"])";',
@@ -533,7 +533,7 @@ const TRANSLATOR_BODY = [
     '  if(!el.hasAttributes||!el.hasAttributes())return false;',
     '  for(var j=0;j<ATTRS.length;j++){if(el.hasAttribute(ATTRS[j]))return true;}',
     '  return false;}',
-    'function walk(root){if(!root)return;var job=makeJob(root);',
+    'function walk(root,seen){if(!root)return;var job=makeJob(root,seen);',
     '  if(job.done)return;',
     // 同步阶段至少推进 MIN_SYNC 项：小改动（React 单行状态）必须绘制前完成，否则就是肉眼可见闪烁
     '  var deadline=nowMs()+SLICE_MS;',
@@ -543,11 +543,23 @@ const TRANSLATOR_BODY = [
     // 文本与属性在同一次遍历里共享 8ms 时间片：属性不再整段同步扫完，也不会被文本分支饿死
     'var SLICE_MS=8,MIN_SYNC=64;',
     'var nowMs=(typeof performance!=="undefined"&&performance.now)?function(){return performance.now();}:function(){return Date.now();};',
+    'var observedShadows=new WeakSet();',
+    'function queueShadow(job,sr){',
+    '  if(!sr||job.seen.has(sr))return;',
+    '  job.seen.add(sr);',
+    '  try{',
+    // 仅 open shadow root 可拿到（el.shadowRoot 非 null）；observedShadows 只用于防止
+    // 对同一个 sr 重复注册 MutationObserver，绝不阻止 retranslate/setData 再次遍历它。
+    '    if(!observedShadows.has(sr)){observedShadows.add(sr);if(mo&&mo.observe)mo.observe(sr,{childList:true,subtree:true,characterData:true});}',
+    '    var sj=makeJob(sr,job.seen);if(!sj.done)deferJob(sj);',
+    '  }catch(e){}',
+    '}',
     'var jobQueue=[],pumpTimer=null,pumping=false;',
-    'function makeJob(root){',
-    '  var job={root:root,tw:null,work:0};',
+    'function makeJob(root,seen){',
+    '  var job={root:root,tw:null,work:0,seen:seen||new WeakSet()};',
     '  if(root.nodeType===3){trNodeFast(root);job.done=true;return job;}',
     '  if(root.nodeType===1&&hasTrAttrs(root)){trAttrsOnElement(root);}',
+    '  if(root.nodeType===1&&!isRejectEl(root)&&root.shadowRoot){queueShadow(job,root.shadowRoot);}',
     '  if(root.nodeType===1&&isRejectEl(root)){job.done=true;return job;}',
     '  if(document.createTreeWalker){job.tw=document.createTreeWalker(root,5,twFilter);}',
     '  return job;}',
@@ -559,7 +571,13 @@ const TRANSLATOR_BODY = [
     '      n=job.tw.nextNode();',
     '      if(!n){job.tw=null;break;}',
     '      if(n.nodeType===3){trNodeFast(n);}',
-    '      else if(n.nodeType===1&&hasTrAttrs(n)){trAttrsOnElement(n);}',
+    // open shadow root 不进 createTreeWalker：把它作为独立分片 job 入队，
+    // 与文本/属性遍历共享同一 8ms 预算，绝不改成同步递归。
+    // 注意：textarea/code/pre 等 reject 元素只是子树文本绝缘，其自身属性仍须翻译；
+    // isRejectEl 只 gate shadowRoot 入队，不能挡住 hasTrAttrs/trAttrsOnElement。
+    '      else if(n.nodeType===1){',
+    '        if(hasTrAttrs(n))trAttrsOnElement(n);',
+    '        if(!isRejectEl(n)&&n.shadowRoot)queueShadow(job,n.shadowRoot);}',
     // 先做一项再判预算：保证每次都前进，超出最多一项且单项成本有界
     '      if(++job.work>minWork&&nowMs()>deadline)return false;',
     '    }}',

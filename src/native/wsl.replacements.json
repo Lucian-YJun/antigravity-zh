@@ -1,0 +1,10 @@
+[
+  [
+    "onStatus?.('Downloading the Antigravity binary\\u2026');",
+    "onStatus?.('正在下载 Antigravity 可执行文件\\u2026');"
+  ],
+  [
+    "onStatus?.(`Installing into ${distro}\\u2026`);",
+    "onStatus?.(`正在安装到 ${distro}\\u2026`);"
+  ]
+]

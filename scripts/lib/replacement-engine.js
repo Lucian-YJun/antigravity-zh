@@ -9,6 +9,14 @@ const DEFAULT_TARGETS = {
   'updater': 'dist/updater.js',
   'ipchandlers': 'dist/ipcHandlers.js',
   'wizard': 'dist/ideInstall/wizardHtml.js',
+  // 2.29 新增的原生 dialog / 独立 data: URL 窗口：这些窗口不经 attachWebTranslator，
+  // DOM 词典注入够不着，只能靠主进程源码静态替换。新增 scope 必须与 Rust 的
+  // BatchReplacer::default_targets() 一一对应，否则 execute_batch 会静默 skip。
+  'webauthn': 'dist/webauthn.js',
+  'cablev2': 'dist/cablev2.js',
+  'qrEncoder': 'dist/qrEncoder.js',
+  'provisionSplash': 'dist/provisionSplash.js',
+  'wsl': 'dist/wsl.js',
 };
 
 /**

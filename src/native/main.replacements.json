@@ -12,8 +12,8 @@
     "await electron_1.dialog.showErrorBox('启动失败', msg);"
   ],
   [
-    "label: 'New Window',\n                    click: () => (0, utils_1.createWindow)(url, storageManager),",
-    "label: '新建窗口',\n                    click: () => (0, utils_1.createWindow)(url, storageManager),"
+    "label: 'New Window',",
+    "label: '新建窗口',"
   ],
   [
     "id: 'running-agents',\n                label: 'No agents running',",

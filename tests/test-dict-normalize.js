@@ -291,13 +291,81 @@ const ruleFallbackCases = [
   ['12 files changed', '12 个文件已更改'],
   ['1 File Changed', '1 个文件已更改'],
   ['3 files changed', '3 个文件已更改'],
-  // 其余三组的裸形态（大小写变体 + 尾随标点，标点原样保留）
+  // 其余三组的裸形态（大小写变体 + 尾随标点）。
+  // A4 起规则 299/300/301 改为「不捕获、不回拼英文标点」，中文译文里不再残留
+  // 英文 . ! ?；这里只改规则产物，未改任何 dict 译文，冻结基线的 1607 条逐条比对不受影响。
   ['FILES CHANGED', '已更改的文件'],
-  ['FILES CHANGED.', '已更改的文件.'],
+  ['FILES CHANGED.', '已更改的文件'],
   ['ALLOW ONCE', '仅允许一次'],
-  ['ALLOW ONCE!', '仅允许一次!'],
+  ['ALLOW ONCE!', '仅允许一次'],
   ['IT REQUIRES', '需要'],
-  ['IT REQUIRES?', '需要?'],
+  ['IT REQUIRES?', '需要'],
+
+  // ---- A2：2.29 新增动态形态（全部追加在 rules 数组末尾，首字符可静态判定）----
+  // 相对时间改为「数字 + 单位 + ago」后缀，旧 ^(\d+)(m|h|d|w|s|mo)$ 集体失配。
+  // mo 规则声明在 m 规则之前；实测 4mo ago 不会被 ^(\d+)m\s+ago$ 抢先。
+  ['58m ago', '58 分钟前'],
+  ['3h ago', '3 小时前'],
+  ['2d ago', '2 天前'],
+  ['1w ago', '1 周前'],
+  ['30s ago', '30 秒前'],
+  ['4mo ago', '4 个月前'],
+  // Load older messages 按钮与 aria-label（含两个任意数字）
+  ['Load older messages', '加载更早的消息'],
+  ['Load older messages, showing 252 of 579', '加载更早的消息，已显示 252 / 579'],
+  ['Load older messages, showing 77 of 143', '加载更早的消息，已显示 77 / 143'],
+  ['5 more older messages', '还有 5 条更早的消息'],
+  // 模板变量拼接的 N of M / Step / Showing / Turn / Retry / WSL / 更新
+  ['Retry in 30s', '将在 30 秒后重试'],
+  ['Retrying in 5s', '将在 5 秒后重试'],
+  ['3 of 12', '第 3 项，共 12 项'],
+  ['Step 2 of 7', '第 2 步，共 7 步'],
+  ['Showing 20 of 100', '显示 20 / 100'],
+  ['Turn 4', '第 4 轮'],
+  ['Connecting to WSL…', '正在连接到 WSL…'],
+  ['Downloading update...', '正在下载更新...'],
+  // 既有形态回归：新规则不得抢走旧规则/归一化命中
+  ['9d', '9 天前'],
+  ['Turn 3 of 7', '第 3 轮，共 7 轮'],
+  ['No more older messages, showing 20 of 100', '没有更早的消息，已显示全部 20 条'],
+  // ^Update available$ 不加规则：词典已有 "Update Available"，归一化覆盖
+  ['Update available', '有可用更新'],
+
+  // ---- A3：修正 rules 171/172 的 [vV]e?iw 拼写错误（原地改，索引不变）----
+  ['Toggle Full View', '切换完整视图'],
+  ['Toggle Full View.', '切换完整视图'],
+  ['Full View', '完整视图'],
+  ['Full View.', '完整视图'],
+
+  // ---- A4：Allow once? 曾被规则 44 ^Allow (.+?)\?$ 抢先产出「允许 once 吗？」----
+  // 规则 44 改为 ^Allow (?!once\?$)(.+?)\?$，把这一形态让给 300 号规则。
+  ['Allow once?', '仅允许一次'],
+  ['Allow something?', '允许 something 吗？'],
+  ['Allow once more?', '允许 once more 吗？'],
+  ['Files changed.', '已更改的文件'],
+  ['It requires.', '需要'],
+  ['ALLOW ONCE!', '仅允许一次'],
+  ['IT REQUIRES?', '需要'],
+
+  // ---- A1：活体扫描固定 UI 文案（词条抽样，确保没有被规则误伤）----
+  ['Overview tab', '概览标签页'],
+  ['Review tab', '审查标签页'],
+  ['Side Panel', '侧边面板'],
+  ['Toggle Side Panel', '切换侧边面板'],
+  ['Skills Used', '已使用技能'],
+  ['Cancel (Ctrl+D)', '取消 (Ctrl+D)'],
+  ['Ran', '已运行'],
+  ['Found', '已找到'],
+  ['Messaged', '已发消息'],
+  ['Ran command, edited file', '已运行命令，已编辑文件'],
+  ['Explored file', '已探索文件'],
+  ['Ran commands, edited file', '已运行命令，已编辑文件'],
+  ['Edited file', '已编辑文件'],
+  ['Switch in context details', '在上下文详情中切换'],
+  ['English', '英语'],
+  ['Token', '令牌'],
+  ['Year', '年份'],
+  ['Previous', '上一个'],
 ];
 for (const [input, want] of ruleFallbackCases) {
   const got = tr(input);

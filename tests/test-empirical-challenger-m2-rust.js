@@ -27,6 +27,7 @@ const os = require('os');
 // 那部分确实读了真实的 src/native/*.json 与 chromium-pickle-js。
 const pickle = require('chromium-pickle-js');
 const asar = require('@electron/asar');
+const { DEFAULT_TARGETS } = require('../scripts/lib/replacement-engine');
 
 let totalTests = 0;
 let passedTests = 0;
@@ -162,8 +163,15 @@ console.log('\n--- SUITE 2: Replacement Rules Schema Conformance ---');
 const nativeDir = path.resolve(__dirname, '../src/native');
 const nativeFiles = fs.readdirSync(nativeDir).filter(f => f.endsWith('.replacements.json'));
 
-runTest('RULES', 'All 7 native replacement files exist and are non-empty', () => {
-  assert.strictEqual(nativeFiles.length, 7);
+runTest('RULES', `All ${nativeFiles.length} native replacement files exist and are non-empty`, () => {
+  // 文件名（去掉后缀）= scope；与 Node 侧 DEFAULT_TARGETS 的 key 集合严格相等，
+  // 顺带守住「新增替换表必须同步登记 scope 映射」这条契约。
+  const nativeScopes = nativeFiles
+    .map(f => f.slice(0, -'.replacements.json'.length))
+    .sort();
+  const expectedScopes = Object.keys(DEFAULT_TARGETS).sort();
+  assert.deepStrictEqual(nativeScopes, expectedScopes,
+    'src/native/*.replacements.json 的 scope 集合必须与 DEFAULT_TARGETS 的 key 集合严格相等');
   for (const f of nativeFiles) {
     const fullPath = path.join(nativeDir, f);
     const content = fs.readFileSync(fullPath, 'utf8');
@@ -195,8 +203,14 @@ runTest('RULES', 'Every replacement rule parses strictly as [string, string] tup
       }
     }
   }
+  // 期望值从真实文件求和，而不是写死 30：校验的是「每条规则都被严格解析过」。
+  const expectedRuleCount = nativeFiles.reduce((n, f) => {
+    const parsed = JSON.parse(fs.readFileSync(path.join(nativeDir, f), 'utf8'));
+    return n + (Array.isArray(parsed) ? parsed.length : 0);
+  }, 0);
   console.log(`    (Validated ${totalRulesChecked} rules across ${nativeFiles.length} files)`);
-  assert.strictEqual(totalRulesChecked, 30, 'Expected exactly 30 native rules across 7 files');
+  assert.strictEqual(totalRulesChecked, expectedRuleCount,
+    `Expected ${expectedRuleCount} native rules across ${nativeFiles.length} files`);
 });
 
 runTest('RULES', 'Deserializer rejects malformed rules: numbers, booleans, nested arrays', () => {

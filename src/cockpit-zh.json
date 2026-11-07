@@ -1267,7 +1267,25 @@
     "Search Projects": "搜索项目",
     "This Computer": "此电脑",
     "Failed to save project branch": "保存项目分支失败",
-    "Failed to checkout commit": "检出提交失败"
+    "Failed to checkout commit": "检出提交失败",
+    "Overview tab": "概览标签页",
+    "Review tab": "审查标签页",
+    "Side Panel": "侧边面板",
+    "Toggle Side Panel": "切换侧边面板",
+    "Skills Used": "已使用技能",
+    "Cancel (Ctrl+D)": "取消 (Ctrl+D)",
+    "Ran": "已运行",
+    "Found": "已找到",
+    "Messaged": "已发消息",
+    "Ran command, edited file": "已运行命令，已编辑文件",
+    "Explored file": "已探索文件",
+    "Ran commands, edited file": "已运行命令，已编辑文件",
+    "Edited file": "已编辑文件",
+    "Switch in context details": "在上下文详情中切换",
+    "English": "英语",
+    "Token": "令牌",
+    "Year": "年份",
+    "Previous": "上一个"
   },
   "rules": [
     [
@@ -1447,7 +1465,7 @@
       "允许运行 $1 吗？"
     ],
     [
-      "^Allow (.+?)\\?$",
+      "^Allow (?!once\\?$)(.+?)\\?$",
       "允许 $1 吗？"
     ],
     [
@@ -1955,11 +1973,11 @@
       "后台命令"
     ],
     [
-      "^[tT]oggle [fF]ull\\s+[vV]e?iw\\.?$",
+      "^[tT]oggle [fF]ull\\s+[vV]iew\\.?$",
       "切换完整视图"
     ],
     [
-      "^[fF]ull\\s+[vV]e?iw\\.?$",
+      "^[fF]ull\\s+[vV]iew\\.?$",
       "完整视图"
     ],
     [
@@ -2471,19 +2489,83 @@
       "i"
     ],
     [
-      "^files changed([.!?])?$",
-      "已更改的文件$1",
+      "^files changed[.!?]?$",
+      "已更改的文件",
       "i"
     ],
     [
-      "^allow once([.!?])?$",
-      "仅允许一次$1",
+      "^allow once[.!?]?$",
+      "仅允许一次",
       "i"
     ],
     [
-      "^it requires([.!?])?$",
-      "需要$1",
+      "^it requires[.!?]?$",
+      "需要",
       "i"
+    ],
+    [
+      "^(\\d+)mo\\s+ago$",
+      "$1 个月前"
+    ],
+    [
+      "^(\\d+)m\\s+ago$",
+      "$1 分钟前"
+    ],
+    [
+      "^(\\d+)h\\s+ago$",
+      "$1 小时前"
+    ],
+    [
+      "^(\\d+)d\\s+ago$",
+      "$1 天前"
+    ],
+    [
+      "^(\\d+)w\\s+ago$",
+      "$1 周前"
+    ],
+    [
+      "^(\\d+)s\\s+ago$",
+      "$1 秒前"
+    ],
+    [
+      "^Load older messages$",
+      "加载更早的消息"
+    ],
+    [
+      "^Load older messages,\\s+showing\\s+(\\d+)\\s+of\\s+(\\d+)$",
+      "加载更早的消息，已显示 $1 / $2"
+    ],
+    [
+      "^(\\d+)\\s+more older messages$",
+      "还有 $1 条更早的消息"
+    ],
+    [
+      "^Retry(?:ing)?\\s+in\\s+(\\d+)s$",
+      "将在 $1 秒后重试"
+    ],
+    [
+      "^(\\d+)\\s+of\\s+(\\d+)$",
+      "第 $1 项，共 $2 项"
+    ],
+    [
+      "^Step\\s+(\\d+)\\s+of\\s+(\\d+)$",
+      "第 $1 步，共 $2 步"
+    ],
+    [
+      "^Showing\\s+(\\d+)\\s+of\\s+(\\d+)$",
+      "显示 $1 / $2"
+    ],
+    [
+      "^Turn\\s+(\\d+)$",
+      "第 $1 轮"
+    ],
+    [
+      "^Connecting to WSL[.…]*$",
+      "正在连接到 WSL…"
+    ],
+    [
+      "^Downloading [Uu]pdate\\.\\.\\.$",
+      "正在下载更新..."
     ]
   ]
 }

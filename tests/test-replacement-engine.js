@@ -26,9 +26,17 @@ function test(name, fn) {
 }
 
 // 1. DEFAULT_TARGETS 结构测试
-test('DEFAULT_TARGETS: 覆盖全部 7 个原生目标文件', () => {
-  const expectedKeys = ['utils', 'menu', 'main', 'tray', 'updater', 'ipchandlers', 'wizard'];
-  for (const k of expectedKeys) {
+test('DEFAULT_TARGETS: 每个原生替换表都有非空 scope 映射', () => {
+  const nativeDir = path.join(__dirname, '../src/native');
+  const scopes = fs.readdirSync(nativeDir)
+    .filter(f => f.endsWith('.replacements.json'))
+    .map(f => f.slice(0, -'.replacements.json'.length));
+  assert(scopes.length > 0, 'src/native 下应至少有一个替换表');
+  for (const scope of scopes) {
+    assert(typeof DEFAULT_TARGETS[scope] === 'string' && DEFAULT_TARGETS[scope].length > 0,
+      `scope ${scope} 缺少 DEFAULT_TARGETS 映射`);
+  }
+  for (const k of Object.keys(DEFAULT_TARGETS)) {
     assert(typeof DEFAULT_TARGETS[k] === 'string' && DEFAULT_TARGETS[k].length > 0);
   }
 });
