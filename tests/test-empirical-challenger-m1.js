@@ -111,7 +111,7 @@ runTest('REPL', 'applyReplacements: replaces EVERY occurrence, not just the firs
   assert.strictEqual(res.content, 'replaced replaced replaced');
   assert.strictEqual(res.appliedCount, 1, '一条规则命中');
   assert.strictEqual(res.replacements, 3, '三处替换');
-  // PROJECT.md 要求 targetString 唯一匹配；命中多处必须显式暴露而不是悄悄处理
+  // docs/dev/PROJECT.md 要求 targetString 唯一匹配；命中多处必须显式暴露而不是悄悄处理
   assert.deepStrictEqual(res.multiMatch, [0]);
 });
 

@@ -5,7 +5,7 @@ const https = require('https');
 // 版本号只在 package.json 里维护一份，避免发版时漏改脚本里的副本
 const VERSION = require('../package.json').version;
 
-// 发布标题从 RELEASE_NOTES.md 的首个一级标题推导，脚本不再写死某一版的文案
+// 发布标题从 docs/guide/RELEASE_NOTES.md 的首个一级标题推导，脚本不再写死某一版的文案
 function deriveReleaseTitle(notesPath, fallback) {
   let heading = '';
   try {
@@ -213,7 +213,7 @@ async function main() {
   // 先校验资产再创建 Release：缺 zip 时若已建好 Release，GitHub 上会留下一个空的发布
   const assets = resolveAssets(path.join(__dirname, '..'));
 
-  const notesPath = path.join(__dirname, '..', 'RELEASE_NOTES.md');
+  const notesPath = path.join(__dirname, '..', 'docs', 'guide', 'RELEASE_NOTES.md');
   const releaseBody = fs.existsSync(notesPath) ? fs.readFileSync(notesPath, 'utf8') : `Antigravity 中文汉化补丁 v${VERSION}`;
   const releaseTitle = deriveReleaseTitle(notesPath, `v${VERSION}`);
 

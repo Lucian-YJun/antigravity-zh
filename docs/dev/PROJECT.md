@@ -85,7 +85,9 @@
 - `scripts/package-release.js` / `scripts/publish-release.js`: 发布打包与 GitHub Release
 - `tests/`: 自动化测试、对抗套件、性能基准 + `fixtures/dict-baseline-v1.2.1.json` 冻结基线（套件组成以 `package.json` 为准）
 - `rust/`: 四个 crate 的原生实现（asar / replacer / installer / cli），为当前出货安装器
-- `docs/`: 维护文档（`i18n-backlog.*` 漏译基准、`pr-assets/` 截图、`archive/` 历史留存）
+- `docs/`: 文档按用途分四类——`guide/` 用户向（RELEASE_NOTES）、`dev/` 维护向（本文件、`i18n-backlog.*` 漏译基准）、`assets/` PR 截图、`archive/` 历史留存
 - `docs/archive/patches/`: 历史留存的独立补丁，已合入主线，勿再 `git apply`
-- `README.md` / `RELEASE_NOTES.md`: 随发布 zip 交付的说明文档（被发布脚本按文件名硬编码，勿移出根目录）
+- `README.md`: 根目录仓库首页说明（GitHub 只认根目录 README）；随发布 zip 交付
+- `docs/guide/RELEASE_NOTES.md`: 版本说明，发布脚本从此处读取并写入 zip（zip 内仍叫 `RELEASE_NOTES.md`）
 - `AGENTS.md`: 词典维护规范，并约定「AI 不得自行合并 PR」（工具约定在根目录）
+- `rust/README.md`: Rust workspace 自述，与 `Cargo.toml` 同目录

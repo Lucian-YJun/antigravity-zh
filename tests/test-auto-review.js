@@ -150,20 +150,20 @@ try {
 }
 
 // ---- 8) 静态基准文件与脚本同源 ----
-const backlogJson = path.join(ROOT, 'docs', 'i18n-backlog.json');
-const backlogMd = path.join(ROOT, 'docs', 'i18n-backlog.md');
+const backlogJson = path.join(ROOT, 'docs', 'dev', 'i18n-backlog.json');
+const backlogMd = path.join(ROOT, 'docs', 'dev', 'i18n-backlog.md');
 if (fs.existsSync(backlogJson) && fs.existsSync(backlogMd)) {
     const bj = JSON.parse(fs.readFileSync(backlogJson, 'utf8'));
     const md = fs.readFileSync(backlogMd, 'utf8');
-    check('docs/i18n-backlog.json 651 条', bj.items && bj.items.length === 651, '实际=' + (bj.items && bj.items.length));
-    check('docs/i18n-backlog.json 计数自洽', bj.counts.ACCEPT + bj.counts.REJECT + bj.counts.REVIEW === bj.counts.total);
-    check('docs/i18n-backlog.md 含三态说明', /ACCEPT/.test(md) && /REJECT/.test(md) && /REVIEW/.test(md));
-    check('docs/i18n-backlog.md 含 add-terms 流程', /add-terms/.test(md) && /npm test/.test(md) && /npm run sync/.test(md));
-    check('docs/i18n-backlog.md 强调 ACCEPT 也要人工过一眼', /ACCEPT.*人工过一眼/.test(md));
+    check('docs/dev/i18n-backlog.json 651 条', bj.items && bj.items.length === 651, '实际=' + (bj.items && bj.items.length));
+    check('docs/dev/i18n-backlog.json 计数自洽', bj.counts.ACCEPT + bj.counts.REJECT + bj.counts.REVIEW === bj.counts.total);
+    check('docs/dev/i18n-backlog.md 含三态说明', /ACCEPT/.test(md) && /REJECT/.test(md) && /REVIEW/.test(md));
+    check('docs/dev/i18n-backlog.md 含 add-terms 流程', /add-terms/.test(md) && /npm test/.test(md) && /npm run sync/.test(md));
+    check('docs/dev/i18n-backlog.md 强调 ACCEPT 也要人工过一眼', /ACCEPT.*人工过一眼/.test(md));
     check('docs 与当前脚本三态数字一致', bj.counts.ACCEPT === c.ACCEPT && bj.counts.REJECT === c.REJECT && bj.counts.REVIEW === c.REVIEW,
         `docs=${bj.counts.ACCEPT}/${bj.counts.REJECT}/${bj.counts.REVIEW} script=${c.ACCEPT}/${c.REJECT}/${c.REVIEW}`);
 } else {
-    check('docs/i18n-backlog.json 与 .md 已生成', false, '文件缺失');
+    check('docs/dev/i18n-backlog.json 与 .md 已生成', false, '文件缺失');
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);

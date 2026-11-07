@@ -32,9 +32,10 @@ const scriptsDir = path.join(sandbox, 'scripts');
 fs.mkdirSync(scriptsDir, { recursive: true });
 fs.copyFileSync(script, path.join(scriptsDir, 'publish-release.js'));
 // 复制整个仓库结构里被引用的文件（RELEASE_NOTES），模拟真实环境
-for (const f of ['RELEASE_NOTES.md', 'package.json']) {
-    try { fs.copyFileSync(path.join(repo, f), path.join(sandbox, f)); } catch (e) { }
-}
+// 发布文档已收进 docs/guide/，沙箱里也按同样的新结构摆放
+fs.mkdirSync(path.join(sandbox, 'docs', 'guide'), { recursive: true });
+try { fs.copyFileSync(path.join(repo, 'docs', 'guide', 'RELEASE_NOTES.md'), path.join(sandbox, 'docs', 'guide', 'RELEASE_NOTES.md')); } catch (e) { }
+try { fs.copyFileSync(path.join(repo, 'package.json'), path.join(sandbox, 'package.json')); } catch (e) { }
 
 // 内联一个探针：拦截 https.request / net.connect / dns.lookup，
 // 任何一个被调用都记下来。同时把 token 环境变量清空，

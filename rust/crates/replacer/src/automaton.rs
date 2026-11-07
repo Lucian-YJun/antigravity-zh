@@ -57,7 +57,7 @@ impl StringReplacer {
     ///
     /// `replacements` counts occurrences written, while `rules_hit` counts the
     /// distinct rules that matched at least once. The two differ whenever a
-    /// target string occurs more than once — which PROJECT.md forbids, so
+    /// target string occurs more than once — which docs/dev/PROJECT.md forbids, so
     /// `multi_match` surfaces those rule indices instead of hiding them.
     /// Mirrors `applyReplacements` in `scripts/lib/replacement-engine.js`.
     pub fn apply_detailed(&self, input: &str) -> ApplyReport {

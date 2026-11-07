@@ -41,7 +41,7 @@ npm test   # 含集成套件、模块单测、cargo test/clippy、对抗套件�
 4. **最左优先**：同一位置按规则声明顺序取舍（`["test","A"]` 与 `["testing","B"]` 对 `testing` 都产出 `Aing`）。
 
 Node 实现在 `scripts/lib/replacement-engine.js`，Rust 在 `rust/crates/replacer/src/automaton.rs`；改任一侧都要同步另一侧，`tests/test-replacement-engine.js` 有对 Rust 参考模型的随机对拍用例。
-`PROJECT.md` 要求 `targetString` 在目标文件中**唯一匹配**；命中多于一次**不再报错**（按全量替换处理），但会打印 `multiMatch` 警告——多处命中通常意味着规则写得太宽。
+`docs/dev/PROJECT.md` 要求 `targetString` 在目标文件中**唯一匹配**；命中多于一次**不再报错**（按全量替换处理），但会打印 `multiMatch` 警告——多处命中通常意味着规则写得太宽。
 
 ## 加正则规则
 
@@ -96,7 +96,7 @@ node scripts/auto-review.js --findings <dir> --dry-run   # 换一批 findings �
 - `REJECT`：确定噪声（品牌/产品名、URL/域名、文件路径/扩展名、CSS 类名、camelCase / 全大写缩写等纯技术标识符、含中日韩字符、单字母、纯数字/单位串、base64、示例数据）。
 - `REVIEW`：灰区（缺少键名上下文、长句、含品牌词、疑似句子片段/动态文案、仅原生菜单层）。**REVIEW 才是重点**，人只在这里逐条裁决，并看 `reasons[]` 给出的「为什么拿不准」。
 
-每条输出都带 `evidence`、`reasons[]` 和 `checked:false`。渐进基准见 `docs/i18n-backlog.md`（16 类表格，按类勾选）与同数据的 `docs/i18n-backlog.json`；勾完把 `ACCEPT`（含从 `REVIEW` 改过来的）整理成 `draft.txt`，**最终入库仍走既定工作流**：
+每条输出都带 `evidence`、`reasons[]` 和 `checked:false`。渐进基准见 `docs/dev/i18n-backlog.md`（16 类表格，按类勾选）与同数据的 `docs/dev/i18n-backlog.json`；勾完把 `ACCEPT`（含从 `REVIEW` 改过来的）整理成 `draft.txt`，**最终入库仍走既定工作流**：
 
 ```bash
 npm run add-terms draft.txt -- --dry-run   # 预览

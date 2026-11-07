@@ -74,7 +74,7 @@ pub struct ReplacementSummary {
     /// comparable to `total_rules`; printing `matched_rules / total_rules` used
     /// to produce nonsense like "2/1 matches".
     pub rules_hit: usize,
-    /// Indices of rules that matched more than once. PROJECT.md requires each
+    /// Indices of rules that matched more than once. docs/dev/PROJECT.md requires each
     /// target string to match uniquely, so these are surfaced for review.
     pub multi_match: Vec<usize>,
     pub modified: bool,

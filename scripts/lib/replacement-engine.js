@@ -179,7 +179,7 @@ function applyReplacementsWithFallback(content, rules) {
  *   forceFallback 仅供测试使用：跳过正则编译，直接走线性扫描 fallback。
  * @returns {{ content: string, appliedCount: number, matchedRules: number, replacements: number, multiMatch: number[] }}
  *   appliedCount / matchedRules 为「命中过的规则条数」，replacements 为「实际替换处数」，
- *   multiMatch 列出命中多于一次的规则下标（违反 PROJECT.md 的「唯一匹配」契约，需要人工确认）。
+ *   multiMatch 列出命中多于一次的规则下标（违反 docs/dev/PROJECT.md 的「唯一匹配」契约，需要人工确认）。
  */
 function applyReplacements(content, rules, options = {}) {
   const untouched = { content, appliedCount: 0, matchedRules: 0, replacements: 0, multiMatch: [] };
@@ -334,7 +334,7 @@ function patchAllTargets(stagingDir, rulesDir, targets = DEFAULT_TARGETS, option
     if (logger) {
       logger(`✅ [${scope}] ${stat.applied}/${stat.totalRules} 条规则匹配（${stat.replacements} 处替换）`);
     }
-    // PROJECT.md 的契约要求 targetString 在目标文件中唯一匹配。命中多处不再是错误
+    // docs/dev/PROJECT.md 的契约要求 targetString 在目标文件中唯一匹配。命中多处不再是错误
     // （以 Rust 的全量替换语义为准），但必须显式告知：多处命中往往意味着规则写得太宽。
     if (stat.multiMatch.length > 0 && warn) {
       warn(`⚠️ [${scope}] ${stat.multiMatch.length} 条规则命中多于一次（下标 ${stat.multiMatch.join(', ')}），`

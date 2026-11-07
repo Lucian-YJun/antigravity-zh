@@ -460,7 +460,7 @@ function renderMarkdown(report) {
     const lines = [];
     lines.push('# i18n 渐进补录清单（自动预筛）');
     lines.push('');
-    lines.push('> 由 `node scripts/auto-review.js --write-docs` 生成；`--out <path>` 可导出任意结构化 JSON，同源数据见 `docs/i18n-backlog.json`。');
+    lines.push('> 由 `node scripts/auto-review.js --write-docs` 生成；`--out <path>` 可导出任意结构化 JSON，同源数据见 `docs/dev/i18n-backlog.json`。');
     lines.push('> 数据源：`frontend-bundle.json` 的 `uncovered[]` 减去活体 L 集合（`crosscheck-sets.json` 的 `exact.F_minus_L`）。');
     lines.push('> 生成时间：' + report.generatedAt + '；共 ' + c.total + ' 条，分 ' + c.categories + ' 类。');
     lines.push('');
@@ -566,9 +566,9 @@ function main(argv = process.argv.slice(2)) {
         console.log('已写入 ' + target + '（ACCEPT ' + report.counts.ACCEPT + ' / REJECT ' + report.counts.REJECT + ' / REVIEW ' + report.counts.REVIEW + '）');
     }
     if (args.writeDocs) {
-        fs.writeFileSync(path.join(REPO_ROOT, 'docs', 'i18n-backlog.json'), JSON.stringify(report, null, 2) + '\n', 'utf8');
-        fs.writeFileSync(path.join(REPO_ROOT, 'docs', 'i18n-backlog.md'), renderMarkdown(report), 'utf8');
-        console.log('已重建 docs/i18n-backlog.json 与 docs/i18n-backlog.md');
+        fs.writeFileSync(path.join(REPO_ROOT, 'docs', 'dev', 'i18n-backlog.json'), JSON.stringify(report, null, 2) + '\n', 'utf8');
+        fs.writeFileSync(path.join(REPO_ROOT, 'docs', 'dev', 'i18n-backlog.md'), renderMarkdown(report), 'utf8');
+        console.log('已重建 docs/dev/i18n-backlog.json 与 docs/dev/i18n-backlog.md');
     }
     if (args.dryRun) printDryRun(report);
     return report;

@@ -54,7 +54,7 @@ function collectEntries(root, { requireExe = true } = {}) {
   for (const file of nativeFiles) add(`src/native/${file}`, path.join(nativeDir, file));
 
   add('README.md', path.join(root, 'README.md'));
-  add('RELEASE_NOTES.md', path.join(root, 'RELEASE_NOTES.md'));
+  add('RELEASE_NOTES.md', path.join(root, 'docs', 'guide', 'RELEASE_NOTES.md'));
   return items;
 }
 
@@ -132,7 +132,9 @@ function selfTest() {
       fs.mkdirSync(path.dirname(dest), { recursive: true });
       fs.copyFileSync(path.join(ROOT, rel), dest);
     };
-    for (const rel of [...BAT_FILES, 'README.md', 'RELEASE_NOTES.md', 'src/cockpit-zh.json', 'src/zh-i18n.js']) copy(rel);
+    for (const rel of [...BAT_FILES, 'README.md', 'src/cockpit-zh.json', 'src/zh-i18n.js']) copy(rel);
+    // 发布文档已收进 docs/，沙箱里也必须按同样的新结构摆放（collectEntries 从新路径读）
+    copy('docs/guide/RELEASE_NOTES.md');
     for (const rel of fs.readdirSync(path.join(ROOT, 'src', 'native'))) copy(`src/native/${rel}`);
 
     const first = packageRelease(root);

@@ -38,11 +38,11 @@
 
 ```text
 antigravity-zh/
-├─ 根目录：用户入口与维护文档（文件名多被发布脚本写死，勿随意移动）
+├─ 根目录：用户入口与仓库首页（文件名多被发布脚本/工具约定写死，勿随意移动）
 │  ├─ 一键安装.bat / 一键还原.bat / 快速同步词典.bat   # 三个双击入口
-│  ├─ README.md / RELEASE_NOTES.md                    # 随 zip 交付的说明
-│  ├─ AGENTS.md / PROJECT.md / LICENSE               # 维护规范 / 架构 / 许可
-│  └─ package.json / package-lock.json               # Node 依赖与脚本
+│  ├─ README.md                                   # 仓库首页说明（GitHub 只认根目录 README）
+│  ├─ AGENTS.md / LICENSE                        # 维护规范（工具约定在根目录） / 许可
+│  └─ package.json / package-lock.json           # Node 依赖与脚本
 ├─ src/                        # 注入客户端的运行时补丁（进发布 zip）
 │  ├─ zh-i18n.js               # 翻译引擎、菜单字典与同帧拦截
 │  ├─ cockpit-zh.json          # 词典与动态正则规则表
@@ -54,17 +54,19 @@ antigravity-zh/
 │  ├─ sync-dict.js             # 词典热同步
 │  └─ package-release.js / publish-release.js / build-rust-artifact.js    # 打包发版
 ├─ rust/                       # 当前出货的原生安装器源码（四个 crate，不进 zip）
+│  └─ README.md                # Rust workspace 自述（与 Cargo.toml 同目录）
 ├─ tests/                      # 自动化测试 / 对抗套件 / 性能基准 + fixtures/
-├─ docs/                       # 维护文档
-│  ├─ i18n-backlog.md / .json  # 漏译三态基准
-│  ├─ pr-assets/               # PR 截图
+├─ docs/                       # 文档按用途分四类
+│  ├─ guide/RELEASE_NOTES.md   # 用户向：版本说明（发布时写进 zip）
+│  ├─ dev/                     # 维护向：PROJECT.md、i18n-backlog.md / .json 漏译基准
+│  ├─ assets/                  # PR 截图
 │  └─ archive/patches/         # 历史留存补丁（已合入主线，勿再 git apply）
 └─ dist/                       # 构建产物（git 忽略）
 ```
 
-发布 zip 里只装 exe、三个 `.bat`、`src/` 和两份说明文档，`scripts/`、`rust/`、`tests/`、`docs/` 都不进去。用户端跑的是 Rust 安装器，`scripts/` 是维护仓库用的，跟安装过程无关。
+发布 zip 里只装 exe、三个 `.bat`、`src/` 和两份说明文档（`README.md` 与 `docs/guide/RELEASE_NOTES.md`，写进 zip 时仍叫这两个名字），`scripts/`、`rust/`、`tests/`、`docs/` 都不进去。用户端跑的是 Rust 安装器，`scripts/` 是维护仓库用的，跟安装过程无关。
 
-> 根目录几个文档和 `.bat` 的路径被 `scripts/package-release.js`、`scripts/publish-release.js` 按文件名硬编码，`AGENTS.md` 也被工具约定在根目录——所以它们保持原位，不往 `docs/` 收。
+> 根目录的 `README.md` 与三个 `.bat` 被发布脚本按文件名硬编码、且 README 是 GitHub 首页入口，`AGENTS.md` 被工具约定在根目录——这几个保持原位；其余文档已收进 `docs/` 下按用途分目录。
 
 ---
 
