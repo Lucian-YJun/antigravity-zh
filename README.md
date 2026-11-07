@@ -48,8 +48,8 @@ antigravity-zh/
 │  ├─ cockpit-zh.json          # 词典与动态正则规则表
 │  └─ native/                  # 各原生进程的 *.replacements.json 替换表
 ├─ scripts/                    # 仓库维护工具（不进 zip）
-│  ├─ patch.js                 # Node 回退安装器（无 exe 时使用）
-│  ├─ lib/                     # patch.js 的模块化实现
+│  ├─ patch.js                 # 历史安装流程夹具（仅供测试，非生产入口）
+│  ├─ lib/                     # 词典维护 / CDP / zip / 替换引擎等模块
 │  ├─ add-terms.js / clean-dict-variants.js / auto-review.js / scan-ui.js  # 词典维护与漏译预筛
 │  ├─ sync-dict.js             # 词典热同步
 │  └─ package-release.js / publish-release.js / build-rust-artifact.js    # 打包发版
@@ -82,7 +82,7 @@ antigravity-zh/
 
 熟悉 Node.js 的话可以拉仓库跑源码。`npm install` 装好依赖，`npm test` 会按 `package.json` 里登记的顺序把全套测试跑完，每个脚本结束都会打印通过和失败的条数，以实际输出为准。里面既有 Node 侧的模块单测，也有 `cargo test` / `clippy`，还有拿真二进制跑的对抗套件；替换引擎的 Node 实现和 Rust 的 Aho-Corasick 契约有随机对拍，改动任一侧都要同步另一侧。
 
-发版前 `npm run build` 会先编译 Rust release 产物再打 zip，`npm run test:release` 额外挂上依赖审计、对抗套件和性能基准。发布动作本身由 `scripts/publish-release.js` 完成，它会先确认本地 HEAD 和远端 `origin/main` 一致，避免把 Release 打在旧的 main 上。
+发版前 `npm run build` 会先编译 Rust release 产物再打 zip，`npm run test:release` 额外挂上依赖审计、对抗套件和性能基准。发布动作本身由 `scripts/publish-release.js` 完成，它会先确认本地 HEAD 和远端 `origin/main` 一致，再逐条比对 zip 与当前源码（文档、词典、替换表、exe 必须一致），不一致会中止并提示重跑 `npm run build`；也可以单独跑 `npm run verify:release` 检查。
 
 单独跑某一段也行：
 

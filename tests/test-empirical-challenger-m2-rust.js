@@ -249,7 +249,7 @@ console.log('\n--- SUITE 3: Multi-Pattern Replacement & UTF-8 Integrity (dual-tr
 // Node 只替换首处且顺序重扫，Rust 是单遍全量）。
 // 现在改成真正的双轨对拍：同一份输入与规则分别喂给
 //   (a) dist/antigravity-tool.exe            —— Rust，替换语义的契约基准
-//   (b) scripts/lib/replacement-engine.js    —— Node，实际出货的实现
+//   (b) scripts/lib/replacement-engine.js    —— Node，保留作语义对拍基准（出货实现是 Rust）
 // 两者必须逐字节相同，且等于人工推导出的期望值。
 const { spawnSync: spawnSyncAho } = require('child_process');
 const osAho = require('os');

@@ -78,7 +78,9 @@ function buildZip(entries, stamp = dosDateTime()) {
   return Buffer.concat([...locals, cd, eocd]);
 }
 
-function readZip(buffer) {
+// withData 为真时额外返回 data（zip buffer 的 subarray 视图，只读、零拷贝），供发布一致性逐字节比对；
+// 默认返回形状保持 { name, size, crc }，不破坏依赖该形状的既有断言。
+function readZip(buffer, { withData = false } = {}) {
   const eocdOffset = (() => {
     for (let i = buffer.length - 22; i >= Math.max(0, buffer.length - 65558); i--) {
       if (buffer.readUInt32LE(i) === 0x06054b50) return i;
@@ -107,7 +109,9 @@ function readZip(buffer) {
     const data = buffer.subarray(dataStart, dataStart + size);
     if (crc32(data) !== crc) throw new Error(`条目 ${name} CRC 校验失败`);
     if (data.length !== size) throw new Error(`条目 ${name} 长度不符`);
-    entries.push({ name, size, crc });
+    const entry = { name, size, crc };
+    if (withData) entry.data = data;
+    entries.push(entry);
     cursor += 46 + nameLen + extraLen + commentLen;
   }
   return entries;

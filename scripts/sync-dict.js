@@ -31,7 +31,7 @@ if (!localAppData) {
 }
 const kitDir = path.join(localAppData, 'Programs', 'antigravity', 'resources', 'zh-patch');
 if (!fs.existsSync(kitDir)) {
-  console.error('❌ 未找到已安装的 zh-patch 组件，请先运行: npm run patch');
+  console.error('❌ 未找到已安装的 zh-patch 组件，请先运行「一键安装.bat」安装补丁。');
   process.exit(1);
 }
 

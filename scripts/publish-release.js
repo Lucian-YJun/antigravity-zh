@@ -72,7 +72,7 @@ function resolveAssets(root) {
   if (!fs.existsSync(manifestPath)) {
     throw new Error(
       `缺少 dist/build-manifest.json，无法确认 ${EXE_NAME} 是用当前版本构建的。\n`
-      + `请重新执行 \`npm run build:exe\`（它会一并写入构建溯源）后再发布。`
+      + `请重新执行 \`npm run build:rust\`（它会一并写入构建溯源）后再发布。`
     );
   }
   let manifest;
@@ -85,7 +85,7 @@ function resolveAssets(root) {
     throw new Error(
       `构建溯源版本不符，发布中止：manifest 记录的是 v${manifest.version}，`
       + `但 package.json 是 v${VERSION}。\n`
-      + `dist/ 里很可能是上个版本的残留产物，请重新执行 \`npm run build:exe\`。`
+      + `dist/ 里很可能是上个版本的残留产物，请重新执行 \`npm run build:rust\`。`
     );
   }
   return assets;
@@ -212,6 +212,12 @@ async function main() {
 
   // 先校验资产再创建 Release：缺 zip 时若已建好 Release，GitHub 上会留下一个空的发布
   const assets = resolveAssets(path.join(__dirname, '..'));
+
+  // 发版前逐条比对 zip 与当前源码：改了文档/词典却没重新 build，或 zip 少了 native 表，都在这里拦下。
+  // 惰性 require：探针沙箱只复制了本文件，顶层 require 会 MODULE_NOT_FOUND 让零副作用守卫测试挂掉。
+  const { verifyReleaseZip } = require('./lib/release-consistency');
+  const zipAsset = assets.find(a => a.name === ZIP_NAME);
+  verifyReleaseZip(path.join(__dirname, '..'), zipAsset.path);
 
   const notesPath = path.join(__dirname, '..', 'docs', 'guide', 'RELEASE_NOTES.md');
   const releaseBody = fs.existsSync(notesPath) ? fs.readFileSync(notesPath, 'utf8') : `Antigravity 中文汉化补丁 v${VERSION}`;

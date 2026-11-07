@@ -127,5 +127,15 @@ check('assertRemoteHasHead 在 resolveAssets 之前调用',
 check('assertRemoteHasHead 在创建 Release 之前调用',
     callAssert > 0 && callCreate > 0 && callAssert < callCreate);
 
+// 5. 发版一致性校验必须在「资产就位之后、创建 Release 之前」，且是惰性 require
+const callVerify = src.indexOf('verifyReleaseZip(');
+check('发版前执行 zip 一致性校验',
+    callVerify > 0);
+check('一致性校验在 resolveAssets 之后、创建 Release 之前',
+    callVerify > callResolve && callVerify < callCreate);
+check('一致性校验模块为函数内惰性 require（不破坏探针沙箱）',
+    /const \{ verifyReleaseZip \} = require\('.\/lib\/release-consistency'\)/.test(src)
+    && src.indexOf("require('./lib/release-consistency')") > src.indexOf('async function main'));
+
 console.log(`\n发布脚本副作用边界: ${pass} 通过, ${fail} 失败`);
 process.exit(fail ? 1 : 0);

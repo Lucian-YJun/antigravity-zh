@@ -90,5 +90,25 @@ test('readZip: 非法或截断的 zip 数据触发明确异常', () => {
   }, /CRC 校验失败/);
 });
 
+// 4. readZip 的 withData 选项（发布一致性校验依赖，默认形状必须保持不变）
+test('readZip(withData): 返回每条 payload 且与源数据逐字节一致', () => {
+  const a = Buffer.from('Hello, world!', 'utf8');
+  const b = Buffer.from('中文内容', 'utf8');
+  const zipBuf = buildZip([
+    { name: 'a.txt', data: a },
+    { name: 'b.txt', data: b },
+  ], { time: 1, date: 1 });
+  const entries = readZip(zipBuf, { withData: true });
+  assert.strictEqual(entries.length, 2);
+  assert(entries[0].data.equals(a));
+  assert(entries[1].data.equals(b));
+});
+
+test('readZip 默认不返回 data（保持旧形状，不破坏既有断言）', () => {
+  const zipBuf = buildZip([{ name: 'x.txt', data: Buffer.from('x') }], { time: 1, date: 1 });
+  const keys = Object.keys(readZip(zipBuf)[0]).sort();
+  assert.deepStrictEqual(keys, ['crc', 'name', 'size']);
+});
+
 console.log(`\nZIP 模块单元测试: ${passed} 通过, ${failed} 失败`);
 if (failed > 0) process.exit(1);

@@ -2,6 +2,12 @@
 
 /**
  * Antigravity 中文汉化补丁 - 一键安装与还原脚本
+ *
+ * ⚠️ 本文件是【仅供测试使用的历史夹具】，不是生产安装入口。
+ * 用户端安装器是 Rust 原生二进制 Antigravity-zh.exe；三个 .bat 只调用它，
+ * 发布 zip 里也不含 scripts/。保留本文件是为了 test-patch-install.js 的
+ * 安装主流程 e2e 覆盖，以及 scripts/lib/ 模块与 Rust 语义的对拍基准。
+ * 请勿把它当作安装入口，也不要删除（AGENTS.md「不要动的东西」）。
  * 纯 Node.js，使用 asar API 解包
  * 
  * 模块化架构：
