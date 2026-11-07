@@ -1,0 +1,22 @@
+[
+  [
+    "title: 'Choose a Passkey',",
+    "title: '选择通行密钥',"
+  ],
+  [
+    "message: `Sign in to ${rpLabel}`,",
+    "message: `登录到 ${rpLabel}`,"
+  ],
+  [
+    "detail: 'Select a passkey account to continue:',",
+    "detail: '请选择要用于继续的通行密钥账号：',"
+  ],
+  [
+    "details.relyingPartyId || 'this site'",
+    "details.relyingPartyId || '此网站'"
+  ],
+  [
+    "`Account ${index + 1}`",
+    "`账号 ${index + 1}`"
+  ]
+]

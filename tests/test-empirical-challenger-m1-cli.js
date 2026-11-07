@@ -24,6 +24,7 @@ const path = require('path');
 const os = require('os');
 const crypto = require('crypto');
 const { spawnSync } = require('child_process');
+const { DEFAULT_TARGETS } = require('../scripts/lib/replacement-engine');
 
 let totalTests = 0;
 let passedTests = 0;
@@ -619,19 +620,21 @@ try {
     ]);
     assert.strictEqual(res.status, 0);
     assert(!res.panicked, 'Panic detected');
-    // 7 个 scope 的规则文件都不存在：必须逐条报「文件缺失，跳过」，
+    // 所有配置的 scope 的规则文件都不存在：必须逐条报「文件缺失，跳过」，
     // 不能再像旧版那样把它们静默丢掉、假装是 0 scopes 的正常空跑。
-    assert(
-      res.stdout.includes('Batch replacement completed (7 scopes)'),
-      `missing scope report; stdout: ${res.stdout}`
-    );
+    const totalM = /Batch replacement completed \((\d+) scopes\)/.exec(res.stdout);
+    const skippedM = /(\d+) scopes skipped/.exec(res.stdout);
+    assert(totalM, `missing scope report; stdout: ${res.stdout}`);
+    assert(skippedM, `missing skipped total; stdout: ${res.stdout}`);
+    const scopeTotal = Number(totalM[1]);
+    const scopeSkipped = Number(skippedM[1]);
+    assert(scopeTotal > 0, 'scope 总数必须大于 0');
+    assert.strictEqual(scopeSkipped, scopeTotal, '规则目录不存在时每个 scope 都应被跳过');
+    assert.strictEqual(scopeTotal, Object.keys(DEFAULT_TARGETS).length,
+      'Rust default_targets() 的 scope 数必须与 Node DEFAULT_TARGETS 一致');
     assert(
       res.stdout.includes('文件缺失，跳过'),
       `missing per-scope skip warning; stdout: ${res.stdout}`
-    );
-    assert(
-      res.stdout.includes('7 scopes skipped'),
-      `missing skipped total; stdout: ${res.stdout}`
     );
   });
 

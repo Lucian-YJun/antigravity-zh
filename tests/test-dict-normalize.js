@@ -291,13 +291,95 @@ const ruleFallbackCases = [
   ['12 files changed', '12 个文件已更改'],
   ['1 File Changed', '1 个文件已更改'],
   ['3 files changed', '3 个文件已更改'],
-  // 其余三组的裸形态（大小写变体 + 尾随标点，标点原样保留）
+  // 其余三组的裸形态（大小写变体 + 尾随标点）。
+  // A4 起规则 299/300/301 改为「不捕获、不回拼英文标点」，中文译文里不再残留
+  // 英文 . ! ?；这里只改规则产物，未改任何 dict 译文，冻结基线的 1607 条逐条比对不受影响。
   ['FILES CHANGED', '已更改的文件'],
-  ['FILES CHANGED.', '已更改的文件.'],
+  ['FILES CHANGED.', '已更改的文件'],
   ['ALLOW ONCE', '仅允许一次'],
-  ['ALLOW ONCE!', '仅允许一次!'],
+  ['ALLOW ONCE!', '仅允许一次'],
   ['IT REQUIRES', '需要'],
-  ['IT REQUIRES?', '需要?'],
+  ['IT REQUIRES?', '需要'],
+
+  // ---- A2：2.29 新增动态形态（全部追加在 rules 数组末尾，首字符可静态判定）----
+  // 相对时间改为「数字 + 单位 + ago」后缀，旧 ^(\d+)(m|h|d|w|s|mo)$ 集体失配。
+  // mo 规则声明在 m 规则之前；实测 4mo ago 不会被 ^(\d+)m\s+ago$ 抢先。
+  ['58m ago', '58 分钟前'],
+  ['3h ago', '3 小时前'],
+  ['2d ago', '2 天前'],
+  ['1w ago', '1 周前'],
+  ['30s ago', '30 秒前'],
+  ['4mo ago', '4 个月前'],
+  // Load older messages 按钮与 aria-label（含两个任意数字）
+  ['Load older messages', '加载更早的消息'],
+  ['Load older messages, showing 252 of 579', '加载更早的消息，已显示 252 / 579'],
+  ['Load older messages, showing 77 of 143', '加载更早的消息，已显示 77 / 143'],
+  ['5 more older messages', '还有 5 条更早的消息'],
+  // 模板变量拼接的 N of M / Step / Showing / Turn / Retry / WSL / 更新
+  ['Retry in 30s', '将在 30 秒后重试'],
+  ['Retrying in 5s', '将在 5 秒后重试'],
+  ['3 of 12', '第 3 项，共 12 项'],
+  ['Step 2 of 7', '第 2 步，共 7 步'],
+  ['Showing 20 of 100', '显示 20 / 100'],
+  ['Turn 4', '第 4 轮'],
+  ['Connecting to WSL…', '正在连接到 WSL…'],
+  ['Downloading update...', '正在下载更新...'],
+  // 既有形态回归：新规则不得抢走旧规则/归一化命中
+  ['9d', '9 天前'],
+  ['Turn 3 of 7', '第 3 轮，共 7 轮'],
+  ['No more older messages, showing 20 of 100', '没有更早的消息，已显示全部 20 条'],
+  // ^Update available$ 不加规则：词典已有 "Update Available"，归一化覆盖
+  ['Update available', '有可用更新'],
+
+  // ---- A3：修正 rules 171/172 的 [vV]e?iw 拼写错误（原地改，索引不变）----
+  ['Toggle Full View', '切换完整视图'],
+  ['Toggle Full View.', '切换完整视图'],
+  ['Full View', '完整视图'],
+  ['Full View.', '完整视图'],
+
+  // ---- A4：Allow once? 曾被规则 44 ^Allow (.+?)\?$ 抢先产出「允许 once 吗？」----
+  // 规则 44 改为 ^Allow (?!once\?$)(.+?)\?$，把这一形态让给 300 号规则。
+  ['Allow once?', '仅允许一次'],
+  ['Allow something?', '允许 something 吗？'],
+  ['Allow once more?', '允许 once more 吗？'],
+  ['Files changed.', '已更改的文件'],
+  ['It requires.', '需要'],
+  ['ALLOW ONCE!', '仅允许一次'],
+  ['IT REQUIRES?', '需要'],
+
+  // ---- A1：活体扫描固定 UI 文案（词条抽样，确保没有被规则误伤）----
+  ['Overview tab', '概览标签页'],
+  ['Review tab', '审查标签页'],
+  ['Side Panel', '侧边面板'],
+  ['Toggle Side Panel', '切换侧边面板'],
+  ['Skills Used', '已使用技能'],
+  ['Cancel (Ctrl+D)', '取消 (Ctrl+D)'],
+  ['Ran', '已运行'],
+  ['Found', '已找到'],
+  ['Messaged', '已发消息'],
+  ['Ran command, edited file', '已运行命令，已编辑文件'],
+  ['Explored file', '已探索文件'],
+  ['Ran commands, edited file', '已运行命令，已编辑文件'],
+  ['Edited file', '已编辑文件'],
+  ['Switch in context details', '在上下文详情中切换'],
+  ['English', '英语'],
+  ['Token', '令牌'],
+  ['Year', '年份'],
+  ['Previous', '上一个'],
+
+  // ---- R3：Codex P2（规则 44 负向断言大小写敏感，真 bug）----
+  // 旧规则 ^Allow (?!once\\?$)(.+?)\\?$ 只挡住全小写 once，Title-case 的
+  // "Allow Once?" 会漏进通用分支，产出「允许 Once 吗？」（残留英文 Once）。
+  // 规则 44 原地改为 ^Allow (?![oO][nN][cC][eE]\\?$)(.+?)\\?$：负向断言里
+  // 逐字符放开大小写，让 once/Once/ONCE 三种写法都交给 dict 归一化的「仅允许一次」。
+  // 不给整条规则加 i 标志 —— 那会把 Allow 前缀也放宽，可能抢走别的输入。
+  // 下面 4 个大小写形态全部期望「仅允许一次」；通用分支仍须保持「允许 something 吗？」。
+  // （Allow once? / Allow something? 在 A4 段已有同名断言，这里为让 P2 组自洽再列一次。）
+  ['Allow once?', '仅允许一次'],
+  ['Allow Once?', '仅允许一次'],
+  ['ALLOW ONCE?', '仅允许一次'],
+  ['allow ONCE?', '仅允许一次'],
+  ['Allow something?', '允许 something 吗？'],
 ];
 for (const [input, want] of ruleFallbackCases) {
   const got = tr(input);
@@ -314,6 +396,94 @@ check(
     && dictFile.dict['Build with Google Plugins'] === 'Build with Google 插件',
   '词典已不再保持该状态，请同步更新本断言与相关注释'
 );
+
+// ---- 6c. 契约：MENU_LABELS 与网页词典 dict 不得再次不同步 ----
+// 原生菜单层由 zh-i18n.js 的 MENU_LABELS 独立负责，但同样的文字出现在网页 DOM 里
+// 走的是 cockpit-zh.json 的 dict/rules。第三轮实测 MENU_LABELS 共 156 条，其中
+// 27 条在 dict 里 exact + normKey 都查不到（菜单能译、网页漏译）。这 27 条已通过
+// npm run add-terms 补进 dict；下面把「每条 MENU_LABELS key 都能被 dict 的 exact
+// 或归一化查表覆盖」固化成契约：以后官方往 MENU_LABELS 加文案时这里会直接报错，
+// 提醒同步走 add-terms，避免再次静默漂移。
+// 口径与 tr() 一致：精确匹配 → 归一化匹配（NE.compileNorm 与注入脚本的 NORM 同源）。
+// 必须是「exact 或 normKey」两条路：Search automations... 这类键处在归一化歧义组里
+// （compileNorm 会整组作废），靠精确条目覆盖，只查 compileNorm 会误报。
+// 只认 dict 覆盖，不把「恰好被某条 rules 兜住」算作覆盖 —— 规则是兜底，不是词典。
+const NE = zh.normEngine();
+const NORM_FOR_CONTRACT = NE.compileNorm(dictFile.dict, true);
+const menuKeys = Object.keys(zh.MENU_LABELS);
+const menuExact = [], menuViaNorm = [], menuUncovered = [];
+for (const k of menuKeys) {
+  if (Object.prototype.hasOwnProperty.call(dictFile.dict, k)) { menuExact.push(k); continue; }
+  if (NORM_FOR_CONTRACT[NE.normKey(k)] !== undefined) { menuViaNorm.push(k); continue; }
+  // 逐条留全：key / 归一键 / 真实 tr() 结果 / 菜单译文，便于直接判断该补词条还是改口径
+  menuUncovered.push({
+    key: k, normKey: NE.normKey(k), tr: tr(k), menuZh: zh.MENU_LABELS[k],
+  });
+}
+check('MENU_LABELS 规模非空（防止契约断言被清空后空转）', menuKeys.length > 100,
+  `当前 ${menuKeys.length} 条`);
+check(`MENU_LABELS 全部 ${menuKeys.length} 条 key 均被 dict 的 exact/normKey 覆盖（契约）`,
+  menuUncovered.length === 0,
+  menuUncovered.length
+    ? `${menuUncovered.length} 条未覆盖，逐条: ${menuUncovered.map(u =>
+        `${JSON.stringify(u.key)} (normKey=${JSON.stringify(u.normKey)}, tr=${JSON.stringify(u.tr)}, menuZh=${JSON.stringify(u.menuZh)})`
+      ).join(' | ')}`
+    : `（exact ${menuExact.length} / normKey ${menuViaNorm.length}）`);
+// 本文件顶部有一份独立复算的归一化实现；口径必须与引擎 normEngine() 一致，
+// 否则上面的契约拿错键，看起来 PASS 其实是假绿。
+check('本文件独立 normKey 与引擎 normEngine().normKey 口径一致',
+  menuKeys.every(k => normKey(k) === NE.normKey(k)),
+  menuKeys.filter(k => normKey(k) !== NE.normKey(k)).slice(0, 5).map(k => JSON.stringify(k)).join(', '));
+// 实际效果：这些文字出现在网页 DOM 里也必须能译出（tr() 非 null）。上面只保证
+// 「词典表里有」，这里用真实 tr() 再兜一层，防止被歧义组整组作废或 miss 缓存影响。
+// 注意：只查非 null，不强制译文与 MENU_LABELS 逐字相同 —— 两层允许各自措辞
+// （实测 'Show All' 菜单为「全部显示」、dict 为「显示全部」，属内容差异非缺陷）。
+const menuTrNull = menuKeys.filter(k => tr(k) === null || tr(k) === undefined);
+check('MENU_LABELS 全部 key 用真实 tr() 均能译出（网页 DOM 层不漏译）',
+  menuTrNull.length === 0,
+  menuTrNull.map(k => `${JSON.stringify(k)} → null`).join(' | '));
+
+// 本轮经 add-terms 正式写入的 27 条（译文取自 MENU_LABELS，已人工审过）。
+// 逐条用真实 tr() 验证英→中，并核对 exact 条目确实在 dict 里，防止「加进去了
+// 却被某条规则或归一化歧义组改写」。清单写死是本轮的批次快照；以后再补录词条
+// 应往这里追加（下面的 >= 27 守卫不会因此失效），而不是悄悄删条目让断言空转。
+const menuAddedTerms = [
+  ['Go', '前往'],
+  ['New Window', '新建窗口'],
+  ['Redo', '重做'],
+  ['Cut', '剪切'],
+  ['Paste', '粘贴'],
+  ['Paste and Match Style', '粘贴并匹配样式'],
+  ['Select All', '全选'],
+  ['Start Dictation', '开始听写'],
+  ['Emoji & Symbols', '表情与符号'],
+  ['Speech', '语音'],
+  ['Reload', '重新加载'],
+  ['Force Reload', '强制重新加载'],
+  ['Toggle Developer Tools', '切换开发者工具'],
+  ['Toggle Full Screen', '切换全屏'],
+  ['Enter Full Screen', '进入全屏'],
+  ['Exit Full Screen', '退出全屏'],
+  ['Actual Size', '实际大小'],
+  ['Zoom', '缩放'],
+  ['Bring All to Front', '全部置于顶层'],
+  ['Close Window', '关闭窗口'],
+  ['Close Tab', '关闭标签页'],
+  ['Services', '服务'],
+  ['Hide', '隐藏'],
+  ['Hide Others', '隐藏其他'],
+  ['Preferences', '偏好设置'],
+  ['Docs', '文档'],
+  ['Downloading Update...', '正在下载更新...'],
+];
+for (const [en, want] of menuAddedTerms) {
+  const got = tr(en);
+  check(`菜单补录词条 ${JSON.stringify(en)}`,
+    dictFile.dict[en] === want && got === want,
+    `期望 exact=${JSON.stringify(want)} 且 tr()=${JSON.stringify(want)}，实际 exact=${JSON.stringify(dictFile.dict[en])} / tr()=${JSON.stringify(got)}`);
+}
+check('菜单补录词条清单完整（本轮 27 条，防止删条目空转）', menuAddedTerms.length >= 27,
+  `当前 ${menuAddedTerms.length} 条`);
 
 // ---- 7. 规模兜底 ----
 // 这里只做「异常膨胀」的兜底，不是覆盖率目标：官方每次更新都可能新增界面文案，

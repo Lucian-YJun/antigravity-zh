@@ -1,0 +1,18 @@
+[
+  [
+    "<title>Passkeys</title>",
+    "<title>通行密钥</title>"
+  ],
+  [
+    "<h1 class=\"sheet-title\">Passkeys</h1>",
+    "<h1 class=\"sheet-title\">通行密钥</h1>"
+  ],
+  [
+    "<p class=\"mechanism-header\">Use your phone or tablet</p>",
+    "<p class=\"mechanism-header\">使用你的手机或平板</p>"
+  ],
+  [
+    "<p id=\"status\" class=\"mechanism-desc\">Scan this QR code with the camera on the device that has your passkey for ${safeRpId}</p>",
+    "<p id=\"status\" class=\"mechanism-desc\">请用存有 ${safeRpId} 通行密钥的设备上的相机扫描此二维码</p>"
+  ]
+]

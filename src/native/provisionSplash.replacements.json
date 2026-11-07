@@ -1,0 +1,6 @@
+[
+  [
+    "<div>Setting up WSL: ${escapeHtml(distro)}</div>",
+    "<div>正在配置 WSL：${escapeHtml(distro)}</div>"
+  ]
+]

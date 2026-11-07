@@ -169,6 +169,14 @@ impl BatchReplacer {
             "wizard".to_string(),
             "dist/ideInstall/wizardHtml.js".to_string(),
         );
+        // 2.29 新增的原生 dialog / 独立 data: URL 窗口（与 Node 侧 DEFAULT_TARGETS 同步）。
+        // execute_batch 按 scope 找 <scope>.replacements.json，找不到会 RulesMissing + skip，
+        // 因此两侧 key 与路径必须严格一致。
+        targets.insert("webauthn".to_string(), "dist/webauthn.js".to_string());
+        targets.insert("cablev2".to_string(), "dist/cablev2.js".to_string());
+        targets.insert("qrEncoder".to_string(), "dist/qrEncoder.js".to_string());
+        targets.insert("provisionSplash".to_string(), "dist/provisionSplash.js".to_string());
+        targets.insert("wsl".to_string(), "dist/wsl.js".to_string());
         targets
     }
 

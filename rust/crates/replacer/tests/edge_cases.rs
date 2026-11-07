@@ -168,7 +168,10 @@ fn test_batch_reports_every_skipped_scope_instead_of_dropping_it() {
         .expect("batch run");
 
     // 每个配置的 scope 都必须在报告里出现，不能再被静默丢掉。
-    assert_eq!(summaries.len(), 7);
+    // 数量从 default_targets() 动态取：新增 scope 后仍守住「一个都不能少」的契约，
+    // 而不是写死 7（那会在扩展 scope 映射时误报）。
+    let total_scopes = BatchReplacer::default_targets().len();
+    assert_eq!(summaries.len(), total_scopes);
 
     let utils = summaries
         .iter()
@@ -184,7 +187,7 @@ fn test_batch_reports_every_skipped_scope_instead_of_dropping_it() {
     );
 
     let skipped: Vec<_> = summaries.iter().filter(|s| s.skipped.is_some()).collect();
-    assert_eq!(skipped.len(), 6);
+    assert_eq!(skipped.len(), total_scopes - 1);
     for summary in &skipped {
         assert!(
             matches!(summary.skipped, Some(SkipReason::RulesMissing(_))),

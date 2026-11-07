@@ -18,5 +18,9 @@
   [
     "<button class=\"btn-primary\" id=\"btn-skip\">Explore the new Antigravity</button>",
     "<button class=\"btn-primary\" id=\"btn-skip\">开始使用全新 Antigravity</button>"
+  ],
+  [
+    "alt=\"Antigravity Icon\"",
+    "alt=\"Antigravity 图标\""
   ]
 ]

@@ -1,7 +1,7 @@
 // 词典与原生替换规则静态体检套件
 // 1. 验证 cockpit-zh.json 所有正则有效性与捕获组匹配
 // 2. 检查词典是否有重复 Key、首尾空字符、空键空值
-// 3. 验证 7 个 *.replacements.json 格式合法性与唯一性
+// 3. 验证所有 *.replacements.json 格式合法性与唯一性（按目录动态取，新增表自动纳入）
 
 const fs = require('fs');
 const path = require('path');
@@ -178,17 +178,11 @@ check(
   `不匹配条目: ${captureGroupMismatches.map(m => `#${m.idx}: 正则含${m.expectedMax}组但引用了$${m.actual}`).join('; ')}`
 );
 
-// 4. 验证 7 个原生替换文件 (*.replacements.json)
+// 4. 验证所有原生替换文件 (*.replacements.json)
 const nativeDir = path.join(__dirname, '../src/native');
-const expectedNativeFiles = [
-  'ipchandlers.replacements.json',
-  'main.replacements.json',
-  'menu.replacements.json',
-  'tray.replacements.json',
-  'updater.replacements.json',
-  'utils.replacements.json',
-  'wizard.replacements.json',
-];
+const expectedNativeFiles = fs.readdirSync(nativeDir)
+  .filter(f => f.endsWith('.replacements.json'))
+  .sort();
 
 let missingNativeFiles = [];
 let invalidNativeFiles = [];
@@ -228,7 +222,7 @@ for (const fileName of expectedNativeFiles) {
   }
 }
 
-check('7 个原生替换文件均存在', missingNativeFiles.length === 0, `缺失: ${missingNativeFiles.join(', ')}`);
+check(`${expectedNativeFiles.length} 个原生替换文件均存在`, missingNativeFiles.length === 0, `缺失: ${missingNativeFiles.join(', ')}`);
 check('原生替换文件格式严格合规', invalidNativeFiles.length === 0, invalidNativeFiles.join('; '));
 check('原生替换文件中无重复匹配项', duplicateOldStrings.length === 0, duplicateOldStrings.join('; '));
 
