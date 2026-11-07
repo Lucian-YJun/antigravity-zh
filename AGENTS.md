@@ -123,3 +123,34 @@ node scripts/scan-ui.js <CDP端口>    # 扫描当前界面上仍是英文的文
 ```
 
 扫描结果里混着用户数据（项目名、对话标题、分支名）和品牌名，**哪些该翻必须人工判断**，不要整批入库。
+
+
+## 找漏译后的自动预筛
+
+扫描完别急着逐条人工看。先跑自动预筛，把「该不该翻」的重复判断交给脚本：
+
+```bash
+node scripts/auto-review.js --dry-run          # 只打印三态统计 + 每态 5 条样例 + 人工工作量对比，不写任何文件
+node scripts/auto-review.js --out <path>       # 显式导出结构化 JSON
+node scripts/auto-review.js --findings <dir> --dry-run   # 换一批 findings 数据源
+```
+
+默认（无参数）等价于 `--dry-run`。脚本只读 `frontend-bundle.json` / `crosscheck-sets.json` / 当前词典，
+**绝不自动写 `src/cockpit-zh.json`**；判定规则集中在文件顶部的 `RULES` 常量，便于随官方新版调整。
+
+三态含义：
+
+- `ACCEPT`：确定 UI 固定文案（强 UI 键名 `label` / `title` / `placeholder` / `description` / `aria-label` 等、活体 L 集合真出现、或与已有 dict 同形）。**ACCEPT 也要人工过一眼**：确认 `suggest` 译文贴切、品牌词原样保留，只是不再需要判断「该不该翻」。
+- `REJECT`：确定噪声（品牌/产品名、URL/域名、文件路径/扩展名、CSS 类名、camelCase / 全大写缩写等纯技术标识符、含中日韩字符、单字母、纯数字/单位串、base64、示例数据）。
+- `REVIEW`：灰区（缺少键名上下文、长句、含品牌词、疑似句子片段/动态文案、仅原生菜单层）。**REVIEW 才是重点**，人只在这里逐条裁决，并看 `reasons[]` 给出的「为什么拿不准」。
+
+每条输出都带 `evidence`、`reasons[]` 和 `checked:false`。渐进基准见 `docs/i18n-backlog.md`（16 类表格，按类勾选）与同数据的 `docs/i18n-backlog.json`；勾完把 `ACCEPT`（含从 `REVIEW` 改过来的）整理成 `draft.txt`，**最终入库仍走既定工作流**：
+
+```bash
+npm run add-terms draft.txt -- --dry-run   # 预览
+npm run add-terms draft.txt                # 正式写入 + 冗余体检
+npm test                                  # 步骤数以 package.json 的 test 脚本为准
+npm run sync                              # 推送到已安装客户端，1~2 秒热载生效
+```
+
+自动判定不可能 100% 准：品牌词嵌在句子里、拼接片段、动态模板都可能落到 `REVIEW`；`ACCEPT` 里也可能有译文措辞需要修。脚本的目标是减少「逐条判断」的工作量，不是替人做最终决定——**哪些该翻仍由人判断，不要整批入库**。

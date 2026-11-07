@@ -1285,7 +1285,34 @@
     "English": "英语",
     "Token": "令牌",
     "Year": "年份",
-    "Previous": "上一个"
+    "Previous": "上一个",
+    "Go": "前往",
+    "New Window": "新建窗口",
+    "Redo": "重做",
+    "Cut": "剪切",
+    "Paste": "粘贴",
+    "Paste and Match Style": "粘贴并匹配样式",
+    "Select All": "全选",
+    "Start Dictation": "开始听写",
+    "Emoji & Symbols": "表情与符号",
+    "Speech": "语音",
+    "Reload": "重新加载",
+    "Force Reload": "强制重新加载",
+    "Toggle Developer Tools": "切换开发者工具",
+    "Toggle Full Screen": "切换全屏",
+    "Enter Full Screen": "进入全屏",
+    "Exit Full Screen": "退出全屏",
+    "Actual Size": "实际大小",
+    "Zoom": "缩放",
+    "Bring All to Front": "全部置于顶层",
+    "Close Window": "关闭窗口",
+    "Close Tab": "关闭标签页",
+    "Services": "服务",
+    "Hide": "隐藏",
+    "Hide Others": "隐藏其他",
+    "Preferences": "偏好设置",
+    "Docs": "文档",
+    "Downloading Update...": "正在下载更新..."
   },
   "rules": [
     [
@@ -1465,7 +1492,7 @@
       "允许运行 $1 吗？"
     ],
     [
-      "^Allow (?!once\\?$)(.+?)\\?$",
+      "^Allow (?![oO][nN][cC][eE]\\?$)(.+?)\\?$",
       "允许 $1 吗？"
     ],
     [

@@ -366,6 +366,20 @@ const ruleFallbackCases = [
   ['Token', '令牌'],
   ['Year', '年份'],
   ['Previous', '上一个'],
+
+  // ---- R3：Codex P2（规则 44 负向断言大小写敏感，真 bug）----
+  // 旧规则 ^Allow (?!once\\?$)(.+?)\\?$ 只挡住全小写 once，Title-case 的
+  // "Allow Once?" 会漏进通用分支，产出「允许 Once 吗？」（残留英文 Once）。
+  // 规则 44 原地改为 ^Allow (?![oO][nN][cC][eE]\\?$)(.+?)\\?$：负向断言里
+  // 逐字符放开大小写，让 once/Once/ONCE 三种写法都交给 dict 归一化的「仅允许一次」。
+  // 不给整条规则加 i 标志 —— 那会把 Allow 前缀也放宽，可能抢走别的输入。
+  // 下面 4 个大小写形态全部期望「仅允许一次」；通用分支仍须保持「允许 something 吗？」。
+  // （Allow once? / Allow something? 在 A4 段已有同名断言，这里为让 P2 组自洽再列一次。）
+  ['Allow once?', '仅允许一次'],
+  ['Allow Once?', '仅允许一次'],
+  ['ALLOW ONCE?', '仅允许一次'],
+  ['allow ONCE?', '仅允许一次'],
+  ['Allow something?', '允许 something 吗？'],
 ];
 for (const [input, want] of ruleFallbackCases) {
   const got = tr(input);
@@ -382,6 +396,94 @@ check(
     && dictFile.dict['Build with Google Plugins'] === 'Build with Google 插件',
   '词典已不再保持该状态，请同步更新本断言与相关注释'
 );
+
+// ---- 6c. 契约：MENU_LABELS 与网页词典 dict 不得再次不同步 ----
+// 原生菜单层由 zh-i18n.js 的 MENU_LABELS 独立负责，但同样的文字出现在网页 DOM 里
+// 走的是 cockpit-zh.json 的 dict/rules。第三轮实测 MENU_LABELS 共 156 条，其中
+// 27 条在 dict 里 exact + normKey 都查不到（菜单能译、网页漏译）。这 27 条已通过
+// npm run add-terms 补进 dict；下面把「每条 MENU_LABELS key 都能被 dict 的 exact
+// 或归一化查表覆盖」固化成契约：以后官方往 MENU_LABELS 加文案时这里会直接报错，
+// 提醒同步走 add-terms，避免再次静默漂移。
+// 口径与 tr() 一致：精确匹配 → 归一化匹配（NE.compileNorm 与注入脚本的 NORM 同源）。
+// 必须是「exact 或 normKey」两条路：Search automations... 这类键处在归一化歧义组里
+// （compileNorm 会整组作废），靠精确条目覆盖，只查 compileNorm 会误报。
+// 只认 dict 覆盖，不把「恰好被某条 rules 兜住」算作覆盖 —— 规则是兜底，不是词典。
+const NE = zh.normEngine();
+const NORM_FOR_CONTRACT = NE.compileNorm(dictFile.dict, true);
+const menuKeys = Object.keys(zh.MENU_LABELS);
+const menuExact = [], menuViaNorm = [], menuUncovered = [];
+for (const k of menuKeys) {
+  if (Object.prototype.hasOwnProperty.call(dictFile.dict, k)) { menuExact.push(k); continue; }
+  if (NORM_FOR_CONTRACT[NE.normKey(k)] !== undefined) { menuViaNorm.push(k); continue; }
+  // 逐条留全：key / 归一键 / 真实 tr() 结果 / 菜单译文，便于直接判断该补词条还是改口径
+  menuUncovered.push({
+    key: k, normKey: NE.normKey(k), tr: tr(k), menuZh: zh.MENU_LABELS[k],
+  });
+}
+check('MENU_LABELS 规模非空（防止契约断言被清空后空转）', menuKeys.length > 100,
+  `当前 ${menuKeys.length} 条`);
+check(`MENU_LABELS 全部 ${menuKeys.length} 条 key 均被 dict 的 exact/normKey 覆盖（契约）`,
+  menuUncovered.length === 0,
+  menuUncovered.length
+    ? `${menuUncovered.length} 条未覆盖，逐条: ${menuUncovered.map(u =>
+        `${JSON.stringify(u.key)} (normKey=${JSON.stringify(u.normKey)}, tr=${JSON.stringify(u.tr)}, menuZh=${JSON.stringify(u.menuZh)})`
+      ).join(' | ')}`
+    : `（exact ${menuExact.length} / normKey ${menuViaNorm.length}）`);
+// 本文件顶部有一份独立复算的归一化实现；口径必须与引擎 normEngine() 一致，
+// 否则上面的契约拿错键，看起来 PASS 其实是假绿。
+check('本文件独立 normKey 与引擎 normEngine().normKey 口径一致',
+  menuKeys.every(k => normKey(k) === NE.normKey(k)),
+  menuKeys.filter(k => normKey(k) !== NE.normKey(k)).slice(0, 5).map(k => JSON.stringify(k)).join(', '));
+// 实际效果：这些文字出现在网页 DOM 里也必须能译出（tr() 非 null）。上面只保证
+// 「词典表里有」，这里用真实 tr() 再兜一层，防止被歧义组整组作废或 miss 缓存影响。
+// 注意：只查非 null，不强制译文与 MENU_LABELS 逐字相同 —— 两层允许各自措辞
+// （实测 'Show All' 菜单为「全部显示」、dict 为「显示全部」，属内容差异非缺陷）。
+const menuTrNull = menuKeys.filter(k => tr(k) === null || tr(k) === undefined);
+check('MENU_LABELS 全部 key 用真实 tr() 均能译出（网页 DOM 层不漏译）',
+  menuTrNull.length === 0,
+  menuTrNull.map(k => `${JSON.stringify(k)} → null`).join(' | '));
+
+// 本轮经 add-terms 正式写入的 27 条（译文取自 MENU_LABELS，已人工审过）。
+// 逐条用真实 tr() 验证英→中，并核对 exact 条目确实在 dict 里，防止「加进去了
+// 却被某条规则或归一化歧义组改写」。清单写死是本轮的批次快照；以后再补录词条
+// 应往这里追加（下面的 >= 27 守卫不会因此失效），而不是悄悄删条目让断言空转。
+const menuAddedTerms = [
+  ['Go', '前往'],
+  ['New Window', '新建窗口'],
+  ['Redo', '重做'],
+  ['Cut', '剪切'],
+  ['Paste', '粘贴'],
+  ['Paste and Match Style', '粘贴并匹配样式'],
+  ['Select All', '全选'],
+  ['Start Dictation', '开始听写'],
+  ['Emoji & Symbols', '表情与符号'],
+  ['Speech', '语音'],
+  ['Reload', '重新加载'],
+  ['Force Reload', '强制重新加载'],
+  ['Toggle Developer Tools', '切换开发者工具'],
+  ['Toggle Full Screen', '切换全屏'],
+  ['Enter Full Screen', '进入全屏'],
+  ['Exit Full Screen', '退出全屏'],
+  ['Actual Size', '实际大小'],
+  ['Zoom', '缩放'],
+  ['Bring All to Front', '全部置于顶层'],
+  ['Close Window', '关闭窗口'],
+  ['Close Tab', '关闭标签页'],
+  ['Services', '服务'],
+  ['Hide', '隐藏'],
+  ['Hide Others', '隐藏其他'],
+  ['Preferences', '偏好设置'],
+  ['Docs', '文档'],
+  ['Downloading Update...', '正在下载更新...'],
+];
+for (const [en, want] of menuAddedTerms) {
+  const got = tr(en);
+  check(`菜单补录词条 ${JSON.stringify(en)}`,
+    dictFile.dict[en] === want && got === want,
+    `期望 exact=${JSON.stringify(want)} 且 tr()=${JSON.stringify(want)}，实际 exact=${JSON.stringify(dictFile.dict[en])} / tr()=${JSON.stringify(got)}`);
+}
+check('菜单补录词条清单完整（本轮 27 条，防止删条目空转）', menuAddedTerms.length >= 27,
+  `当前 ${menuAddedTerms.length} 条`);
 
 // ---- 7. 规模兜底 ----
 // 这里只做「异常膨胀」的兜底，不是覆盖率目标：官方每次更新都可能新增界面文案，
