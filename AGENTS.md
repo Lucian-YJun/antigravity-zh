@@ -90,6 +90,26 @@ PROJECT.md 要求 `targetString` 在目标文件中**唯一匹配**；命中多�
 - 真正要防的是「同一归一化键、同一译文的多条写法」，这项已在 `test-dict.js` 强制。
 - 不要拿绝对字数当门禁。历史上曾用「1300 条以内」当验收线，结果只剩 41 条余量，官方一次更新就会顶破，逼着人调阈值。
 
+## 远端写操作：受保护分支与 PR 合并必须先经用户确认
+
+`main` 是受保护分支（`required_approving_review_count=1`、`dismiss_stale_reviews=true`、
+`enforce_admins=false`），直推会被 `GH006: Changes must be made through a pull request` 拦下。
+`enforce_admins=false` 让 admin 能用 `gh pr merge --admin` 绕过 `REVIEW_REQUIRED` 自行合并，
+但**这个决定属于用户，不属于 AI**：
+
+- 直接 `git push origin main` 被拒时，停下来报告，等用户决定走 PR、走审查还是别的路径；
+  **不要**自己另开分支、自己建 PR、自己合并。
+- `gh pr merge`（尤其带 `--admin`）以及任何跳过 `REVIEW_REQUIRED` / 未满足 approving review
+  的合并，一律不执行，由用户自己审核后操作。
+- 已明确授权的动作（如「重建并覆盖 v1.4.0 Release 资产」）照做；但把授权延伸到
+  「开 PR + 合并」这类新的远端写之前，必须先问。
+- 同理，`git push --force`、强推 tag、删远端分支/资产、改保护规则这类不可逆或绕过
+  流程的写操作，都要先确认。
+
+背景：PR #7 由用户自己审核后合并；PR #8 曾由 AI 用 `--admin` 自行合并，
+用户事后明确纠正「下次别这样干了」。合并与否由人决定，AI 只负责把代码改好、
+跑完 `npm test`、把改动推到非保护分支并如实报告状态。
+
 ## 不要动的东西
 
 - `scripts/patch.js` 里的进程检测逻辑（fail-safe：宁可拒绝执行也不误杀 IDE）
