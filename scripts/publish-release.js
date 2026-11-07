@@ -66,7 +66,7 @@ function resolveAssets(root) {
   }
 
   // 溯源校验：dist/ 被 gitignore 但会跨构建残留在开发机上，仅凭 existsSync
-  // 无法区分「刚构建的 exe」和「上个版本留下的 exe」。build:exe 会写下
+  // 无法区分「刚构建的 exe」和「上个版本留下的 exe」。build:rust 会写下
   // dist/build-manifest.json，这里核对它的版本号，避免把旧 exe 当新资产发出去。
   const manifestPath = path.join(root, 'dist', 'build-manifest.json');
   if (!fs.existsSync(manifestPath)) {
