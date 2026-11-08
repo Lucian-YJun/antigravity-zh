@@ -284,7 +284,7 @@ const ruleFallbackCases = [
   ['SEARCH AUTOMATIONS', '搜索自动化'],
   ['Search automations', '搜索自动化'],
   // 词典精确条目优先于规则，因此这里得到的是词典里的值
-  ['Build With Google Plugins', 'Build With Google 插件'],
+  ['Build With Google Plugins', 'Build with Google 插件'],
   ['build with google plugins', 'Build with Google 插件'],
   ['Build with google plugins', 'Build with Google 插件'],
   // 带数字的后缀形态：旧版只能靠精确条目，未收录的数量会回落英文
@@ -334,6 +334,10 @@ const ruleFallbackCases = [
   // 仅归档计数单独出现（active=0, archived>0）
   ['3 archived conversations.', '3 个归档对话。'],
   ['1 archived conversation.', '1 个归档对话。'],
+  // 问答计数：模板拼接 "N question(s)"，N 无法枚举，只能靠规则兜底
+  ['1 question', '1 个问题'],
+  ['3 questions', '3 个问题'],
+  ['12 questions', '12 个问题'],
   // 既有形态回归：新规则不得抢走旧规则/归一化命中
   ['9d', '9 天前'],
   ['Turn 3 of 7', '第 3 轮，共 7 轮'],
@@ -373,7 +377,8 @@ const ruleFallbackCases = [
   ['Edited file', '已编辑文件'],
   ['Switch in context details', '在上下文详情中切换'],
   ['English', '英语'],
-  ['Token', '令牌'],
+  // Token 保留英文（用户 2026-11-08 决定：与 token/Token 复合词写法一致，不译作「令牌」）
+  ['Token', 'Token'],
   ['Year', '年份'],
   ['Previous', '上一个'],
 
@@ -390,22 +395,58 @@ const ruleFallbackCases = [
   ['ALLOW ONCE?', '仅允许一次'],
   ['allow ONCE?', '仅允许一次'],
   ['Allow something?', '允许 something 吗？'],
+
+  // ---- A5：运行时计数/列表文案（源码用模板拼接，静态词典抓不到，只能靠规则）----
+  // 背景：bundle 里写作 `1 browser step` / `${n} browser steps` 这类三元或模板，
+  // grep 原始 bundle 找不到整句，于是长期漏译成英文。每条都对应源码里真实存在的模板。
+  ['1 browser step', '1 个浏览器步骤'],
+  ['3 browser steps', '3 个浏览器步骤'],
+  ['4 models selected', '已选择 4 个模型'],
+  ['1 File With Changes', '1 个文件有更改'],
+  ['2 Files With Changes', '2 个文件有更改'],
+  ['1 Side Question', '1 个侧边提问'],
+  ['2 Side Questions', '2 个侧边提问'],
+  ['View 2 side questions', '查看 2 个侧边提问'],
+  ['1 active mode', '1 个活动模式'],
+  ['2 active modes', '2 个活动模式'],
+  ['Modes', '模式'],
+  ['45% of the context window used', '已使用上下文窗口的 45%'],
+  ['12 lines added, 3 lines removed', '新增 12 行，删除 3 行'],
+  ['+3 more (Show all)', '还有 3 个（显示全部）'],
+  ['1 image attachment', '1 个图片附件'],
+  ['3 image attachments', '3 个图片附件'],
+  ['1 video attachment', '1 个视频附件'],
+  ['2 audio attachments', '2 个音频附件'],
+  ['1 attachment', '1 个附件'],
+  ['4 attachments', '4 个附件'],
+  ['3 tasks running', '3 个任务运行中'],
+  // 智能体计数：此前规则译作「子代理」/「Agent 运行中」，与用户定下的「子智能体」不一致
+  ['3 subagents running', '3 个子智能体正在运行'],
+  ['Open Subagent: foo', '打开子智能体：foo'],
+  ['2 agents running', '2 个智能体运行中'],
+  ['No agents running', '没有正在运行的智能体'],
 ];
 for (const [input, want] of ruleFallbackCases) {
   const got = tr(input);
   check(`规则兜底 ${JSON.stringify(input)}`, got === want, `期望 ${JSON.stringify(want)}，实际 ${JSON.stringify(got)}`);
 }
-// 记录一个已知的词典不一致（内容问题，非代码问题）：同一条原文的两种写法译成了
-// 不同的 "With/with" —— 「Build With Google Plugins」→「Build With Google 插件」
-// 而「Build with Google Plugins」→「Build with Google 插件」。归一化歧义组会因此
-// 整组作废，未收录的写法落到规则上，得到 "Build with Google 插件"。
-// 若要统一措辞，需改译文并同步冻结基线，属刻意的内容变更。
+// 此前的已知不一致已修复（2026-11-08）：
+// 原文两种写法「Build With Google Plugins」与「Build with Google Plugins」
+// 曾译成 With/with 大小写不同的两条译文，使归一化歧义组整组作废。
+// 现已统一译文并删除冗余的那条（大小写差异由归一化查找覆盖），
+// 词典里只保留「Build with Google Plugins」一条。
 check(
-  '记录已知不一致：Build With/with 的译文大小写不统一',
-  dictFile.dict['Build With Google Plugins'] === 'Build With Google 插件'
+  'Build With/with 冗余变体已合并（归一化查找覆盖大小写差异）',
+  dictFile.dict['Build With Google Plugins'] === undefined
     && dictFile.dict['Build with Google Plugins'] === 'Build with Google 插件',
-  '词典已不再保持该状态，请同步更新本断言与相关注释'
+  `词典应为：Build With 变体已移除、Build with 保留且译文正确；实际 ` +
+    `Build With=${JSON.stringify(dictFile.dict['Build With Google Plugins'])} / ` +
+    `Build with=${JSON.stringify(dictFile.dict['Build with Google Plugins'])}`
 );
+// 两种大小写写法经 tr() 都必须译出同一结果（验证归一化真的覆盖了）
+check('大小写两种写法的 tr() 结果一致',
+  tr('Build With Google Plugins') === tr('Build with Google Plugins'),
+  `With=${JSON.stringify(tr('Build With Google Plugins'))} / with=${JSON.stringify(tr('Build with Google Plugins'))}`);
 
 // ---- 6c. 契约：MENU_LABELS 与网页词典 dict 不得再次不同步 ----
 // 原生菜单层由 zh-i18n.js 的 MENU_LABELS 独立负责，但同样的文字出现在网页 DOM 里

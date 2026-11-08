@@ -79,6 +79,70 @@ node scripts/scan-ui.js <CDP端口>    # 扫描当前界面上仍是英文的文
 ```
 扫描结果里混着用户数据（项目名、对话标题、分支名）和品牌名，**哪些该翻必须人工判断，不要整批入库**。
 
+## 审计词典：漏译 / 死条目 / 质量
+
+```bash
+npm run audit:i18n                      # 全量报告（需要 bundle；见下）
+npm run audit:i18n -- --quality         # 只查词典自身（不需要 bundle）
+npm run audit:i18n -- --bundle <dir>    # 指定渲染层 bundle 目录
+npm run audit:i18n -- --out <file>      # 导出结构化 JSON
+```
+
+脚本**只读**，绝不写 `src/cockpit-zh.json`，也不调用 add-terms。
+
+### 判定「文案是否存在」不能只查整串
+
+**`bundle.includes("Project deleted")` 返回 false，不等于界面不会出现这句。**
+
+渲染层大量文案是拼出来的，源码里根本没有整串：
+
+```js
+u({ title: `${w.capitalized} deleted` })        // → "Project deleted"
+f(`Failed to delete ${B.lowercase}`)            // → "Failed to delete project"
+"Ask anything, @ to mention" + (c ? ", / for actions" : "")
+```
+
+所以脚本对每条词条走**四条路**判定，任何一条命中就算存在：
+
+1. 字面量子串出现
+2. 大小写变体（引擎归一化会命中，`Find in conversation` ≡ `Find in Conversation`）
+3. 可由 `${...}` 模板生成（变量取 `Project`/`Workspace` 等真实取值）
+4. 可由 `+` 拼接生成
+
+**背景**：曾只用第 1 条，把 `Project deleted` 判成死条目并准备删除；只按「看起来应该有」推断，
+又加了 4 条永远不可能命中的死条目。**加词条和删词条都必须走这四条。**
+
+### 死条目报告的用法
+
+报告里的「疑似死条目」**只是待复核清单，不是删除清单**。收到报告后：
+
+1. 先看它是否出现在上面的模板/拼接枚举里（脚本已自动排除，但 bundle 版本可能不同）
+2. 用新版本 bundle 重跑一次
+3. 确认后逐条删除，并说明依据
+
+判死的代价不对称：**误杀真条目会让界面漏译，而留着一条死条目只是无害冗余。**
+
+
+## 原生菜单（右键菜单）与网页词典是两条路
+
+网页里的文本走注入脚本的 `tr()`（`cockpit-zh.json` 的 `dict` + `rules`）；
+原生菜单（应用菜单、网页传下来的右键菜单）走主进程的 `translateMenu` / `translateMenuTemplate`，
+**两份词典都要有**，否则会出现「同一个词在页面里是中文、在右键菜单里还是英文」。
+
+`zh-i18n.js` 的查表顺序是：`MENU_LABELS`（手写）→ 菜单归一化 → `dict` 精确 → `dict` 归一化。
+第二段是本轮补的：网页右键菜单的 label 大多只在 `dict` 里（`Conversation Name` / `Split Right` /
+`Toggle Sidebar` 等 60+ 条），只查 `MENU_LABELS` 会整片漏译。
+
+新增菜单文案时的判断：
+
+1. 只是页面上的一句普通文案 → 只进 `dict`（`add-terms`），菜单会自动兜底。
+2. Electron 自带 role 菜单项（`Cut` / `Select All` / `Toggle Full Screen` 等）→ 必须进 `MENU_LABELS`，
+   因为它们的 label 由 Electron 内部生成，`dict` 里通常没有。
+3. 两种情况都可能：两处都写，措辞保持一致（`test-dict-normalize.js` 有「MENU_LABELS 每条 key 均被 dict 覆盖」的契约）。
+
+原生菜单同样跟随词典热载：`refreshMenuDict()` 按 `cockpit-zh.json` 的 mtime 重建索引，
+`npm run sync` 后无需重启客户端。没有菜单打开的窗口时，改动只影响下一次弹菜单。
+
 ## 找漏译后的自动预筛
 
 扫描完先跑自动预筛，把「该不该翻」的重复判断交给脚本：

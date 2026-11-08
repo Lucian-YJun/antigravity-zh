@@ -68,7 +68,12 @@ check('活体 L 索引命中 Toggle Side Panel', ctx.liveIndex.live.has('Toggle 
 // ---- 3) 强 UI 键名 → ACCEPT ----
 check('强 UI 键 title → ACCEPT', classify(item('Changes', { keys: ['title'] }), ctx).state === 'ACCEPT');
 check('强 UI 键 placeholder → ACCEPT', classify(item('Paste code', { keys: ['placeholder'] }), ctx).state === 'ACCEPT');
-check('弱键 name 不自动放行', classify(item('Select', { keys: ['name'] }), ctx).state !== 'ACCEPT');
+// 注意：这里刻意用一个**不在词典里**的词。
+// 早期版本用 'Select'，但该词后来被补进词典，auto-review 依「与已有 dict 同形」判 ACCEPT
+// 是正确的 —— 失效的是样例而不是规则。用动态选出的探针词保持断言的原始意图：
+// 弱键（name）本身不足以让一条陌生文案被判 ACCEPT。
+const weakKeyProbe = "Zephyr";
+check('弱键 name 不自动放行', classify(item(weakKeyProbe, { keys: ['name'] }), ctx).state !== 'ACCEPT');
 
 // ---- 4) 全量报告：计数自洽 / 每条可解释 / 字段完整 ----
 const report = ar.buildReport(ctx);

@@ -320,6 +320,75 @@ check('translateMenu 翻译补全菜单项 (图 3: 检出操作大写与复数�
   menuScreenshots.items[105].label === '本地检出：'
 );
 
+// 1c. translateMenuTemplate：网页右键菜单走 buildFromTemplate 的数组形态
+const nativeTemplate = [
+  { label: 'Copy Conversation Markdown' },
+  { label: 'Copy Conversation ID' },
+  { label: 'Copy Trajectory ID' },
+  { type: 'separator' },
+  { label: 'Custom XYZ' },
+  { label: 'Pin', submenu: [{ label: 'Archive' }] },
+];
+const returnedTemplate = zh.translateMenuTemplate(nativeTemplate);
+check('translateMenuTemplate 返回原数组（适配 buildFromTemplate 入参）', returnedTemplate === nativeTemplate);
+check('translateMenuTemplate 翻译对话复制项',
+  nativeTemplate[0].label === '复制对话 Markdown' &&
+  nativeTemplate[1].label === '复制对话 ID' &&
+  nativeTemplate[2].label === '复制轨迹 ID');
+check('translateMenuTemplate 保留分隔符与未知项',
+  nativeTemplate[3].type === 'separator' && nativeTemplate[4].label === 'Custom XYZ');
+check('translateMenuTemplate 递归翻译子菜单', nativeTemplate[5].submenu[0].label === '归档');
+
+// 1d. 原生菜单回落到 cockpit-zh.json 的 dict
+// 背景：网页右键菜单（window.showContextMenu → buildFromTemplate）的 label 大多只存在于
+// dict 里（Conversation Name / Split Right / Toggle Sidebar ...），不进 MENU_LABELS。
+// 只查 MENU_LABELS 时这些项在原生菜单里一直是英文，而同一串在 DOM 里已经是中文。
+const dictOnlyTemplate = [
+  { label: 'Conversation Name' },
+  { label: 'Project Name' },
+  { label: 'Split Right' },
+  { label: 'Remove from Split' },      // dict 里是 Remove From Split，靠归一化
+  { label: 'Toggle Sidebar' },
+  { label: 'Rename This Conversation' },
+  { label: 'A group with this name already exists.' },
+  { type: 'separator' },
+  { label: 'New Group', submenu: [{ label: 'Create Group' }, { label: 'Worktree Name' }] },
+  { label: 'Totally Unknown Label' },
+];
+zh.translateMenuTemplate(dictOnlyTemplate);
+check('原生菜单回落到 dict 精确条目',
+  dictOnlyTemplate[0].label === '对话名称' &&
+  dictOnlyTemplate[1].label === '项目名称' &&
+  dictOnlyTemplate[4].label === '切换侧边栏' &&
+  dictOnlyTemplate[5].label === '重命名此对话');
+check('原生菜单回落到 dict 归一化条目（大小写变体）',
+  dictOnlyTemplate[2].label === '向右拆分' && dictOnlyTemplate[3].label === '从拆分中移除',
+  JSON.stringify([dictOnlyTemplate[2].label, dictOnlyTemplate[3].label]));
+check('原生菜单回落覆盖新建分组弹窗文案',
+  dictOnlyTemplate[6].label === '已存在同名分组。' &&
+  dictOnlyTemplate[8].label === '新建分组' &&
+  dictOnlyTemplate[8].submenu[0].label === '创建分组' &&
+  dictOnlyTemplate[8].submenu[1].label === '工作树名称',
+  JSON.stringify(dictOnlyTemplate[8]));
+check('原生菜单未收录的 label 仍原样保留', dictOnlyTemplate[9].label === 'Totally Unknown Label');
+
+// 词典热载后原生菜单必须换词：按 mtime 重建索引，不重启客户端
+const simDictPath = path.join(SIM, 'cockpit-zh.json');
+const dictBefore = fs.readFileSync(simDictPath, 'utf8');
+try {
+  const hot = JSON.parse(dictBefore);
+  hot.dict['Hot Reload Probe'] = '热载探针';
+  fs.writeFileSync(simDictPath, JSON.stringify(hot), 'utf8');
+  const t = fs.statSync(simDictPath);
+  fs.utimesSync(simDictPath, new Date(t.atimeMs + 2000), new Date(t.mtimeMs + 2000));
+  const hotTpl = [{ label: 'Hot Reload Probe' }];
+  zh.translateMenuTemplate(hotTpl);
+  check('原生菜单跟随词典热载（mtime 变化后重建索引）', hotTpl[0].label === '热载探针',
+    JSON.stringify(hotTpl[0].label));
+} finally {
+  fs.writeFileSync(simDictPath, dictBefore, 'utf8');
+}
+
 // 2-4. attachWebTranslator：捕获注入脚本并验证质量
 const calls = [];
 const win = {

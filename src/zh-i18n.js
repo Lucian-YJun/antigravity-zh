@@ -288,6 +288,30 @@ const MENU_LABELS = {
     'Local Checkouts.': '本地检出。',
     'Local Checkouts...': '本地检出...',
     'Local Checkouts:': '本地检出：',
+    'Rename': '重命名',
+    'Mark Unread': '标记为未读',
+    'Mark Read': '标记为已读',
+    'Archive': '归档',
+    'Unpin': '取消置顶',
+    'Pin': '置顶',
+    'Share': '分享',
+    'Stop': '停止',
+    'View Debug': '查看调试信息',
+    'Restore': '恢复',
+    'Delete Permanently': '永久删除',
+    'Telemetry': '遥测',
+    'View archived in the sidebar': '在侧边栏中查看已归档对话',
+    'Fork': '派生',
+    'Split': '拆分',
+    'Conversation ID': '对话 ID',
+    'Conversation Title': '对话标题',
+    'Copy Conversation Markdown': '复制对话 Markdown',
+    'Copy Conversation ID': '复制对话 ID',
+    'Copy Trajectory ID': '复制轨迹 ID',
+    'Copy Path': '复制路径',
+    'More Actions': '更多操作',
+    'Learn More': '了解更多',
+    'Sign Out': '退出登录',
 };
 exports.MENU_LABELS = MENU_LABELS;
 // 供工具复用同一份归一化逻辑（add-terms 用它判断新词条是否已被现有条目覆盖），
@@ -296,27 +320,92 @@ exports.normEngine = normEngine;
 // 菜单归一化索引：构造菜单是一次性动作，直接建全量索引（含规范形态），
 // 让「大小写 × 尾部标点」的变体都能命中，词典里就不必再逐条展开。
 const MENU_NORM = NORM_IMPL.compileNorm(MENU_LABELS, true);
+// 原生菜单的兜底词典：MENU_LABELS 只覆盖 Electron 自带菜单与应用自建菜单，
+// 但网页右键菜单（window.showContextMenu → buildFromTemplate）传来的 label 有 60+ 条
+// 只存在于 cockpit-zh.json 的 dict 里（Conversation Name / Split Right / Toggle Sidebar ...）。
+// 不回落到 dict，就会出现「同一个词在 DOM 里是中文、在原生菜单里还是英文」。
+// 只查 dict 的精确 + 归一化，不套 rules：规则是给整句兜底的，套到菜单 label 上容易误伤。
+let MENU_DICT = Object.create(null);
+let MENU_DICT_NORM = Object.create(null);
+let menuDictStamp = -1;
+// 按 mtime 缓存：每次建菜单只 stat 一次，词典没改就不重建索引。
+// 这样 npm run sync 热载后原生菜单也能跟着换词，不必重启客户端。
+function refreshMenuDict() {
+    const dicPath = path.join(__dirname, 'cockpit-zh.json');
+    let stamp = 0;
+    try {
+        stamp = fs.statSync(dicPath).mtimeMs;
+    }
+    catch (e) {
+        stamp = 0;
+    }
+    if (stamp === menuDictStamp) {
+        return;
+    }
+    menuDictStamp = stamp;
+    try {
+        const dic = loadDictionary();
+        MENU_DICT = dic.dict;
+        MENU_DICT_NORM = NORM_IMPL.compileNorm(dic.dict, true);
+    }
+    catch (e) {
+        // 词典坏了不能让菜单炸掉：退回只用 MENU_LABELS（菜单只在打开时跑一遍，stat 成本可忽略）
+        MENU_DICT = Object.create(null);
+        MENU_DICT_NORM = Object.create(null);
+    }
+}
+// 单条菜单文本的翻译：MENU_LABELS（手写、优先）→ 菜单归一化 → dict（精确 → 归一化）。
+// 词典索引由调用方在整棵菜单开始处刷新一次 refreshMenuDict()，这里只查表：
+// 一个菜单动辄上百项，逐项 statSync 是白花的系统调用。
+function translateMenuLabel(label) {
+    if (typeof label !== 'string' || !label) {
+        return label;
+    }
+    const nk = NORM_IMPL.normKey(label);
+    const zh = MENU_LABELS[label] || MENU_NORM[nk] || MENU_DICT[label] || MENU_DICT_NORM[nk];
+    return (zh && label !== zh) ? zh : label;
+}
 function translateMenu(menu) {
     if (!menu || !menu.items) {
         return;
     }
+    refreshMenuDict();
+    translateMenuItems(menu);
+}
+// 递归部分不重复刷新词典索引：一个菜单有上百项、若干层子菜单，逐层 statSync 是白花的系统调用。
+function translateMenuItems(menu) {
     for (const item of menu.items) {
-        const label = item.label;
-        if (typeof label === 'string' && label) {
-            let zh = MENU_LABELS[label];
-            // 菜单只在建菜单时跑一遍，不做快路径判断：省下的一次查表远不值当漏译的风险
-            if (!zh) {
-                zh = MENU_NORM[NORM_IMPL.normKey(label)];
-            }
-            if (zh && label !== zh) {
-                item.label = zh;
-            }
-        }
+        item.label = translateMenuLabel(item.label);
         if (item.submenu) {
-            translateMenu(item.submenu);
+            translateMenuItems(item.submenu);
         }
     }
 }
+// 处理 Electron Menu.buildFromTemplate 的数组形态（网页右键菜单走这条路）。
+// 与 translateMenu 共用同一份 MENU_LABELS + 归一化索引，避免两套规则漂移。
+function translateMenuTemplate(template) {
+    if (!Array.isArray(template)) {
+        return template;
+    }
+    refreshMenuDict();
+    walkMenuTemplate(template);
+    return template;
+}
+function walkMenuTemplate(template) {
+    for (const item of template) {
+        if (!item || typeof item !== 'object') {
+            continue;
+        }
+        if (item.type === 'separator') {
+            continue;
+        }
+        item.label = translateMenuLabel(item.label);
+        if (Array.isArray(item.submenu)) {
+            walkMenuTemplate(item.submenu);
+        }
+    }
+}
+exports.translateMenuTemplate = translateMenuTemplate;
 function loadDictionary() {
     const dicPath = path.join(__dirname, 'cockpit-zh.json');
     const raw = JSON.parse(fs.readFileSync(dicPath, 'utf-8'));
@@ -327,6 +416,7 @@ const TRANSLATOR_BODY = [
     'var D=__DATA__;var dict=D.dict;',
     'var hasOwn=Object.prototype.hasOwnProperty;',
     'var missCurr=new Set(),missPrev=new Set();',
+    'var mixedCache=new Map();',
     'var ALPHA_RE=/[a-zA-Z]/;',
     'var EDITOR_CLS_RE=/(?:^|\\s)(?:monaco-editor|monaco-diff-editor|cm-editor|cm-s-default|CodeMirror|xterm|ProseMirror)(?:\\s|$)/;',
     'var ATTRS=["placeholder","title","aria-label","aria-placeholder","data-tooltip","alt","data-title"];',
@@ -430,7 +520,26 @@ const TRANSLATOR_BODY = [
     '  if(isSpace(cEnd)){while(end>start&&isSpace(s.charCodeAt(end-1)))end--;}',
     '  var core=(start===0&&end===len)?s:s.slice(start,end);',
     '  var fc=core.charCodeAt(0);',
-    '  if(fc>=0x4e00&&fc<=0x9fa5)return null;',
+    '  if(fc>=0x4e00&&fc<=0x9fa5){',
+    '    var mx=mixedCache.get(core);',
+    '    if(mx!==undefined)return mx;',
+    '    var i2=core.length-1;',
+    '    while(i2>=0&&(core.charAt(i2)==="."||core.charAt(i2)===","||core.charAt(i2)==="?"||core.charAt(i2)==="!"))i2--;',
+    '    var tEnd=i2+1;',
+    '    while(i2>=0&&/[A-Za-z0-9 .,\'-]/.test(core.charAt(i2)))i2--;',
+    '    var tStart=i2+1;',
+    '    var mOut=null;',
+    '    if(tStart<tEnd){',
+    '      var mRaw=core.slice(tStart,tEnd);',
+    '      var mLead=mRaw.length-mRaw.replace(/^\\s+/,"").length;',
+    '      var mTail=mRaw.trim();',
+    '      if(/^[A-Za-z]/.test(mTail)&&mTail.split(/\\s+/).length>=3){',
+    '        tStart=tStart+mLead;',
+    '        var mZh=tr(mTail);',
+    '        if(mZh!==null&&mZh!==mTail)mOut=core.slice(0,tStart)+mZh+core.slice(tEnd);}}',
+    '    if(mixedCache.size>=500)mixedCache.clear();',
+    '    mixedCache.set(core,mOut);',
+    '    return mOut;}',
     '  var isAlpha=(fc>=65&&fc<=90)||(fc>=97&&fc<=122);',
     '  var isDigit=(fc>=48&&fc<=57);',
     '  if(!isAlpha&&!isDigit&&!ALPHA_RE.test(core))return null;',
@@ -615,7 +724,7 @@ const TRANSLATOR_BODY = [
     // rev 为可选词典版本号：多窗口并发热载时，慢窗口的旧 payload 不得覆盖新 payload
     '  setData:function(nd,rev){if(!nd){return;}',
     '    if(rev>0){if(rev<=dataRev){return;}dataRev=rev;}',
-    '    D=nd;dict=nd.dict||{};missCurr.clear();missPrev.clear();normHit.clear();nodeMap=new WeakMap();cooldownQueue=[];if(cooldownTimer!==null){clearTimeout(cooldownTimer);cooldownTimer=null;}RC=compileRules(nd.rules);NORM=NE.compileNorm(dict,true);try{walk(document.body);}catch(e){}}};',
+    '    D=nd;dict=nd.dict||{};missCurr.clear();missPrev.clear();normHit.clear();mixedCache.clear();nodeMap=new WeakMap();cooldownQueue=[];if(cooldownTimer!==null){clearTimeout(cooldownTimer);cooldownTimer=null;}RC=compileRules(nd.rules);NORM=NE.compileNorm(dict,true);try{walk(document.body);}catch(e){}}};',
     'walk(document.body);var t0=tr(document.title);if(t0){document.title=t0;}'
 ].join('\n');
 function buildScript(dic) {

@@ -1,14 +1,18 @@
 [
-  [
-    "title: 'Open workspace',",
-    "title: '打开工作区',"
-  ],
-  [
-    "title: 'Open workspaces',",
-    "title: '打开工作区',"
-  ],
-  [
-    "if (t.error) {\n            electron_1.dialog.showErrorBox('Cannot open folder', t.error);\n            return undefined;\n        }\n        if (t.warning) {\n            void electron_1.dialog.showMessageBox({\n                type: 'warning',\n                message: 'Folder is on the Windows filesystem',\n                detail: t.warning,\n            });\n        }",
-    "if (t.error) {\n            electron_1.dialog.showErrorBox('无法打开文件夹', t.error);\n            return undefined;\n        }\n        if (t.warning) {\n            void electron_1.dialog.showMessageBox({\n                type: 'warning',\n                message: '文件夹位于 Windows 文件系统',\n                detail: t.warning,\n            });\n        }"
-  ]
+ [
+  "title: 'Open workspace',",
+  "title: '打开工作区',"
+ ],
+ [
+  "title: 'Open workspaces',",
+  "title: '打开工作区',"
+ ],
+ [
+  "if (t.error) {\n            electron_1.dialog.showErrorBox('Cannot open folder', t.error);\n            return undefined;\n        }\n        if (t.warning) {\n            void electron_1.dialog.showMessageBox({\n                type: 'warning',\n                message: 'Folder is on the Windows filesystem',\n                detail: t.warning,\n            });\n        }",
+  "if (t.error) {\n            electron_1.dialog.showErrorBox('无法打开文件夹', t.error);\n            return undefined;\n        }\n        if (t.warning) {\n            void electron_1.dialog.showMessageBox({\n                type: 'warning',\n                message: '文件夹位于 Windows 文件系统',\n                detail: t.warning,\n            });\n        }"
+ ],
+ [
+  "            const menu = electron_1.Menu.buildFromTemplate(template);",
+  "            const menu = electron_1.Menu.buildFromTemplate(\n            // 网页传来的右键菜单 label 是英文：主进程弹原生菜单前必须先查汉化词典，\n            // 否则网页侧翻译器管不到（原生菜单不在 DOM 里）。\n            require('../../zh-patch/zh-i18n').translateMenuTemplate(template));"
+ ]
 ]
