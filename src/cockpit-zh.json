@@ -2004,7 +2004,10 @@
     "View archived in the sidebar (Display options menu).": "在侧边栏中查看已归档对话（显示选项菜单）。",
     "menu)": "菜单）",
     "Unpin": "取消置顶",
-    "Telemetry": "遥测"
+    "Telemetry": "遥测",
+    "Asked": "已提问",
+    "Asking": "正在提问",
+    "Running": "运行中"
   },
   "rules": [
     [
@@ -3293,6 +3296,10 @@
     [
       "^(\\d+) archived conversations?\\.?$",
       "$1 个归档对话。"
+    ],
+    [
+      "^(\\d+) questions?$",
+      "$1 个问题"
     ]
   ]
 }
