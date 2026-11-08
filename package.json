@@ -5,7 +5,7 @@
   "scripts": {
     "build": "npm run build:rust && npm run release:package",
     "build:rust": "cargo build --release --manifest-path rust/Cargo.toml && node scripts/build-rust-artifact.js",
-    "test": "node tests/test-dict.js && node tests/test-main.js && node tests/test-page.js && node tests/test-mixed-text.js && node tests/test-process-detect.js && node tests/test-patch-install.js && node tests/test-sync-dict.js && node tests/test-dict-normalize.js && node tests/test-watch-robustness.js && node tests/test-publish-guard.js && node tests/test-add-terms.js && node tests/test-devtools-guard.js && node tests/test-auto-review.js && node tests/test-audit-i18n.js && npm run test:lib && npm run test:cargo && npm run test:adversarial",
+    "test": "node tests/test-dict.js && node tests/test-main.js && node tests/test-page.js && node tests/test-mixed-text.js && node tests/test-process-detect.js && node tests/test-patch-install.js && node tests/test-sync-dict.js && node tests/test-dict-normalize.js && node tests/test-watch-robustness.js && node tests/test-publish-guard.js && node tests/test-add-terms.js && node tests/test-devtools-guard.js && node tests/test-auto-review.js && node tests/test-audit-i18n.js && node tests/test-release-notes.js && npm run test:lib && npm run test:cargo && npm run test:adversarial",
     "test:release": "npm run build && npm run test:audit && npm run test:adversarial && npm run bench && npm run verify:release",
     "test:dict": "node tests/test-dict.js",
     "test:main": "node tests/test-main.js",
@@ -30,7 +30,8 @@
     "verify:release": "node scripts/verify-release.js",
     "test:release-consistency": "node tests/test-release-consistency.js",
     "test:audit-i18n": "node tests/test-audit-i18n.js",
-    "audit:i18n": "node scripts/audit-i18n.js"
+    "audit:i18n": "node scripts/audit-i18n.js",
+    "test:release-notes": "node tests/test-release-notes.js"
   },
   "keywords": [
     "antigravity",
