@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-08T05:42:32.461Z",
+  "generatedAt": "2026-11-08T05:51:04.538Z",
   "source": {
     "bundle": "C:\\Users\\35332\\.gemini\\antigravity\\brain\\008f16c3-08fc-461a-afe6-25eb0b08548e\\scratch\\findings\\frontend-bundle.json",
     "crosscheck": "C:\\Users\\35332\\.gemini\\antigravity\\brain\\008f16c3-08fc-461a-afe6-25eb0b08548e\\scratch\\findings\\crosscheck-sets.json",
@@ -8,13 +8,13 @@
   },
   "counts": {
     "total": 651,
-    "ACCEPT": 468,
+    "ACCEPT": 471,
     "REJECT": 1,
-    "REVIEW": 182,
+    "REVIEW": 179,
     "categories": 16,
     "manualBaseline": 651,
-    "manualAfter": 182,
-    "reduction": 469
+    "manualAfter": 179,
+    "reduction": 472
   },
   "items": [
     {
@@ -82,14 +82,14 @@
         "strongUiKey": "label",
         "weakUiKey": null,
         "shapePrefix": null,
-        "normCovered": false,
-        "exactDict": false,
+        "normCovered": true,
+        "exactDict": true,
         "brandStandalone": false,
         "exampleData": false
       },
       "state": "ACCEPT",
       "reasons": [
-        "bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案"
+        "当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态"
       ],
       "checked": false
     },
@@ -120,14 +120,14 @@
         "strongUiKey": "label",
         "weakUiKey": null,
         "shapePrefix": null,
-        "normCovered": false,
-        "exactDict": false,
+        "normCovered": true,
+        "exactDict": true,
         "brandStandalone": false,
         "exampleData": false
       },
       "state": "ACCEPT",
       "reasons": [
-        "bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案"
+        "当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态"
       ],
       "checked": false
     },
@@ -158,14 +158,14 @@
         "strongUiKey": "label",
         "weakUiKey": null,
         "shapePrefix": null,
-        "normCovered": false,
-        "exactDict": false,
+        "normCovered": true,
+        "exactDict": true,
         "brandStandalone": false,
         "exampleData": false
       },
       "state": "ACCEPT",
       "reasons": [
-        "bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案"
+        "当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态"
       ],
       "checked": false
     },
@@ -196,14 +196,14 @@
         "strongUiKey": "label",
         "weakUiKey": null,
         "shapePrefix": null,
-        "normCovered": false,
-        "exactDict": false,
+        "normCovered": true,
+        "exactDict": true,
         "brandStandalone": false,
         "exampleData": false
       },
       "state": "ACCEPT",
       "reasons": [
-        "bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案"
+        "当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态"
       ],
       "checked": false
     },
@@ -234,14 +234,14 @@
         "strongUiKey": "label",
         "weakUiKey": null,
         "shapePrefix": null,
-        "normCovered": false,
-        "exactDict": false,
+        "normCovered": true,
+        "exactDict": true,
         "brandStandalone": false,
         "exampleData": false
       },
       "state": "ACCEPT",
       "reasons": [
-        "bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案"
+        "当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态"
       ],
       "checked": false
     },
@@ -272,14 +272,14 @@
         "strongUiKey": "label",
         "weakUiKey": null,
         "shapePrefix": null,
-        "normCovered": false,
-        "exactDict": false,
+        "normCovered": true,
+        "exactDict": true,
         "brandStandalone": false,
         "exampleData": false
       },
       "state": "ACCEPT",
       "reasons": [
-        "bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案"
+        "当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态"
       ],
       "checked": false
     },
@@ -310,14 +310,14 @@
         "strongUiKey": "label",
         "weakUiKey": null,
         "shapePrefix": null,
-        "normCovered": false,
-        "exactDict": false,
+        "normCovered": true,
+        "exactDict": true,
         "brandStandalone": false,
         "exampleData": false
       },
       "state": "ACCEPT",
       "reasons": [
-        "bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案"
+        "当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态"
       ],
       "checked": false
     },
@@ -386,14 +386,14 @@
         "strongUiKey": "label",
         "weakUiKey": null,
         "shapePrefix": null,
-        "normCovered": false,
-        "exactDict": false,
+        "normCovered": true,
+        "exactDict": true,
         "brandStandalone": false,
         "exampleData": false
       },
       "state": "ACCEPT",
       "reasons": [
-        "bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案"
+        "当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态"
       ],
       "checked": false
     },
@@ -462,14 +462,14 @@
         "strongUiKey": "label",
         "weakUiKey": null,
         "shapePrefix": null,
-        "normCovered": false,
-        "exactDict": false,
+        "normCovered": true,
+        "exactDict": true,
         "brandStandalone": false,
         "exampleData": false
       },
       "state": "ACCEPT",
       "reasons": [
-        "bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案"
+        "当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态"
       ],
       "checked": false
     },
@@ -500,14 +500,14 @@
         "strongUiKey": "label",
         "weakUiKey": null,
         "shapePrefix": null,
-        "normCovered": false,
-        "exactDict": false,
+        "normCovered": true,
+        "exactDict": true,
         "brandStandalone": false,
         "exampleData": false
       },
       "state": "ACCEPT",
       "reasons": [
-        "bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案"
+        "当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态"
       ],
       "checked": false
     },
@@ -538,14 +538,14 @@
         "strongUiKey": "label",
         "weakUiKey": null,
         "shapePrefix": null,
-        "normCovered": false,
-        "exactDict": false,
+        "normCovered": true,
+        "exactDict": true,
         "brandStandalone": false,
         "exampleData": false
       },
       "state": "ACCEPT",
       "reasons": [
-        "bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案"
+        "当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态"
       ],
       "checked": false
     },
@@ -576,14 +576,14 @@
         "strongUiKey": "label",
         "weakUiKey": null,
         "shapePrefix": null,
-        "normCovered": false,
-        "exactDict": false,
+        "normCovered": true,
+        "exactDict": true,
         "brandStandalone": false,
         "exampleData": false
       },
       "state": "ACCEPT",
       "reasons": [
-        "bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案"
+        "当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态"
       ],
       "checked": false
     },
@@ -614,14 +614,14 @@
         "strongUiKey": "label",
         "weakUiKey": null,
         "shapePrefix": null,
-        "normCovered": false,
-        "exactDict": false,
+        "normCovered": true,
+        "exactDict": true,
         "brandStandalone": false,
         "exampleData": false
       },
       "state": "ACCEPT",
       "reasons": [
-        "bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案"
+        "当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态"
       ],
       "checked": false
     },
@@ -690,14 +690,14 @@
         "strongUiKey": "label",
         "weakUiKey": null,
         "shapePrefix": null,
-        "normCovered": false,
-        "exactDict": false,
+        "normCovered": true,
+        "exactDict": true,
         "brandStandalone": false,
         "exampleData": false
       },
       "state": "ACCEPT",
       "reasons": [
-        "bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案"
+        "当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态"
       ],
       "checked": false
     },
@@ -766,14 +766,14 @@
         "strongUiKey": "label",
         "weakUiKey": null,
         "shapePrefix": null,
-        "normCovered": false,
-        "exactDict": false,
+        "normCovered": true,
+        "exactDict": true,
         "brandStandalone": false,
         "exampleData": false
       },
       "state": "ACCEPT",
       "reasons": [
-        "bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案"
+        "当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态"
       ],
       "checked": false
     },
@@ -804,14 +804,14 @@
         "strongUiKey": "label",
         "weakUiKey": null,
         "shapePrefix": null,
-        "normCovered": false,
-        "exactDict": false,
+        "normCovered": true,
+        "exactDict": true,
         "brandStandalone": false,
         "exampleData": false
       },
       "state": "ACCEPT",
       "reasons": [
-        "bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案"
+        "当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态"
       ],
       "checked": false
     },
@@ -842,14 +842,14 @@
         "strongUiKey": "label",
         "weakUiKey": null,
         "shapePrefix": null,
-        "normCovered": false,
-        "exactDict": false,
+        "normCovered": true,
+        "exactDict": true,
         "brandStandalone": false,
         "exampleData": false
       },
       "state": "ACCEPT",
       "reasons": [
-        "bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案"
+        "当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态"
       ],
       "checked": false
     },
@@ -880,14 +880,14 @@
         "strongUiKey": "label",
         "weakUiKey": null,
         "shapePrefix": null,
-        "normCovered": false,
-        "exactDict": false,
+        "normCovered": true,
+        "exactDict": true,
         "brandStandalone": false,
         "exampleData": false
       },
       "state": "ACCEPT",
       "reasons": [
-        "bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案"
+        "当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态"
       ],
       "checked": false
     },
@@ -918,14 +918,14 @@
         "strongUiKey": "label",
         "weakUiKey": null,
         "shapePrefix": null,
-        "normCovered": false,
-        "exactDict": false,
+        "normCovered": true,
+        "exactDict": true,
         "brandStandalone": false,
         "exampleData": false
       },
       "state": "ACCEPT",
       "reasons": [
-        "bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案"
+        "当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态"
       ],
       "checked": false
     },
@@ -956,14 +956,14 @@
         "strongUiKey": "label",
         "weakUiKey": null,
         "shapePrefix": null,
-        "normCovered": false,
-        "exactDict": false,
+        "normCovered": true,
+        "exactDict": true,
         "brandStandalone": false,
         "exampleData": false
       },
       "state": "ACCEPT",
       "reasons": [
-        "bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案"
+        "当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态"
       ],
       "checked": false
     },
@@ -994,14 +994,14 @@
         "strongUiKey": "label",
         "weakUiKey": null,
         "shapePrefix": null,
-        "normCovered": false,
-        "exactDict": false,
+        "normCovered": true,
+        "exactDict": true,
         "brandStandalone": false,
         "exampleData": false
       },
       "state": "ACCEPT",
       "reasons": [
-        "bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案"
+        "当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态"
       ],
       "checked": false
     },
@@ -1032,14 +1032,14 @@
         "strongUiKey": "label",
         "weakUiKey": null,
         "shapePrefix": null,
-        "normCovered": false,
-        "exactDict": false,
+        "normCovered": true,
+        "exactDict": true,
         "brandStandalone": false,
         "exampleData": false
       },
       "state": "ACCEPT",
       "reasons": [
-        "bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案"
+        "当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态"
       ],
       "checked": false
     },
@@ -1070,14 +1070,14 @@
         "strongUiKey": "label",
         "weakUiKey": null,
         "shapePrefix": null,
-        "normCovered": false,
-        "exactDict": false,
+        "normCovered": true,
+        "exactDict": true,
         "brandStandalone": false,
         "exampleData": false
       },
       "state": "ACCEPT",
       "reasons": [
-        "bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案"
+        "当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态"
       ],
       "checked": false
     },
@@ -1108,14 +1108,14 @@
         "strongUiKey": "label",
         "weakUiKey": null,
         "shapePrefix": null,
-        "normCovered": false,
-        "exactDict": false,
+        "normCovered": true,
+        "exactDict": true,
         "brandStandalone": false,
         "exampleData": false
       },
       "state": "ACCEPT",
       "reasons": [
-        "bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案"
+        "当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态"
       ],
       "checked": false
     },
@@ -1146,14 +1146,14 @@
         "strongUiKey": "label",
         "weakUiKey": null,
         "shapePrefix": null,
-        "normCovered": false,
-        "exactDict": false,
+        "normCovered": true,
+        "exactDict": true,
         "brandStandalone": false,
         "exampleData": false
       },
       "state": "ACCEPT",
       "reasons": [
-        "bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案"
+        "当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态"
       ],
       "checked": false
     },
@@ -1184,14 +1184,14 @@
         "strongUiKey": "label",
         "weakUiKey": null,
         "shapePrefix": null,
-        "normCovered": false,
-        "exactDict": false,
+        "normCovered": true,
+        "exactDict": true,
         "brandStandalone": false,
         "exampleData": false
       },
       "state": "ACCEPT",
       "reasons": [
-        "bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案"
+        "当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态"
       ],
       "checked": false
     },
@@ -1222,14 +1222,14 @@
         "strongUiKey": "label",
         "weakUiKey": null,
         "shapePrefix": null,
-        "normCovered": false,
-        "exactDict": false,
+        "normCovered": true,
+        "exactDict": true,
         "brandStandalone": false,
         "exampleData": false
       },
       "state": "ACCEPT",
       "reasons": [
-        "bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案"
+        "当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态"
       ],
       "checked": false
     },
@@ -1260,14 +1260,14 @@
         "strongUiKey": "label",
         "weakUiKey": null,
         "shapePrefix": null,
-        "normCovered": false,
-        "exactDict": false,
+        "normCovered": true,
+        "exactDict": true,
         "brandStandalone": false,
         "exampleData": false
       },
       "state": "ACCEPT",
       "reasons": [
-        "bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案"
+        "当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态"
       ],
       "checked": false
     },
@@ -1298,14 +1298,14 @@
         "strongUiKey": "label",
         "weakUiKey": null,
         "shapePrefix": null,
-        "normCovered": false,
-        "exactDict": false,
+        "normCovered": true,
+        "exactDict": true,
         "brandStandalone": false,
         "exampleData": false
       },
       "state": "ACCEPT",
       "reasons": [
-        "bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案"
+        "当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态"
       ],
       "checked": false
     },
@@ -1336,14 +1336,14 @@
         "strongUiKey": "label",
         "weakUiKey": null,
         "shapePrefix": null,
-        "normCovered": false,
-        "exactDict": false,
+        "normCovered": true,
+        "exactDict": true,
         "brandStandalone": false,
         "exampleData": false
       },
       "state": "ACCEPT",
       "reasons": [
-        "bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案"
+        "当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态"
       ],
       "checked": false
     },
@@ -1374,14 +1374,14 @@
         "strongUiKey": "label",
         "weakUiKey": null,
         "shapePrefix": null,
-        "normCovered": false,
-        "exactDict": false,
+        "normCovered": true,
+        "exactDict": true,
         "brandStandalone": false,
         "exampleData": false
       },
       "state": "ACCEPT",
       "reasons": [
-        "bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案"
+        "当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态"
       ],
       "checked": false
     },
@@ -1450,14 +1450,14 @@
         "strongUiKey": "label",
         "weakUiKey": null,
         "shapePrefix": null,
-        "normCovered": false,
-        "exactDict": false,
+        "normCovered": true,
+        "exactDict": true,
         "brandStandalone": false,
         "exampleData": false
       },
       "state": "ACCEPT",
       "reasons": [
-        "bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案"
+        "当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态"
       ],
       "checked": false
     },
@@ -1564,14 +1564,14 @@
         "strongUiKey": "label",
         "weakUiKey": null,
         "shapePrefix": null,
-        "normCovered": false,
-        "exactDict": false,
+        "normCovered": true,
+        "exactDict": true,
         "brandStandalone": false,
         "exampleData": false
       },
       "state": "ACCEPT",
       "reasons": [
-        "bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案"
+        "当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态"
       ],
       "checked": false
     },
@@ -1602,14 +1602,14 @@
         "strongUiKey": "label",
         "weakUiKey": null,
         "shapePrefix": null,
-        "normCovered": false,
-        "exactDict": false,
+        "normCovered": true,
+        "exactDict": true,
         "brandStandalone": false,
         "exampleData": false
       },
       "state": "ACCEPT",
       "reasons": [
-        "bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案"
+        "当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态"
       ],
       "checked": false
     },
@@ -1678,14 +1678,14 @@
         "strongUiKey": "label",
         "weakUiKey": null,
         "shapePrefix": null,
-        "normCovered": false,
-        "exactDict": false,
+        "normCovered": true,
+        "exactDict": true,
         "brandStandalone": false,
         "exampleData": false
       },
       "state": "ACCEPT",
       "reasons": [
-        "bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案"
+        "当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态"
       ],
       "checked": false
     },
@@ -1716,14 +1716,14 @@
         "strongUiKey": "label",
         "weakUiKey": null,
         "shapePrefix": null,
-        "normCovered": false,
-        "exactDict": false,
+        "normCovered": true,
+        "exactDict": true,
         "brandStandalone": false,
         "exampleData": false
       },
       "state": "ACCEPT",
       "reasons": [
-        "bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案"
+        "当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态"
       ],
       "checked": false
     },
@@ -1754,14 +1754,14 @@
         "strongUiKey": "label",
         "weakUiKey": null,
         "shapePrefix": null,
-        "normCovered": false,
-        "exactDict": false,
+        "normCovered": true,
+        "exactDict": true,
         "brandStandalone": false,
         "exampleData": false
       },
       "state": "ACCEPT",
       "reasons": [
-        "bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案"
+        "当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态"
       ],
       "checked": false
     },
@@ -1792,14 +1792,14 @@
         "strongUiKey": "label",
         "weakUiKey": null,
         "shapePrefix": null,
-        "normCovered": false,
-        "exactDict": false,
+        "normCovered": true,
+        "exactDict": true,
         "brandStandalone": false,
         "exampleData": false
       },
       "state": "ACCEPT",
       "reasons": [
-        "bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案"
+        "当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态"
       ],
       "checked": false
     },
@@ -1830,14 +1830,14 @@
         "strongUiKey": "label",
         "weakUiKey": null,
         "shapePrefix": null,
-        "normCovered": false,
-        "exactDict": false,
+        "normCovered": true,
+        "exactDict": true,
         "brandStandalone": false,
         "exampleData": false
       },
       "state": "ACCEPT",
       "reasons": [
-        "bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案"
+        "当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态"
       ],
       "checked": false
     },
@@ -2535,7 +2535,7 @@
         "weakUiKey": null,
         "shapePrefix": {
           "prefix": "Open",
-          "dictExamples": 16
+          "dictExamples": 21
         },
         "normCovered": false,
         "exactDict": false,
@@ -2544,7 +2544,7 @@
       },
       "state": "ACCEPT",
       "reasons": [
-        "与已有 dict 同形：前缀 `Open` 在词典中有 16 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案"
+        "与已有 dict 同形：前缀 `Open` 在词典中有 21 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案"
       ],
       "checked": false
     },
@@ -5474,14 +5474,14 @@
         "strongUiKey": "label",
         "weakUiKey": null,
         "shapePrefix": null,
-        "normCovered": false,
-        "exactDict": false,
+        "normCovered": true,
+        "exactDict": true,
         "brandStandalone": false,
         "exampleData": false
       },
       "state": "ACCEPT",
       "reasons": [
-        "bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案"
+        "当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态"
       ],
       "checked": false
     },
@@ -5514,14 +5514,14 @@
         "strongUiKey": "label",
         "weakUiKey": null,
         "shapePrefix": null,
-        "normCovered": false,
-        "exactDict": false,
+        "normCovered": true,
+        "exactDict": true,
         "brandStandalone": false,
         "exampleData": false
       },
       "state": "ACCEPT",
       "reasons": [
-        "bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案"
+        "当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态"
       ],
       "checked": false
     },
@@ -5554,14 +5554,14 @@
         "strongUiKey": "label",
         "weakUiKey": null,
         "shapePrefix": null,
-        "normCovered": false,
-        "exactDict": false,
+        "normCovered": true,
+        "exactDict": true,
         "brandStandalone": false,
         "exampleData": false
       },
       "state": "ACCEPT",
       "reasons": [
-        "bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案"
+        "当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态"
       ],
       "checked": false
     },
@@ -5594,14 +5594,14 @@
         "strongUiKey": "label",
         "weakUiKey": null,
         "shapePrefix": null,
-        "normCovered": false,
-        "exactDict": false,
+        "normCovered": true,
+        "exactDict": true,
         "brandStandalone": false,
         "exampleData": false
       },
       "state": "ACCEPT",
       "reasons": [
-        "bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案"
+        "当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态"
       ],
       "checked": false
     },
@@ -7225,7 +7225,7 @@
         "weakUiKey": null,
         "shapePrefix": {
           "prefix": "Add",
-          "dictExamples": 14
+          "dictExamples": 15
         },
         "normCovered": false,
         "exactDict": false,
@@ -7234,7 +7234,7 @@
       },
       "state": "ACCEPT",
       "reasons": [
-        "与已有 dict 同形：前缀 `Add` 在词典中有 14 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案"
+        "与已有 dict 同形：前缀 `Add` 在词典中有 15 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案"
       ],
       "checked": false
     },
@@ -8362,7 +8362,7 @@
         "weakUiKey": null,
         "shapePrefix": {
           "prefix": "Copy",
-          "dictExamples": 15
+          "dictExamples": 18
         },
         "normCovered": false,
         "exactDict": false,
@@ -8371,7 +8371,7 @@
       },
       "state": "ACCEPT",
       "reasons": [
-        "与已有 dict 同形：前缀 `Copy` 在词典中有 15 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案"
+        "与已有 dict 同形：前缀 `Copy` 在词典中有 18 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案"
       ],
       "checked": false
     },
@@ -8687,7 +8687,7 @@
         "weakUiKey": null,
         "shapePrefix": {
           "prefix": "Open",
-          "dictExamples": 16
+          "dictExamples": 21
         },
         "normCovered": false,
         "exactDict": false,
@@ -8696,7 +8696,7 @@
       },
       "state": "ACCEPT",
       "reasons": [
-        "与已有 dict 同形：前缀 `Open` 在词典中有 16 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案"
+        "与已有 dict 同形：前缀 `Open` 在词典中有 21 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案"
       ],
       "checked": false
     },
@@ -9442,7 +9442,7 @@
         "weakUiKey": null,
         "shapePrefix": {
           "prefix": "Add",
-          "dictExamples": 14
+          "dictExamples": 15
         },
         "normCovered": false,
         "exactDict": false,
@@ -9451,7 +9451,7 @@
       },
       "state": "ACCEPT",
       "reasons": [
-        "与已有 dict 同形：前缀 `Add` 在词典中有 14 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案"
+        "与已有 dict 同形：前缀 `Add` 在词典中有 15 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案"
       ],
       "checked": false
     },
@@ -9479,7 +9479,7 @@
         "weakUiKey": null,
         "shapePrefix": {
           "prefix": "Open",
-          "dictExamples": 16
+          "dictExamples": 21
         },
         "normCovered": false,
         "exactDict": false,
@@ -9488,7 +9488,7 @@
       },
       "state": "ACCEPT",
       "reasons": [
-        "与已有 dict 同形：前缀 `Open` 在词典中有 16 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案"
+        "与已有 dict 同形：前缀 `Open` 在词典中有 21 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案"
       ],
       "checked": false
     },
@@ -10670,7 +10670,7 @@
         "weakUiKey": null,
         "shapePrefix": {
           "prefix": "Open",
-          "dictExamples": 16
+          "dictExamples": 21
         },
         "normCovered": false,
         "exactDict": false,
@@ -10679,7 +10679,7 @@
       },
       "state": "ACCEPT",
       "reasons": [
-        "与已有 dict 同形：前缀 `Open` 在词典中有 16 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案"
+        "与已有 dict 同形：前缀 `Open` 在词典中有 21 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案"
       ],
       "checked": false
     },
@@ -12690,14 +12690,14 @@
         "strongUiKey": "label",
         "weakUiKey": null,
         "shapePrefix": null,
-        "normCovered": false,
-        "exactDict": false,
+        "normCovered": true,
+        "exactDict": true,
         "brandStandalone": false,
         "exampleData": false
       },
       "state": "ACCEPT",
       "reasons": [
-        "bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案"
+        "当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态"
       ],
       "checked": false
     },
@@ -12763,7 +12763,7 @@
         "weakUiKey": null,
         "shapePrefix": {
           "prefix": "Add",
-          "dictExamples": 14
+          "dictExamples": 15
         },
         "normCovered": false,
         "exactDict": false,
@@ -12772,7 +12772,7 @@
       },
       "state": "ACCEPT",
       "reasons": [
-        "与已有 dict 同形：前缀 `Add` 在词典中有 14 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案"
+        "与已有 dict 同形：前缀 `Add` 在词典中有 15 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案"
       ],
       "checked": false
     },
@@ -14370,15 +14370,14 @@
         "strongUiKey": null,
         "weakUiKey": null,
         "shapePrefix": null,
-        "normCovered": false,
-        "exactDict": false,
+        "normCovered": true,
+        "exactDict": true,
         "brandStandalone": false,
         "exampleData": false
       },
-      "state": "REVIEW",
+      "state": "ACCEPT",
       "reasons": [
-        "缺少 UI 键名上下文：bundle 只给出裸字符串，无法证明是固定界面文案还是拼接片段/示例数据",
-        "短裸串：可能是按钮/标签，也可能是枚举值或内部标识符"
+        "当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态"
       ],
       "checked": false
     },
@@ -14523,14 +14522,14 @@
         "strongUiKey": "label",
         "weakUiKey": null,
         "shapePrefix": null,
-        "normCovered": false,
-        "exactDict": false,
+        "normCovered": true,
+        "exactDict": true,
         "brandStandalone": false,
         "exampleData": false
       },
       "state": "ACCEPT",
       "reasons": [
-        "bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案"
+        "当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态"
       ],
       "checked": false
     },
@@ -16201,7 +16200,7 @@
         "weakUiKey": null,
         "shapePrefix": {
           "prefix": "Open",
-          "dictExamples": 16
+          "dictExamples": 21
         },
         "normCovered": false,
         "exactDict": false,
@@ -16210,7 +16209,7 @@
       },
       "state": "ACCEPT",
       "reasons": [
-        "与已有 dict 同形：前缀 `Open` 在词典中有 16 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案"
+        "与已有 dict 同形：前缀 `Open` 在词典中有 21 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案"
       ],
       "checked": false
     },
@@ -16529,16 +16528,18 @@
         "inLiveFixed": false,
         "strongUiKey": null,
         "weakUiKey": null,
-        "shapePrefix": null,
+        "shapePrefix": {
+          "prefix": "Edit",
+          "dictExamples": 5
+        },
         "normCovered": false,
         "exactDict": false,
         "brandStandalone": false,
         "exampleData": false
       },
-      "state": "REVIEW",
+      "state": "ACCEPT",
       "reasons": [
-        "缺少 UI 键名上下文：bundle 只给出裸字符串，无法证明是固定界面文案还是拼接片段/示例数据",
-        "短裸串：可能是按钮/标签，也可能是枚举值或内部标识符"
+        "与已有 dict 同形：前缀 `Edit` 在词典中有 5 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案"
       ],
       "checked": false
     },
@@ -16566,7 +16567,7 @@
         "weakUiKey": null,
         "shapePrefix": {
           "prefix": "Add",
-          "dictExamples": 14
+          "dictExamples": 15
         },
         "normCovered": false,
         "exactDict": false,
@@ -16575,7 +16576,7 @@
       },
       "state": "ACCEPT",
       "reasons": [
-        "与已有 dict 同形：前缀 `Add` 在词典中有 14 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案"
+        "与已有 dict 同形：前缀 `Add` 在词典中有 15 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案"
       ],
       "checked": false
     },
@@ -18109,7 +18110,7 @@
         "weakUiKey": null,
         "shapePrefix": {
           "prefix": "Add",
-          "dictExamples": 14
+          "dictExamples": 15
         },
         "normCovered": false,
         "exactDict": false,
@@ -18118,7 +18119,7 @@
       },
       "state": "ACCEPT",
       "reasons": [
-        "与已有 dict 同形：前缀 `Add` 在词典中有 14 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案"
+        "与已有 dict 同形：前缀 `Add` 在词典中有 15 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案"
       ],
       "checked": false
     },
@@ -18291,7 +18292,7 @@
         "weakUiKey": null,
         "shapePrefix": {
           "prefix": "Copy",
-          "dictExamples": 15
+          "dictExamples": 18
         },
         "normCovered": false,
         "exactDict": false,
@@ -18300,7 +18301,7 @@
       },
       "state": "ACCEPT",
       "reasons": [
-        "与已有 dict 同形：前缀 `Copy` 在词典中有 15 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案"
+        "与已有 dict 同形：前缀 `Copy` 在词典中有 18 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案"
       ],
       "checked": false
     },
@@ -18806,7 +18807,7 @@
         "weakUiKey": null,
         "shapePrefix": {
           "prefix": "Toggle",
-          "dictExamples": 14
+          "dictExamples": 17
         },
         "normCovered": false,
         "exactDict": false,
@@ -18815,7 +18816,7 @@
       },
       "state": "ACCEPT",
       "reasons": [
-        "与已有 dict 同形：前缀 `Toggle` 在词典中有 14 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案"
+        "与已有 dict 同形：前缀 `Toggle` 在词典中有 17 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案"
       ],
       "checked": false
     },
@@ -20764,15 +20765,18 @@
         "inLiveFixed": false,
         "strongUiKey": null,
         "weakUiKey": null,
-        "shapePrefix": null,
+        "shapePrefix": {
+          "prefix": "Stop",
+          "dictExamples": 5
+        },
         "normCovered": false,
         "exactDict": false,
         "brandStandalone": false,
         "exampleData": false
       },
-      "state": "REVIEW",
+      "state": "ACCEPT",
       "reasons": [
-        "缺少 UI 键名上下文：bundle 只给出裸字符串，无法证明是固定界面文案还是拼接片段/示例数据"
+        "与已有 dict 同形：前缀 `Stop` 在词典中有 5 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案"
       ],
       "checked": false
     },
@@ -21099,7 +21103,7 @@
         "weakUiKey": null,
         "shapePrefix": {
           "prefix": "Next",
-          "dictExamples": 5
+          "dictExamples": 6
         },
         "normCovered": false,
         "exactDict": false,
@@ -21108,7 +21112,7 @@
       },
       "state": "ACCEPT",
       "reasons": [
-        "与已有 dict 同形：前缀 `Next` 在词典中有 5 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案"
+        "与已有 dict 同形：前缀 `Next` 在词典中有 6 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案"
       ],
       "checked": false
     },
@@ -21393,7 +21397,7 @@
         "weakUiKey": null,
         "shapePrefix": {
           "prefix": "Add",
-          "dictExamples": 14
+          "dictExamples": 15
         },
         "normCovered": false,
         "exactDict": false,
@@ -21402,7 +21406,7 @@
       },
       "state": "ACCEPT",
       "reasons": [
-        "与已有 dict 同形：前缀 `Add` 在词典中有 14 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案"
+        "与已有 dict 同形：前缀 `Add` 在词典中有 15 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案"
       ],
       "checked": false
     },
@@ -22556,7 +22560,7 @@
         "weakUiKey": null,
         "shapePrefix": {
           "prefix": "Toggle",
-          "dictExamples": 14
+          "dictExamples": 17
         },
         "normCovered": false,
         "exactDict": false,
@@ -22565,7 +22569,7 @@
       },
       "state": "ACCEPT",
       "reasons": [
-        "与已有 dict 同形：前缀 `Toggle` 在词典中有 14 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案"
+        "与已有 dict 同形：前缀 `Toggle` 在词典中有 17 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案"
       ],
       "checked": false
     },
@@ -22630,7 +22634,7 @@
         "weakUiKey": null,
         "shapePrefix": {
           "prefix": "Toggle",
-          "dictExamples": 14
+          "dictExamples": 17
         },
         "normCovered": false,
         "exactDict": false,
@@ -22639,7 +22643,7 @@
       },
       "state": "ACCEPT",
       "reasons": [
-        "与已有 dict 同形：前缀 `Toggle` 在词典中有 14 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案"
+        "与已有 dict 同形：前缀 `Toggle` 在词典中有 17 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案"
       ],
       "checked": false
     },
@@ -22704,7 +22708,7 @@
         "weakUiKey": null,
         "shapePrefix": {
           "prefix": "Toggle",
-          "dictExamples": 14
+          "dictExamples": 17
         },
         "normCovered": false,
         "exactDict": false,
@@ -22713,7 +22717,7 @@
       },
       "state": "ACCEPT",
       "reasons": [
-        "与已有 dict 同形：前缀 `Toggle` 在词典中有 14 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案"
+        "与已有 dict 同形：前缀 `Toggle` 在词典中有 17 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案"
       ],
       "checked": false
     },
@@ -23490,14 +23494,14 @@
         "strongUiKey": "label",
         "weakUiKey": null,
         "shapePrefix": null,
-        "normCovered": false,
-        "exactDict": false,
+        "normCovered": true,
+        "exactDict": true,
         "brandStandalone": false,
         "exampleData": false
       },
       "state": "ACCEPT",
       "reasons": [
-        "bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案"
+        "当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态"
       ],
       "checked": false
     },

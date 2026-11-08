@@ -2,7 +2,7 @@
 
 > 由 `node scripts/auto-review.js --write-docs` 生成；`--out <path>` 可导出任意结构化 JSON，同源数据见 `docs/dev/i18n-backlog.json`。
 > 数据源：`frontend-bundle.json` 的 `uncovered[]` 减去活体 L 集合（`crosscheck-sets.json` 的 `exact.F_minus_L`）。
-> 生成时间：2026-11-08T05:42:32.461Z；共 651 条，分 16 类。
+> 生成时间：2026-11-08T05:51:04.538Z；共 651 条，分 16 类。
 
 ## 三态含义 / 怎么勾
 
@@ -19,12 +19,12 @@
 | 指标 | 数量 |
 |---|---:|
 | 总条数（旧流程需逐条人工判断） | 651 |
-| `ACCEPT`（自动放行，人工过一眼） | 468 |
+| `ACCEPT`（自动放行，人工过一眼） | 471 |
 | `REJECT`（自动排除） | 1 |
-| `REVIEW`（需人工裁决，重点） | 182 |
-| 自动消化量 | 469 |
+| `REVIEW`（需人工裁决，重点） | 179 |
+| 自动消化量 | 472 |
 
-> 人工**深度裁决**从 651 条降到 182 条；`ACCEPT` 不是零成本，仍需抽检译文，但不再需要判断「该不该翻」。
+> 人工**深度裁决**从 651 条降到 179 条；`ACCEPT` 不是零成本，仍需抽检译文，但不再需要判断「该不该翻」。
 
 ## 勾完怎么走 add-terms
 
@@ -37,17 +37,17 @@
 
 ## 分类明细
 
-### 其它 UI 文案（107 条：ACCEPT 74 / REJECT 1 / REVIEW 32）
+### 其它 UI 文案（107 条：ACCEPT 75 / REJECT 1 / REVIEW 31）
 
 | ✔ | 状态 | 原文 | 建议译文 | 依据 | 理由 |
 |---|---|---|---|---|---|
 |   | `ACCEPT` | Changes | 更改 | key:title · main.js:1436952 | bundle 中带强 UI 键名 `title`：确定是 label/title/description 一类固定文案 |
-|   | `ACCEPT` | Reject Step | 拒绝此步骤 | key:label · main.js:1861257 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
-|   | `ACCEPT` | Start Voice Recording | 开始录音 | key:label · main.js:1861507 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
-|   | `ACCEPT` | Stop Voice Recording | 停止录音 | key:label · main.js:1861593 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
-|   | `ACCEPT` | Mute Voice Mic | 静音麦克风 | key:label · main.js:1861768 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
-|   | `ACCEPT` | Mute Voice Speaker | 静音扬声器 | key:label · main.js:1861855 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
-|   | `ACCEPT` | Restart Main Language Server | 重启主语言服务器 | key:label · main.js:1867213 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
+|   | `ACCEPT` | Reject Step | 拒绝此步骤 | key:label · norm-covered · main.js:1861257 | 当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态 |
+|   | `ACCEPT` | Start Voice Recording | 开始录音 | key:label · norm-covered · main.js:1861507 | 当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态 |
+|   | `ACCEPT` | Stop Voice Recording | 停止录音 | key:label · norm-covered · main.js:1861593 | 当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态 |
+|   | `ACCEPT` | Mute Voice Mic | 静音麦克风 | key:label · norm-covered · main.js:1861768 | 当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态 |
+|   | `ACCEPT` | Mute Voice Speaker | 静音扬声器 | key:label · norm-covered · main.js:1861855 | 当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态 |
+|   | `ACCEPT` | Restart Main Language Server | 重启主语言服务器 | key:label · norm-covered · main.js:1867213 | 当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态 |
 |   | `ACCEPT` | Zoom | 缩放 | key:label · weak:zoom · norm-covered · menuOnly · main.js:2983065 | 当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态 |
 |   | `ACCEPT` | Zoom in (+) | 放大 (+) | key:label · main.js:2983840 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
 |   | `REJECT` | Sample GDoc | 示例 Google 文档 | main.js:3406956 | 示例数据（国家名 / 模型名 / 示例仓库名），不是固定 UI 文案 |
@@ -93,15 +93,15 @@
 |   | `REVIEW` | Terms of Service & Data Use | 服务条款与数据使用 | main.js:6849860 | 缺少 UI 键名上下文：bundle 只给出裸字符串，无法证明是固定界面文案还是拼接片段/示例数据 |
 |   | `ACCEPT` | Set the rules, define the boundaries. | 设定规则，划定边界。 | key:title · main.js:6854970 | bundle 中带强 UI 键名 `title`：确定是 label/title/description 一类固定文案 |
 |   | `REVIEW` | Get started | 开始使用 | main.js:6857477 | 缺少 UI 键名上下文：bundle 只给出裸字符串，无法证明是固定界面文案还是拼接片段/示例数据；短裸串：可能是按钮/标签，也可能是枚举值或内部标识符 |
-|   | `ACCEPT` | Manifest Changes | 清单更改 | key:label · main.js:7172419 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
+|   | `ACCEPT` | Manifest Changes | 清单更改 | key:label · norm-covered · main.js:7172419 | 当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态 |
 |   | `ACCEPT` | Could not load | 无法加载 | shape:Could not(2) · main.js:7199911 | 与已有 dict 同形：前缀 `Could not` 在词典中有 2 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案 |
 |   | `ACCEPT` | No | 否 | key:writeInLabel · main.js:7320038 | bundle 中带强 UI 键名 `writeInLabel`：确定是 label/title/description 一类固定文案 |
 |   | `REVIEW` | Needs reconnect | 需要重新连接 | main.js:7338118 | 缺少 UI 键名上下文：bundle 只给出裸字符串，无法证明是固定界面文案还是拼接片段/示例数据；短裸串：可能是按钮/标签，也可能是枚举值或内部标识符 |
 |   | `ACCEPT` | App update required | 需要更新应用 | key:label · main.js:7343343 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
 |   | `REVIEW` | Host Endpoint | 主机端点 | main.js:7369607 | 缺少 UI 键名上下文：bundle 只给出裸字符串，无法证明是固定界面文案还是拼接片段/示例数据；短裸串：可能是按钮/标签，也可能是枚举值或内部标识符 |
 |   | `ACCEPT` | Previous match | 上一个匹配项 | key:title · main.js:7577251 | bundle 中带强 UI 键名 `title`：确定是 label/title/description 一类固定文案 |
-|   | `REVIEW` | Reload Window | 重新加载窗口 | main.js:7606099 | 缺少 UI 键名上下文：bundle 只给出裸字符串，无法证明是固定界面文案还是拼接片段/示例数据；短裸串：可能是按钮/标签，也可能是枚举值或内部标识符 |
-|   | `ACCEPT` | Restore | 恢复 | key:label · main.js:7624784 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
+|   | `ACCEPT` | Reload Window | 重新加载窗口 | norm-covered · main.js:7606099 | 当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态 |
+|   | `ACCEPT` | Restore | 恢复 | key:label · norm-covered · main.js:7624784 | 当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态 |
 |   | `ACCEPT` | More cloud environments | 更多云环境 | key:title · main.js:7655814 | bundle 中带强 UI 键名 `title`：确定是 label/title/description 一类固定文案 |
 |   | `ACCEPT` | Instructions and tools | 指令与工具 | key:label · main.js:7694513 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
 |   | `ACCEPT` | Don't show this for 2 days | 2 天内不再显示 | key:label · main.js:7714816 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
@@ -153,19 +153,19 @@
 
 | ✔ | 状态 | 原文 | 建议译文 | 依据 | 理由 |
 |---|---|---|---|---|---|
-|   | `ACCEPT` | Equalize Split Panes | 均分拆分窗格 | key:label · main.js:1863298 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
+|   | `ACCEPT` | Equalize Split Panes | 均分拆分窗格 | key:label · norm-covered · main.js:1863298 | 当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态 |
 |   | `ACCEPT` | Open Command Palette | 打开命令面板 | key:label · main.js:1863806 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
 |   | `ACCEPT` | Quote Selection | 引用所选内容 | key:label · main.js:1864345 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
-|   | `ACCEPT` | Comment on Selection | 对所选内容添加评论 | key:label · main.js:1864525 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
-|   | `ACCEPT` | Go Back in Pane | 在窗格中后退 | key:label · main.js:1865108 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
-|   | `ACCEPT` | Go Forward in Pane | 在窗格中前进 | key:label · main.js:1865195 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
+|   | `ACCEPT` | Comment on Selection | 对所选内容添加评论 | key:label · norm-covered · main.js:1864525 | 当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态 |
+|   | `ACCEPT` | Go Back in Pane | 在窗格中后退 | key:label · norm-covered · main.js:1865108 | 当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态 |
+|   | `ACCEPT` | Go Forward in Pane | 在窗格中前进 | key:label · norm-covered · main.js:1865195 | 当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态 |
 |   | `ACCEPT` | Select All | 全选 | key:label · norm-covered · menuOnly · main.js:1868397 | 当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态 |
-|   | `ACCEPT` | Cancel Generation | 取消生成 | key:label · main.js:1868519 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
+|   | `ACCEPT` | Cancel Generation | 取消生成 | key:label · norm-covered · main.js:1868519 | 当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态 |
 |   | `ACCEPT` | Aborted due to condition callback returning false. | 因条件回调返回 false 而中止。 | key:message · main.js:1903370 | bundle 中带强 UI 键名 `message`：确定是 label/title/description 一类固定文案 |
-|   | `ACCEPT` | Move to New Group | 移动到新分组 | key:label · main.js:1931211 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
-|   | `ACCEPT` | Remove from Group | 从分组中移除 | key:label · main.js:1931306 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
-|   | `ACCEPT` | Open Trajectory Debug View | 打开轨迹调试视图 | key:label · main.js:1931402 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
-|   | `ACCEPT` | Copy Trajectory ID | 复制轨迹 ID | key:label · main.js:1931596 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
+|   | `ACCEPT` | Move to New Group | 移动到新分组 | key:label · norm-covered · main.js:1931211 | 当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态 |
+|   | `ACCEPT` | Remove from Group | 从分组中移除 | key:label · norm-covered · main.js:1931306 | 当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态 |
+|   | `ACCEPT` | Open Trajectory Debug View | 打开轨迹调试视图 | key:label · norm-covered · main.js:1931402 | 当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态 |
+|   | `ACCEPT` | Copy Trajectory ID | 复制轨迹 ID | key:label · norm-covered · main.js:1931596 | 当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态 |
 |   | `ACCEPT` | Clear | 清除 | key:tooltip · main.js:2735764 | bundle 中带强 UI 键名 `tooltip`：确定是 label/title/description 一类固定文案 |
 |   | `ACCEPT` | Open in Side Panel | 在侧边面板中打开 | key:label · main.js:3120365 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
 |   | `ACCEPT` | Remove from list | 从列表中移除 | key:title · main.js:4342653 | bundle 中带强 UI 键名 `title`：确定是 label/title/description 一类固定文案 |
@@ -178,21 +178,21 @@
 |   | `ACCEPT` | Thank you! Your feedback has been submitted successfully. | 谢谢！你的反馈已成功提交。 | key:message · main.js:4673434 | bundle 中带强 UI 键名 `message`：确定是 label/title/description 一类固定文案 |
 |   | `REVIEW` | Running processes are killed. This cannot be undone. | 正在运行的进程将被终止。此操作无法撤销。 | main.js:4704227 | 缺少 UI 键名上下文：bundle 只给出裸字符串，无法证明是固定界面文案还是拼接片段/示例数据 |
 |   | `ACCEPT` | Stop Editing | 停止编辑 | key:tooltip · main.js:4714818 | bundle 中带强 UI 键名 `tooltip`：确定是 label/title/description 一类固定文案 |
-|   | `ACCEPT` | Reset to Default | 恢复默认 | key:label · main.js:4717216 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
+|   | `ACCEPT` | Reset to Default | 恢复默认 | key:label · norm-covered · main.js:4717216 | 当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态 |
 |   | `ACCEPT` | Reset All to Defaults | 全部恢复默认 | key:tooltip · norm-covered · main.js:4728840 | 当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态 |
 |   | `ACCEPT` | Save audio recordings | 保存录音 | key:label · main.js:4779750 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
 |   | `ACCEPT` | Delete all recordings? | 删除所有录音？ | key:title · main.js:4781183 | bundle 中带强 UI 键名 `title`：确定是 label/title/description 一类固定文案 |
 |   | `REVIEW` | + Add Hook | + 添加 Hook | main.js:4894143 | 缺少 UI 键名上下文：bundle 只给出裸字符串，无法证明是固定界面文案还是拼接片段/示例数据 |
 |   | `ACCEPT` | Filter resources... | 筛选资源... | key:placeholder · main.js:4979030 | bundle 中带强 UI 键名 `placeholder`：确定是 label/title/description 一类固定文案 |
 |   | `ACCEPT` | Manage and delete your data anytime | 随时管理和删除你的数据 | key:title · main.js:4987984 | bundle 中带强 UI 键名 `title`：确定是 label/title/description 一类固定文案 |
-|   | `ACCEPT` | Copy as Markdown | 复制为 Markdown | shape:Copy(15) · main.js:5844222 | 与已有 dict 同形：前缀 `Copy` 在词典中有 15 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案 |
+|   | `ACCEPT` | Copy as Markdown | 复制为 Markdown | shape:Copy(18) · main.js:5844222 | 与已有 dict 同形：前缀 `Copy` 在词典中有 18 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案 |
 |   | `REVIEW` | Confirmation required to execute this step | 执行此步骤需要确认 | main.js:6436750 | 缺少 UI 键名上下文：bundle 只给出裸字符串，无法证明是固定界面文案还是拼接片段/示例数据 |
 |   | `REVIEW` | Playback available | 可回放 | main.js:6445175 | 缺少 UI 键名上下文：bundle 只给出裸字符串，无法证明是固定界面文案还是拼接片段/示例数据；短裸串：可能是按钮/标签，也可能是枚举值或内部标识符 |
 |   | `REVIEW` | Cancel Step | 取消此步骤 | main.js:6455390 | 缺少 UI 键名上下文：bundle 只给出裸字符串，无法证明是固定界面文案还是拼接片段/示例数据；短裸串：可能是按钮/标签，也可能是枚举值或内部标识符 |
 |   | `ACCEPT` | Copy command | 复制命令 | key:title · main.js:6503234 | bundle 中带强 UI 键名 `title`：确定是 label/title/description 一类固定文案 |
 |   | `REVIEW` | [Dev Mode] View full search results | [开发模式] 查看完整搜索结果 | main.js:6632085 | 缺少 UI 键名上下文：bundle 只给出裸字符串，无法证明是固定界面文案还是拼接片段/示例数据；含代码/控制字符，疑似模板或拼接产物；疑似句子片段（以介词/逗号/省略号结尾或含插值），可能不适合逐字入库 |
 |   | `ACCEPT` | Open in side pane | 在侧边窗格中打开 | key:tooltip · main.js:6649702 | bundle 中带强 UI 键名 `tooltip`：确定是 label/title/description 一类固定文案 |
-|   | `ACCEPT` | Open extracted DOM in editor | 在编辑器中打开提取的 DOM | shape:Open(16) · main.js:6674089 | 与已有 dict 同形：前缀 `Open` 在词典中有 16 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案 |
+|   | `ACCEPT` | Open extracted DOM in editor | 在编辑器中打开提取的 DOM | shape:Open(21) · main.js:6674089 | 与已有 dict 同形：前缀 `Open` 在词典中有 21 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案 |
 |   | `ACCEPT` | View network requests | 查看网络请求 | shape:View(7) · main.js:6675443 | 与已有 dict 同形：前缀 `View` 在词典中有 7 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案 |
 |   | `ACCEPT` | View network request | 查看网络请求 | shape:View(7) · main.js:6676505 | 与已有 dict 同形：前缀 `View` 在词典中有 7 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案 |
 |   | `REVIEW` | Click to view more | 点击查看更多 | main.js:6718255 | 缺少 UI 键名上下文：bundle 只给出裸字符串，无法证明是固定界面文案还是拼接片段/示例数据 |
@@ -219,7 +219,7 @@
 |   | `ACCEPT` | Research anything | 研究任何主题 | key:title · main.js:8000426 | bundle 中带强 UI 键名 `title`：确定是 label/title/description 一类固定文案 |
 |   | `ACCEPT` | Ask about your code or any topic, get clear answers. | 询问你的代码或任何主题，获得清晰的解答。 | key:description · main.js:8000458 | bundle 中带强 UI 键名 `description`：确定是 label/title/description 一类固定文案 |
 |   | `ACCEPT` | Write and edit docs | 撰写和编辑文档 | key:title · main.js:8000544 | bundle 中带强 UI 键名 `title`：确定是 label/title/description 一类固定文案 |
-|   | `ACCEPT` | Add All | 全部添加 | shape:Add(14) · main.js:8024447 | 与已有 dict 同形：前缀 `Add` 在词典中有 14 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案 |
+|   | `ACCEPT` | Add All | 全部添加 | shape:Add(15) · main.js:8024447 | 与已有 dict 同形：前缀 `Add` 在词典中有 15 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案 |
 |   | `REVIEW` | This cannot be undone. | 此操作无法撤销。 | main.js:8040917 | 缺少 UI 键名上下文：bundle 只给出裸字符串，无法证明是固定界面文案还是拼接片段/示例数据 |
 |   | `ACCEPT` | Open in Hub | 在 Hub 中打开 | shape:Open in(5) · main.js:8184348 | 与已有 dict 同形：前缀 `Open in` 在词典中有 5 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案 |
 |   | `ACCEPT` | Open in Antigravity IDE | 在 Antigravity IDE 中打开 | shape:Open in(5) · main.js:8194795 | 与已有 dict 同形：前缀 `Open in` 在词典中有 5 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案 |
@@ -230,8 +230,8 @@
 |   | `ACCEPT` | Show in Sidebar | 在侧边栏中显示 | shape:Show in(6) · main.js:8325242 | 与已有 dict 同形：前缀 `Show in` 在词典中有 6 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案 |
 |   | `ACCEPT` | Rename Group | 重命名分组 | key:renameLabel · main.js:8370074 | bundle 中带强 UI 键名 `renameLabel`：确定是 label/title/description 一类固定文案 |
 |   | `REVIEW` | Close Panel | 关闭面板 | main.js:8411424 | 缺少 UI 键名上下文：bundle 只给出裸字符串，无法证明是固定界面文案还是拼接片段/示例数据；短裸串：可能是按钮/标签，也可能是枚举值或内部标识符 |
-|   | `ACCEPT` | Next run | 下次运行 | shape:Next(5) · main.js:8565467 | 与已有 dict 同形：前缀 `Next` 在词典中有 5 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案 |
-|   | `ACCEPT` | Add filter | 添加筛选条件 | shape:Add(14) · main.js:8598141 | 与已有 dict 同形：前缀 `Add` 在词典中有 14 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案 |
+|   | `ACCEPT` | Next run | 下次运行 | shape:Next(6) · main.js:8565467 | 与已有 dict 同形：前缀 `Next` 在词典中有 6 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案 |
+|   | `ACCEPT` | Add filter | 添加筛选条件 | shape:Add(15) · main.js:8598141 | 与已有 dict 同形：前缀 `Add` 在词典中有 15 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案 |
 |   | `ACCEPT` | Your changes were not saved. Please try again. | 你的更改未保存，请重试。 | key:message · main.js:8611577 | bundle 中带强 UI 键名 `message`：确定是 label/title/description 一类固定文案 |
 |   | `ACCEPT` | Reset State | 重置状态 | key:title · main.js:10359265 | bundle 中带强 UI 键名 `title`：确定是 label/title/description 一类固定文案 |
 |   | `ACCEPT` | Delete Data Directory | 删除数据目录 | shape:Delete(20) · main.js:10359763 | 与已有 dict 同形：前缀 `Delete` 在词典中有 20 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案 |
@@ -242,26 +242,26 @@
 |   | `ACCEPT` | Open a merge request | 发起合并请求 | key:linkLabel · main.js:11185738 | bundle 中带强 UI 键名 `linkLabel`：确定是 label/title/description 一类固定文案 |
 |   | `ACCEPT` | Open the change | 打开此更改 | key:linkLabel · main.js:11185966 | bundle 中带强 UI 键名 `linkLabel`：确定是 label/title/description 一类固定文案 |
 
-### 对话/消息（82 条：ACCEPT 63 / REJECT 0 / REVIEW 19）
+### 对话/消息（82 条：ACCEPT 64 / REJECT 0 / REVIEW 18）
 
 | ✔ | 状态 | 原文 | 建议译文 | 依据 | 理由 |
 |---|---|---|---|---|---|
-|   | `ACCEPT` | Continue Response | 继续生成回复 | key:label · main.js:1862893 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
-|   | `ACCEPT` | Split Conversation Vertically | 纵向拆分对话 | key:label · main.js:1863087 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
-|   | `ACCEPT` | Split Conversation Horizontally | 横向拆分对话 | key:label · main.js:1863193 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
-|   | `ACCEPT` | Open Conversation History | 打开对话历史 | key:label · main.js:1865514 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
-|   | `ACCEPT` | Open Conversation | 打开对话 | key:label · main.js:1866157 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
-|   | `ACCEPT` | Mark as Unread | 标记为未读 | key:label · main.js:1866335 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
-|   | `ACCEPT` | Archive / Restore | 归档 / 恢复 | key:label · main.js:1866511 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
-|   | `ACCEPT` | Terminal: Add to Chat | 终端：添加到对话 | key:label · main.js:1866623 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
-|   | `ACCEPT` | Copy Conversation Markdown | 复制对话 Markdown | key:label · main.js:1867117 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
-|   | `ACCEPT` | Archive This Conversation | 归档此对话 | key:label · main.js:1867354 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
-|   | `ACCEPT` | Pin This Conversation | 置顶此对话 | key:label · main.js:1867481 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
-|   | `ACCEPT` | Unpin This Conversation | 取消置顶此对话 | key:label · main.js:1867604 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
-|   | `ACCEPT` | Mark This Conversation as Read | 将此对话标记为已读 | key:label · main.js:1930908 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
-|   | `ACCEPT` | Mark This Conversation as Unread | 将此对话标记为未读 | key:label · main.js:1931010 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
+|   | `ACCEPT` | Continue Response | 继续生成回复 | key:label · norm-covered · main.js:1862893 | 当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态 |
+|   | `ACCEPT` | Split Conversation Vertically | 纵向拆分对话 | key:label · norm-covered · main.js:1863087 | 当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态 |
+|   | `ACCEPT` | Split Conversation Horizontally | 横向拆分对话 | key:label · norm-covered · main.js:1863193 | 当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态 |
+|   | `ACCEPT` | Open Conversation History | 打开对话历史 | key:label · norm-covered · main.js:1865514 | 当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态 |
+|   | `ACCEPT` | Open Conversation | 打开对话 | key:label · norm-covered · main.js:1866157 | 当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态 |
+|   | `ACCEPT` | Mark as Unread | 标记为未读 | key:label · norm-covered · main.js:1866335 | 当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态 |
+|   | `ACCEPT` | Archive / Restore | 归档 / 恢复 | key:label · norm-covered · main.js:1866511 | 当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态 |
+|   | `ACCEPT` | Terminal: Add to Chat | 终端：添加到对话 | key:label · norm-covered · main.js:1866623 | 当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态 |
+|   | `ACCEPT` | Copy Conversation Markdown | 复制对话 Markdown | key:label · norm-covered · main.js:1867117 | 当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态 |
+|   | `ACCEPT` | Archive This Conversation | 归档此对话 | key:label · norm-covered · main.js:1867354 | 当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态 |
+|   | `ACCEPT` | Pin This Conversation | 置顶此对话 | key:label · norm-covered · main.js:1867481 | 当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态 |
+|   | `ACCEPT` | Unpin This Conversation | 取消置顶此对话 | key:label · norm-covered · main.js:1867604 | 当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态 |
+|   | `ACCEPT` | Mark This Conversation as Read | 将此对话标记为已读 | key:label · norm-covered · main.js:1930908 | 当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态 |
+|   | `ACCEPT` | Mark This Conversation as Unread | 将此对话标记为未读 | key:label · norm-covered · main.js:1931010 | 当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态 |
 |   | `ACCEPT` | Rename This Conversation | 重命名此对话 | key:label · main.js:1931123 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
-|   | `ACCEPT` | Copy Conversation ID | 复制对话 ID | key:label · main.js:1931502 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
+|   | `ACCEPT` | Copy Conversation ID | 复制对话 ID | key:label · norm-covered · main.js:1931502 | 当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态 |
 |   | `ACCEPT` | Remove from history (Shift+Delete) | 从历史记录中移除（Shift+Delete） | key:title · main.js:3486205 | bundle 中带强 UI 键名 `title`：确定是 label/title/description 一类固定文案 |
 |   | `ACCEPT` | Chat Width | 对话宽度 | key:title · norm-covered · main.js:4603775 | 当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态 |
 |   | `ACCEPT` | Chat Input | 对话输入框 | key:title · main.js:4604106 | bundle 中带强 UI 键名 `title`：确定是 label/title/description 一类固定文案 |
@@ -322,7 +322,7 @@
 |   | `ACCEPT` | Loading conversations... | 正在加载对话... | shape:Loading(6) · main.js:8326346 | 与已有 dict 同形：前缀 `Loading` 在词典中有 6 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案 |
 |   | `ACCEPT` | Show temporary and forked workspaces | 显示临时和派生工作区 | shape:Show(14) · main.js:8358236 | 与已有 dict 同形：前缀 `Show` 在词典中有 14 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案 |
 |   | `REVIEW` | Ask a side question without interrupting the main conversation | 提出支线问题，不打断主对话 | main.js:8453729 | 缺少 UI 键名上下文：bundle 只给出裸字符串，无法证明是固定界面文案还是拼接片段/示例数据 |
-|   | `REVIEW` | Stop Side Question | 停止支线问题 | main.js:8455338 | 缺少 UI 键名上下文：bundle 只给出裸字符串，无法证明是固定界面文案还是拼接片段/示例数据 |
+|   | `ACCEPT` | Stop Side Question | 停止支线问题 | shape:Stop(5) · main.js:8455338 | 与已有 dict 同形：前缀 `Stop` 在词典中有 5 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案 |
 |   | `ACCEPT` | Chief of Staff voice message failed | Chief of Staff 语音消息发送失败 | key:title · main.js:8504918 | bundle 中带强 UI 键名 `title`：确定是 label/title/description 一类固定文案 |
 |   | `ACCEPT` | Prompt to run when triggered... | 触发时运行的提示... | key:placeholder · main.js:8603085 | bundle 中带强 UI 键名 `placeholder`：确定是 label/title/description 一类固定文案 |
 |   | `ACCEPT` | Run a prompt on a schedule, like a morning summary of yesterday's changes. Runs show up here. | 按计划运行提示，例如每天早上汇总昨天的变更。运行记录会显示在这里。 | shape:Run(9) · main.js:8663936 | 与已有 dict 同形：前缀 `Run` 在词典中有 9 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案 |
@@ -333,8 +333,8 @@
 
 | ✔ | 状态 | 原文 | 建议译文 | 依据 | 理由 |
 |---|---|---|---|---|---|
-|   | `ACCEPT` | Open Workspace Selector | 打开工作区选择器 | key:label · main.js:1864075 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
-|   | `ACCEPT` | Open Commit Graph | 打开提交图 | key:label · main.js:1865419 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
+|   | `ACCEPT` | Open Workspace Selector | 打开工作区选择器 | key:label · norm-covered · main.js:1864075 | 当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态 |
+|   | `ACCEPT` | Open Commit Graph | 打开提交图 | key:label · norm-covered · main.js:1865419 | 当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态 |
 |   | `ACCEPT` | Open Folder | 打开文件夹 | key:label · main.js:1874862 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
 |   | `ACCEPT` | Show in folder | 在文件夹中显示 | key:title · main.js:4341835 | bundle 中带强 UI 键名 `title`：确定是 label/title/description 一类固定文案 |
 |   | `REVIEW` | Contact your administrator to set up Gemini Enterprise for this project | 请联系管理员为此项目设置 Gemini Enterprise | main.js:4429816 | 句中含品牌/产品名：整句可能是 UI 文案，但品牌词必须原样保留，需人工看译文（命中：Gemini）；缺少 UI 键名上下文：bundle 只给出裸字符串，无法证明是固定界面文案还是拼接片段/示例数据 |
@@ -353,7 +353,7 @@
 |   | `ACCEPT` | Files, folders, and repositories you connect are accessible to your agent in this project, including during background or scheduled runs. | 你连接的文件、文件夹和仓库可供此项目中的智能体访问，包括后台或定时运行期间。 | key:description · main.js:4987823 | bundle 中带强 UI 键名 `description`：确定是 label/title/description 一类固定文案 |
 |   | `ACCEPT` | Files and resources in cloud workspaces | 云工作区中的文件与资源 | key:title · main.js:4989737 | bundle 中带强 UI 键名 `title`：确定是 label/title/description 一类固定文案 |
 |   | `REVIEW` | All Workspaces | 所有工作区 | main.js:5012949 | 缺少 UI 键名上下文：bundle 只给出裸字符串，无法证明是固定界面文案还是拼接片段/示例数据；短裸串：可能是按钮/标签，也可能是枚举值或内部标识符 |
-|   | `ACCEPT` | Open Diff | 查看差异 | shape:Open(16) · main.js:6385309 | 与已有 dict 同形：前缀 `Open` 在词典中有 16 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案 |
+|   | `ACCEPT` | Open Diff | 查看差异 | shape:Open(21) · main.js:6385309 | 与已有 dict 同形：前缀 `Open` 在词典中有 21 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案 |
 |   | `ACCEPT` | Revert file changes | 还原文件更改 | key:label · norm-covered · main.js:6387289 | 当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态 |
 |   | `ACCEPT` | File Diff Comments | 文件差异评论 | shape:File(6) · main.js:6411424 | 与已有 dict 同形：前缀 `File` 在词典中有 6 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案 |
 |   | `ACCEPT` | File Comments | 文件评论 | shape:File(6) · main.js:6411726 | 与已有 dict 同形：前缀 `File` 在词典中有 6 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案 |
@@ -364,7 +364,7 @@
 |   | `ACCEPT` | Search file contents... | 搜索文件内容... | key:placeholder · main.js:6789106 | bundle 中带强 UI 键名 `placeholder`：确定是 label/title/description 一类固定文案 |
 |   | `ACCEPT` | Search projects... | 搜索项目... | key:placeholder · main.js:6838208 | bundle 中带强 UI 键名 `placeholder`：确定是 label/title/description 一类固定文案 |
 |   | `ACCEPT` | True changes vs the parent workspace | 相对父工作区的真实更改 | key:subtitle · main.js:7172447 | bundle 中带强 UI 键名 `subtitle`：确定是 label/title/description 一类固定文案 |
-|   | `ACCEPT` | Add Terminal | 添加终端 | shape:Add(14) · main.js:7180921 | 与已有 dict 同形：前缀 `Add` 在词典中有 14 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案 |
+|   | `ACCEPT` | Add Terminal | 添加终端 | shape:Add(15) · main.js:7180921 | 与已有 dict 同形：前缀 `Add` 在词典中有 15 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案 |
 |   | `ACCEPT` | File explorer | 文件资源管理器 | key:text · main.js:7197807 | bundle 中带强 UI 键名 `text`：确定是 label/title/description 一类固定文案 |
 |   | `ACCEPT` | File Tree Component is not loaded. | 文件树组件未加载。 | shape:File(6) · main.js:7201214 | 与已有 dict 同形：前缀 `File` 在词典中有 6 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案 |
 |   | `ACCEPT` | Open Terminal | 打开终端 | key:content · main.js:7239823 | bundle 中带强 UI 键名 `content`：确定是 label/title/description 一类固定文案 |
@@ -378,7 +378,7 @@
 |   | `ACCEPT` | Run in a new worktree | 在新工作树中运行 | key:description · main.js:7839824 | bundle 中带强 UI 键名 `description`：确定是 label/title/description 一类固定文案 |
 |   | `ACCEPT` | Clone current workspace into a new independent workspace | 将当前工作区克隆到新的独立工作区 | key:description · main.js:7839913 | bundle 中带强 UI 键名 `description`：确定是 label/title/description 一类固定文案 |
 |   | `ACCEPT` | Enter Google Cloud Project Details | 输入 Google Cloud 项目详情 | shape:Enter(13) · main.js:7993247 | 与已有 dict 同形：前缀 `Enter` 在词典中有 13 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案 |
-|   | `ACCEPT` | Copy the folder elsewhere first if you might want it back. | 如果以后可能还需要，请先把文件夹复制到别处。 | shape:Copy(15) · main.js:8040943 | 与已有 dict 同形：前缀 `Copy` 在词典中有 15 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案 |
+|   | `ACCEPT` | Copy the folder elsewhere first if you might want it back. | 如果以后可能还需要，请先把文件夹复制到别处。 | shape:Copy(18) · main.js:8040943 | 与已有 dict 同形：前缀 `Copy` 在词典中有 18 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案 |
 |   | `ACCEPT` | Enter project name... | 输入项目名称... | key:placeholder · main.js:8350092 | bundle 中带强 UI 键名 `placeholder`：确定是 label/title/description 一类固定文案 |
 |   | `REVIEW` | A project with this name already exists. | 同名项目已存在。 | main.js:8350349 | 缺少 UI 键名上下文：bundle 只给出裸字符串，无法证明是固定界面文案还是拼接片段/示例数据 |
 |   | `ACCEPT` | Search workspaces... | 搜索工作区... | key:placeholder · main.js:8352838 | bundle 中带强 UI 键名 `placeholder`：确定是 label/title/description 一类固定文案 |
@@ -393,7 +393,7 @@
 |   | `ACCEPT` | Create a project first. | 请先创建一个项目。 | shape:Create(10) · main.js:8650290 | 与已有 dict 同形：前缀 `Create` 在词典中有 10 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案 |
 |   | `REVIEW` | Read access to code, refs, commits, and other repository contents. | 对代码、引用、提交和其它仓库内容的读取权限。 | main.js:10389050 | 缺少 UI 键名上下文：bundle 只给出裸字符串，无法证明是固定界面文案还是拼接片段/示例数据 |
 |   | `REVIEW` | Grant create, update, or delete access to specific branches. | 授予对特定分支的创建、更新或删除权限。 | main.js:10393729 | 缺少 UI 键名上下文：bundle 只给出裸字符串，无法证明是固定界面文案还是拼接片段/示例数据 |
-|   | `ACCEPT` | Current workspace | 当前工作区 | key:label · main.js:11138544 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
+|   | `ACCEPT` | Current workspace | 当前工作区 | key:label · norm-covered · main.js:11138544 | 当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态 |
 |   | `ACCEPT` | Commit succeeded | 提交成功 | key:title · main.js:11183622 | bundle 中带强 UI 键名 `title`：确定是 label/title/description 一类固定文案 |
 |   | `ACCEPT` | The branch was pushed to GitLab. | 分支已推送到 GitLab。 | key:message · main.js:11185693 | bundle 中带强 UI 键名 `message`：确定是 label/title/description 一类固定文案 |
 |   | `ACCEPT` | Created a new branch on Origin. | 已在 Origin 上创建新分支。 | key:message · main.js:11185795 | bundle 中带强 UI 键名 `message`：确定是 label/title/description 一类固定文案 |
@@ -403,13 +403,13 @@
 | ✔ | 状态 | 原文 | 建议译文 | 依据 | 理由 |
 |---|---|---|---|---|---|
 |   | `ACCEPT` | Close Tab | 关闭标签页 | key:label · norm-covered · menuOnly · main.js:1862744 | 当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态 |
-|   | `ACCEPT` | Close Terminal Tab | 关闭终端标签页 | key:label · main.js:1863387 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
-|   | `ACCEPT` | Previous Side Panel Tab | 上一个侧边面板标签页 | key:label · main.js:1868023 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
-|   | `ACCEPT` | Next Side Panel Tab | 下一个侧边面板标签页 | key:label · main.js:1868110 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
+|   | `ACCEPT` | Close Terminal Tab | 关闭终端标签页 | key:label · norm-covered · main.js:1863387 | 当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态 |
+|   | `ACCEPT` | Previous Side Panel Tab | 上一个侧边面板标签页 | key:label · norm-covered · main.js:1868023 | 当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态 |
+|   | `ACCEPT` | Next Side Panel Tab | 下一个侧边面板标签页 | key:label · norm-covered · main.js:1868110 | 当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态 |
 |   | `ACCEPT` | Open in Tab | 在标签页中打开 | key:label · main.js:2958186 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
 |   | `REVIEW` | Many external websites (such as Google Search, GitHub, or Wikipedia) restrict iframe embedding via | 许多外部网站（例如 Google 搜索、GitHub 或 Wikipedia）通过以下方式限制 iframe 嵌入 | main.js:3408437 | 句中含品牌/产品名：整句可能是 UI 文案，但品牌词必须原样保留，需人工看译文（命中：GitHub）；缺少 UI 键名上下文：bundle 只给出裸字符串，无法证明是固定界面文案还是拼接片段/示例数据；疑似句子片段（以介词/逗号/省略号结尾或含插值），可能不适合逐字入库；长句且无键名上下文：可能是说明文字，也可能是截断/拼接的模板，需要人确认边界 |
 |   | `ACCEPT` | Attackers might be able to see the images you're looking at on this site and trick you by modifying them. | 攻击者可能看到你在此网站浏览的图片，并通过篡改图片来欺骗你。 | key:description · main.js:3428626 | bundle 中带强 UI 键名 `description`：确定是 label/title/description 一类固定文案 |
-|   | `ACCEPT` | Open the page in system browser | 在系统浏览器中打开此页面 | shape:Open(16) · main.js:3945016 | 与已有 dict 同形：前缀 `Open` 在词典中有 16 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案 |
+|   | `ACCEPT` | Open the page in system browser | 在系统浏览器中打开此页面 | shape:Open(21) · main.js:3945016 | 与已有 dict 同形：前缀 `Open` 在词典中有 21 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案 |
 |   | `ACCEPT` | Cancel download | 取消下载 | key:title · main.js:4342240 | bundle 中带强 UI 键名 `title`：确定是 label/title/description 一类固定文案 |
 |   | `ACCEPT` | Open Link in New Tab | 在新标签页中打开链接 | key:label · main.js:4398175 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
 |   | `ACCEPT` | Open Link in External Browser | 在外部浏览器中打开链接 | key:label · main.js:4398329 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
@@ -444,7 +444,7 @@
 |   | `REVIEW` | Unable to resolve audio source URL | 无法解析音频源网址 | main.js:7146610 | 缺少 UI 键名上下文：bundle 只给出裸字符串，无法证明是固定界面文案还是拼接片段/示例数据 |
 |   | `ACCEPT` | Click to copy URL | 点击复制网址 | key:title · main.js:7765536 | bundle 中带强 UI 键名 `title`：确定是 label/title/description 一类固定文案 |
 |   | `ACCEPT` | Browser control is gated in remote sessions. | 远程会话中浏览器控制受限。 | shape:Browser(10) · main.js:7765968 | 与已有 dict 同形：前缀 `Browser` 在词典中有 10 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案 |
-|   | `ACCEPT` | Open Google Chrome on the machine running Antigravity. | 在运行 Antigravity 的计算机上打开 Google Chrome。 | shape:Open(16) · main.js:7766598 | 与已有 dict 同形：前缀 `Open` 在词典中有 16 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案 |
+|   | `ACCEPT` | Open Google Chrome on the machine running Antigravity. | 在运行 Antigravity 的计算机上打开 Google Chrome。 | shape:Open(21) · main.js:7766598 | 与已有 dict 同形：前缀 `Open` 在词典中有 21 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案 |
 |   | `ACCEPT` | Couldn't load Google Drive link title | 无法加载 Google Drive 链接标题 | key:title · main.js:7948391 | bundle 中带强 UI 键名 `title`：确定是 label/title/description 一类固定文案 |
 |   | `ACCEPT` | Close Tabs to the Left | 关闭左侧标签页 | key:label · main.js:8479712 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
 |   | `ACCEPT` | Close Tabs to the Right | 关闭右侧标签页 | key:label · main.js:8479853 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
@@ -455,7 +455,7 @@
 |   | `ACCEPT` | Browser tools are disabled in the Antigravity Android desktop app. | 浏览器工具已在 Antigravity Android 桌面应用中停用。 | key:settingsGatingMessage · main.js:11115461 | bundle 中带强 UI 键名 `settingsGatingMessage`：确定是 label/title/description 一类固定文案 |
 |   | `ACCEPT` | The remote shared a link for this push. | 远端分享了此次推送的链接。 | key:message · main.js:11185994 | bundle 中带强 UI 键名 `message`：确定是 label/title/description 一类固定文案 |
 
-### 模型/代理/配额（41 条：ACCEPT 29 / REJECT 0 / REVIEW 12）
+### 模型/代理/配额（41 条：ACCEPT 30 / REJECT 0 / REVIEW 11）
 
 | ✔ | 状态 | 原文 | 建议译文 | 依据 | 理由 |
 |---|---|---|---|---|---|
@@ -487,8 +487,8 @@
 |   | `ACCEPT` | Select Model to Send Message | 选择模型以发送消息 | key:title · main.js:7743264 | bundle 中带强 UI 键名 `title`：确定是 label/title/description 一类固定文案 |
 |   | `ACCEPT` | Select a model using the model selector in the input box | 使用输入框中的模型选择器选择模型 | key:message · main.js:7743304 | bundle 中带强 UI 键名 `message`：确定是 label/title/description 一类固定文案 |
 |   | `REVIEW` | Migrate with Agent | 使用智能体迁移 | main.js:7748698 | 缺少 UI 键名上下文：bundle 只给出裸字符串，无法证明是固定界面文案还是拼接片段/示例数据 |
-|   | `REVIEW` | Edit Model | 编辑模型 | main.js:7818434 | 缺少 UI 键名上下文：bundle 只给出裸字符串，无法证明是固定界面文案还是拼接片段/示例数据；短裸串：可能是按钮/标签，也可能是枚举值或内部标识符 |
-|   | `ACCEPT` | Add Model | 添加模型 | shape:Add(14) · main.js:7819458 | 与已有 dict 同形：前缀 `Add` 在词典中有 14 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案 |
+|   | `ACCEPT` | Edit Model | 编辑模型 | shape:Edit(5) · main.js:7818434 | 与已有 dict 同形：前缀 `Edit` 在词典中有 5 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案 |
+|   | `ACCEPT` | Add Model | 添加模型 | shape:Add(15) · main.js:7819458 | 与已有 dict 同形：前缀 `Add` 在词典中有 15 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案 |
 |   | `ACCEPT` | Custom models are only supported on Linux machines. | 自定义模型仅在 Linux 计算机上受支持。 | shape:Custom(6) · main.js:7819756 | 与已有 dict 同形：前缀 `Custom` 在词典中有 6 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案 |
 |   | `REVIEW` | Harness per Response | 每个回复的测试框架 | main.js:7879270 | 缺少 UI 键名上下文：bundle 只给出裸字符串，无法证明是固定界面文案还是拼接片段/示例数据 |
 |   | `REVIEW` | Curated sets of plugins for common workflows and roles. | 为常见工作流和角色精选的插件集合。 | main.js:8088798 | 缺少 UI 键名上下文：bundle 只给出裸字符串，无法证明是固定界面文案还是拼接片段/示例数据 |
@@ -523,8 +523,8 @@
 |   | `ACCEPT` | Uploaded project files and in-chat attachments are stored on Google servers and mounted into your cloud sandbox so your agent can read and work with them. | 上传的项目文件和对话内附件存储在 Google 服务器上，并挂载到你的云沙箱，供智能体读取和处理。 | key:description · main.js:4987585 | bundle 中带强 UI 键名 `description`：确定是 label/title/description 一类固定文案 |
 |   | `REVIEW` | Site Allowlist | 网站允许列表 | main.js:6450979 | 缺少 UI 键名上下文：bundle 只给出裸字符串，无法证明是固定界面文案还是拼接片段/示例数据；短裸串：可能是按钮/标签，也可能是枚举值或内部标识符 |
 |   | `REVIEW` | The Agent attempted to interact with some sites that are not allowlisted | 智能体尝试与某些不在允许列表中的网站交互 | main.js:6451124 | 缺少 UI 键名上下文：bundle 只给出裸字符串，无法证明是固定界面文案还是拼接片段/示例数据 |
-|   | `ACCEPT` | Add them to allow future interactions | 添加它们以允许后续交互 | shape:Add(14) · main.js:6451664 | 与已有 dict 同形：前缀 `Add` 在词典中有 14 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案 |
-|   | `ACCEPT` | Open allowlist | 打开允许列表 | shape:Open(16) · main.js:6451832 | 与已有 dict 同形：前缀 `Open` 在词典中有 16 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案 |
+|   | `ACCEPT` | Add them to allow future interactions | 添加它们以允许后续交互 | shape:Add(15) · main.js:6451664 | 与已有 dict 同形：前缀 `Add` 在词典中有 15 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案 |
+|   | `ACCEPT` | Open allowlist | 打开允许列表 | shape:Open(21) · main.js:6451832 | 与已有 dict 同形：前缀 `Open` 在词典中有 21 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案 |
 |   | `REVIEW` | This command ran in the sandbox. | 此命令已在沙箱中运行。 | main.js:6630916 | 缺少 UI 键名上下文：bundle 只给出裸字符串，无法证明是固定界面文案还是拼接片段/示例数据 |
 |   | `ACCEPT` | Unsandboxed commands | 沙箱外命令 | key:label · main.js:6732028 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
 |   | `REVIEW` | This extension has no declared permissions requiring user input. | 此扩展没有声明需要用户输入的权限。 | main.js:6737413 | 缺少 UI 键名上下文：bundle 只给出裸字符串，无法证明是固定界面文案还是拼接片段/示例数据 |
@@ -538,9 +538,9 @@
 |   | `REVIEW` | "Allow remote debugging for this browser instance" | 「允许对此浏览器实例进行远程调试」 | main.js:7767696 | 缺少 UI 键名上下文：bundle 只给出裸字符串，无法证明是固定界面文案还是拼接片段/示例数据 |
 |   | `REVIEW` | Confirm the command is safe to run outside of the sandbox with full network and disk access. | 确认该命令在沙箱外以完整网络和磁盘权限运行是安全的。 | main.js:8271179 | 缺少 UI 键名上下文：bundle 只给出裸字符串，无法证明是固定界面文案还是拼接片段/示例数据；长句且无键名上下文：可能是说明文字，也可能是截断/拼接的模板，需要人确认边界 |
 |   | `ACCEPT` | Allow creating issues and grant access to specific issues. | 允许创建 issue，并授予对特定 issue 的访问权限。 | shape:Allow(7) · main.js:10389939 | 与已有 dict 同形：前缀 `Allow` 在词典中有 7 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案 |
-|   | `ACCEPT` | Toggle this on to allow creating new issues. | 开启此项以允许创建新 issue。 | shape:Toggle(14) · main.js:10390310 | 与已有 dict 同形：前缀 `Toggle` 在词典中有 14 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案 |
+|   | `ACCEPT` | Toggle this on to allow creating new issues. | 开启此项以允许创建新 issue。 | shape:Toggle(17) · main.js:10390310 | 与已有 dict 同形：前缀 `Toggle` 在词典中有 17 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案 |
 |   | `ACCEPT` | Allow opening pull requests and grant access to specific PRs. | 允许发起拉取请求，并授予对特定 PR 的访问权限。 | shape:Allow(7) · main.js:10391778 | 与已有 dict 同形：前缀 `Allow` 在词典中有 7 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案 |
-|   | `ACCEPT` | Toggle this on to allow creating new pull requests. | 开启此项以允许创建新的拉取请求。 | shape:Toggle(14) · main.js:10392159 | 与已有 dict 同形：前缀 `Toggle` 在词典中有 14 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案 |
+|   | `ACCEPT` | Toggle this on to allow creating new pull requests. | 开启此项以允许创建新的拉取请求。 | shape:Toggle(17) · main.js:10392159 | 与已有 dict 同形：前缀 `Toggle` 在词典中有 17 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案 |
 |   | `REVIEW` | Grant read access to workflow runs and allow dispatching workflows on specific files and refs. | 授予工作流运行的读取权限，并允许对特定文件和引用触发工作流。 | main.js:10395140 | 缺少 UI 键名上下文：bundle 只给出裸字符串，无法证明是固定界面文案还是拼接片段/示例数据；长句且无键名上下文：可能是说明文字，也可能是截断/拼接的模板，需要人确认边界 |
 |   | `ACCEPT` | Allow reading workflow runs (list, view, watch) across the whole repository. | 允许读取整个仓库的工作流运行（列表、查看、监视）。 | shape:Allow(7) · main.js:10395547 | 与已有 dict 同形：前缀 `Allow` 在词典中有 7 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案 |
 |   | `ACCEPT` | Enable fine-grained GitHub permissions and define the org, repository, and resource-level access the agent is allowed to use. | 启用细粒度 GitHub 权限，并定义允许智能体使用的组织、仓库和资源级访问权限。 | key:subtitle · main.js:10405747 | bundle 中带强 UI 键名 `subtitle`：确定是 label/title/description 一类固定文案 |
@@ -559,7 +559,7 @@
 |   | `ACCEPT` | Paste auth code | 粘贴授权码 | key:placeholder · main.js:4866037 | bundle 中带强 UI 键名 `placeholder`：确定是 label/title/description 一类固定文案 |
 |   | `REVIEW` | Services this plugin connects to on your behalf. Credentials stay on this machine and are only sent to the domains listed. | 此插件代表你连接的服务。凭据仅保存在本机，且只发送到列出的域名。 | main.js:4924168 | 缺少 UI 键名上下文：bundle 只给出裸字符串，无法证明是固定界面文案还是拼接片段/示例数据；长句且无键名上下文：可能是说明文字，也可能是截断/拼接的模板，需要人确认边界 |
 |   | `REVIEW` | Needs re-auth | 需要重新授权 | main.js:4927325 | 缺少 UI 键名上下文：bundle 只给出裸字符串，无法证明是固定界面文案还是拼接片段/示例数据；短裸串：可能是按钮/标签，也可能是枚举值或内部标识符 |
-|   | `ACCEPT` | Add account | 添加账号 | shape:Add(14) · main.js:4928934 | 与已有 dict 同形：前缀 `Add` 在词典中有 14 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案 |
+|   | `ACCEPT` | Add account | 添加账号 | shape:Add(15) · main.js:4928934 | 与已有 dict 同形：前缀 `Add` 在词典中有 15 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案 |
 |   | `REVIEW` | Paste the code shown after you sign in. | 粘贴登录后显示的代码。 | main.js:4933375 | 缺少 UI 键名上下文：bundle 只给出裸字符串，无法证明是固定界面文案还是拼接片段/示例数据 |
 |   | `REVIEW` | Connect your account to browse | 连接账号以浏览 | main.js:4975791 | 缺少 UI 键名上下文：bundle 只给出裸字符串，无法证明是固定界面文案还是拼接片段/示例数据 |
 |   | `REVIEW` | Authentication Required | 需要身份验证 | main.js:6858700 | 缺少 UI 键名上下文：bundle 只给出裸字符串，无法证明是固定界面文案还是拼接片段/示例数据；短裸串：可能是按钮/标签，也可能是枚举值或内部标识符 |
@@ -593,10 +593,10 @@
 
 | ✔ | 状态 | 原文 | 建议译文 | 依据 | 理由 |
 |---|---|---|---|---|---|
-|   | `ACCEPT` | Toggle File Viewer | 切换文件查看器 | key:label · main.js:1862022 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
-|   | `ACCEPT` | Toggle Project Selector | 切换项目选择器 | key:label · main.js:1862119 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
+|   | `ACCEPT` | Toggle File Viewer | 切换文件查看器 | key:label · norm-covered · main.js:1862022 | 当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态 |
+|   | `ACCEPT` | Toggle Project Selector | 切换项目选择器 | key:label · norm-covered · main.js:1862119 | 当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态 |
 |   | `ACCEPT` | Toggle Environment Selector | 切换环境选择器 | key:label · main.js:1862225 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
-|   | `ACCEPT` | Toggle Maximize Side Panel | 最大化 / 还原侧边面板 | key:label · main.js:1862409 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
+|   | `ACCEPT` | Toggle Maximize Side Panel | 最大化 / 还原侧边面板 | key:label · norm-covered · main.js:1862409 | 当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态 |
 |   | `ACCEPT` | Failed to parse settings. Fix and restart. | 设置解析失败。请修复后重启。 | shape:Failed to(6) · main.js:4416111 | 与已有 dict 同形：前缀 `Failed to` 在词典中有 6 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案 |
 |   | `REVIEW` | These settings can only be changed on the computer running the app, not from a remote session. | 这些设置只能在运行本应用的计算机上更改，无法从远程会话更改。 | main.js:4542776 | 缺少 UI 键名上下文：bundle 只给出裸字符串，无法证明是固定界面文案还是拼接片段/示例数据；长句且无键名上下文：可能是说明文字，也可能是截断/拼接的模板，需要人确认边界 |
 |   | `REVIEW` | Feature Environment Override | 功能环境覆盖 | main.js:4631187 | 缺少 UI 键名上下文：bundle 只给出裸字符串，无法证明是固定界面文案还是拼接片段/示例数据 |
@@ -619,12 +619,12 @@
 |   | `REVIEW` | Use Global Settings | 使用全局设置 | main.js:7765061 | 缺少 UI 键名上下文：bundle 只给出裸字符串，无法证明是固定界面文案还是拼接片段/示例数据 |
 |   | `ACCEPT` | Use theme to be imported with settings | 导入设置时同时使用主题 | key:label · main.js:8004519 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
 |   | `ACCEPT` | Copy Config File Path | 复制配置文件路径 | key:label · main.js:8054857 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
-|   | `ACCEPT` | Toggle Terminal Panel | 切换终端面板 | shape:Toggle(14) · main.js:8123539 | 与已有 dict 同形：前缀 `Toggle` 在词典中有 14 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案 |
+|   | `ACCEPT` | Toggle Terminal Panel | 切换终端面板 | shape:Toggle(17) · main.js:8123539 | 与已有 dict 同形：前缀 `Toggle` 在词典中有 17 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案 |
 |   | `REVIEW` | (Optional, defaults to main) | （可选，默认为 main） | main.js:8331256 | 缺少 UI 键名上下文：bundle 只给出裸字符串，无法证明是固定界面文案还是拼接片段/示例数据 |
 |   | `ACCEPT` | Open project settings | 打开项目设置 | key:label · main.js:8586568 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
 |   | `ACCEPT` | Notification Preferences | 通知偏好设置 | key:title · main.js:10369508 | bundle 中带强 UI 键名 `title`：确定是 label/title/description 一类固定文案 |
 |   | `ACCEPT` | Open Preferences | 打开偏好设置 | key:label · main.js:10369685 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
-|   | `ACCEPT` | Toggle this on to enable read access on contents. | 开启此项以启用对内容的读取权限。 | shape:Toggle(14) · main.js:10389425 | 与已有 dict 同形：前缀 `Toggle` 在词典中有 14 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案 |
+|   | `ACCEPT` | Toggle this on to enable read access on contents. | 开启此项以启用对内容的读取权限。 | shape:Toggle(17) · main.js:10389425 | 与已有 dict 同形：前缀 `Toggle` 在词典中有 17 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案 |
 |   | `ACCEPT` | Toggle Thumbnails | 切换缩略图 | key:title · main.js:10786986 | bundle 中带强 UI 键名 `title`：确定是 label/title/description 一类固定文案 |
 
 ### 插件/技能/MCP/智能体（28 条：ACCEPT 20 / REJECT 0 / REVIEW 8）
@@ -738,7 +738,7 @@
 
 | ✔ | 状态 | 原文 | 建议译文 | 依据 | 理由 |
 |---|---|---|---|---|---|
-|   | `ACCEPT` | Complete Onboarding Step | 完成引导步骤 | key:label · main.js:1865296 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
+|   | `ACCEPT` | Complete Onboarding Step | 完成引导步骤 | key:label · norm-covered · main.js:1865296 | 当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态 |
 |   | `ACCEPT` | Choose the experience that fits how you work. | 选择适合你工作方式的体验。 | key:description · main.js:4730177 | bundle 中带强 UI 键名 `description`：确定是 label/title/description 一类固定文案 |
 |   | `REVIEW` | Yes, I'd like to receive product updates, tips, and promotions from Google | 是的，我希望接收 Google 的产品更新、技巧和促销信息 | main.js:6852813 | 句中含品牌/产品名：整句可能是 UI 文案，但品牌词必须原样保留，需人工看译文（命中：Google）；缺少 UI 键名上下文：bundle 只给出裸字符串，无法证明是固定界面文案还是拼接片段/示例数据 |
 |   | `ACCEPT` | Getting started with Google Antigravity | 开始使用 Google Antigravity | key:title · main.js:6855851 | bundle 中带强 UI 键名 `title`：确定是 label/title/description 一类固定文案 |
@@ -755,9 +755,9 @@
 |---|---|---|---|---|---|
 |   | `ACCEPT` | Enter to Send | 按 Enter 发送 | key:label · main.js:4606526 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
 |   | `REVIEW` | Press keys... | 请按键... | main.js:4714741 | 缺少 UI 键名上下文：bundle 只给出裸字符串，无法证明是固定界面文案还是拼接片段/示例数据；疑似句子片段（以介词/逗号/省略号结尾或含插值），可能不适合逐字入库；短裸串：可能是按钮/标签，也可能是枚举值或内部标识符 |
-|   | `ACCEPT` | Edit Shortcut | 编辑快捷键 | key:label · main.js:4716887 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
-|   | `ACCEPT` | Add Shortcut | 添加快捷键 | key:label · main.js:4716985 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
-|   | `ACCEPT` | Remove Shortcut | 移除快捷键 | key:label · main.js:4717087 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
+|   | `ACCEPT` | Edit Shortcut | 编辑快捷键 | key:label · norm-covered · main.js:4716887 | 当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态 |
+|   | `ACCEPT` | Add Shortcut | 添加快捷键 | key:label · norm-covered · main.js:4716985 | 当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态 |
+|   | `ACCEPT` | Remove Shortcut | 移除快捷键 | key:label · norm-covered · main.js:4717087 | 当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态 |
 |   | `ACCEPT` | Describe what you want. Your agent plans and builds it, and brings in other agents when needed. | 描述你想要什么。智能体会规划并构建，需要时还会引入其他智能体。 | key:description · main.js:6854701 | bundle 中带强 UI 键名 `description`：确定是 label/title/description 一类固定文案 |
 |   | `REVIEW` | Use Regular Expression (.*) | 使用正则表达式 (.*) | main.js:7575729 | 缺少 UI 键名上下文：bundle 只给出裸字符串，无法证明是固定界面文案还是拼接片段/示例数据 |
 |   | `REVIEW` | What best describes you? | 哪项最符合你的情况？ | main.js:8002617 | 缺少 UI 键名上下文：bundle 只给出裸字符串，无法证明是固定界面文案还是拼接片段/示例数据 |
