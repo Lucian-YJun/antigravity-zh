@@ -79,6 +79,50 @@ node scripts/scan-ui.js <CDP端口>    # 扫描当前界面上仍是英文的文
 ```
 扫描结果里混着用户数据（项目名、对话标题、分支名）和品牌名，**哪些该翻必须人工判断，不要整批入库**。
 
+## 审计词典：漏译 / 死条目 / 质量
+
+```bash
+npm run audit:i18n                      # 全量报告（需要 bundle；见下）
+npm run audit:i18n -- --quality         # 只查词典自身（不需要 bundle）
+npm run audit:i18n -- --bundle <dir>    # 指定渲染层 bundle 目录
+npm run audit:i18n -- --out <file>      # 导出结构化 JSON
+```
+
+脚本**只读**，绝不写 `src/cockpit-zh.json`，也不调用 add-terms。
+
+### 判定「文案是否存在」不能只查整串
+
+**`bundle.includes("Project deleted")` 返回 false，不等于界面不会出现这句。**
+
+渲染层大量文案是拼出来的，源码里根本没有整串：
+
+```js
+u({ title: `${w.capitalized} deleted` })        // → "Project deleted"
+f(`Failed to delete ${B.lowercase}`)            // → "Failed to delete project"
+"Ask anything, @ to mention" + (c ? ", / for actions" : "")
+```
+
+所以脚本对每条词条走**四条路**判定，任何一条命中就算存在：
+
+1. 字面量子串出现
+2. 大小写变体（引擎归一化会命中，`Find in conversation` ≡ `Find in Conversation`）
+3. 可由 `${...}` 模板生成（变量取 `Project`/`Workspace` 等真实取值）
+4. 可由 `+` 拼接生成
+
+**背景**：曾只用第 1 条，把 `Project deleted` 判成死条目并准备删除；只按「看起来应该有」推断，
+又加了 4 条永远不可能命中的死条目。**加词条和删词条都必须走这四条。**
+
+### 死条目报告的用法
+
+报告里的「疑似死条目」**只是待复核清单，不是删除清单**。收到报告后：
+
+1. 先看它是否出现在上面的模板/拼接枚举里（脚本已自动排除，但 bundle 版本可能不同）
+2. 用新版本 bundle 重跑一次
+3. 确认后逐条删除，并说明依据
+
+判死的代价不对称：**误杀真条目会让界面漏译，而留着一条死条目只是无害冗余。**
+
+
 ## 找漏译后的自动预筛
 
 扫描完先跑自动预筛，把「该不该翻」的重复判断交给脚本：
