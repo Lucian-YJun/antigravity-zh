@@ -21,8 +21,12 @@ const NOTES = path.join(__dirname, '..', 'docs', 'guide', 'RELEASE_NOTES.md');
 // 体积单位：KB / MB / GB 及其中文/二进制写法。带小数点的也一并拦（如 3.1 MB）。
 // 只拦「紧跟在数字后面」的形态，避免误伤「3 MB 降到 3 MB」这类历史叙述——
 // 历史叙述同样该改写为定性描述，所以一并拦下是有意为之。
-const SIZE_RE = /\d[\d.,]*\s*(?:KB|MB|GB|KiB|MiB|GiB|千字节|兆字节|字节)/i;
-// 精确字节数：4 位以上的裸数字紧跟 B（如 3174269 B / 3,174,269 B）
+// 带单位的体积写法。单位必须覆盖「完整拼写」而不只是缩写：
+// 3174269 bytes / 3,174,269 bytes / 3,174,269 Byte 同样是硬编码体积，
+// 只认 KB/MB/字节 会让它们静默通过。
+const SIZE_RE = /\d[\d.,]*\s*(?:bytes?|kilobytes?|megabytes?|gigabytes?|terabytes?|KiB|MiB|GiB|TiB|KB|MB|GB|TB|千字节|兆字节|吉字节|字节)/i;
+// 裸 B 单位：要求 4 位以上、或千分位分组，避免把「1 B」这类正文/代码片段当体积
+// （`bytes` 形态已由 SIZE_RE 覆盖）
 const BYTES_RE = /\d{1,3}(?:[,，]\d{3})+\s*B\b|\b\d{4,}\s*B\b/;
 
 function violates(text) {
@@ -55,6 +59,14 @@ const shouldFail = [
   '产物 3174269 B。',
   '产物 3,174,269 B。',
   '大小 1.5GiB。',
+  // 完整拼写单位：曾因只认 KB/MB/B 而整类漏判
+  '产物 3174269 bytes。',
+  '产物 3,174,269 bytes。',
+  '产物 3174269 bytes（含安装器）。',
+  '大小 3.1 megabytes。',
+  '大小 1.5 gigabytes。',
+  '大小 3,174,269 Byte。',
+  '体积 3099.9 kilobytes。',
 ];
 for (const text of shouldFail) {
   check('守卫能拦下: ' + text, () => {
