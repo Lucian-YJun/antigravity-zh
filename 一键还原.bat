@@ -7,21 +7,28 @@ echo   Antigravity 中文汉化补丁 - 一键还原
 echo ==============================================
 echo.
 
-rem Antigravity-zh.exe is the Rust installer shipped in the release zip.
-rem No Node.js, no npm install, no environment setup required.
-rem No label jumps and no %errorlevel% read inside a parenthesised
-rem block: label seeks are unreliable with UTF-8 multibyte text, and
-rem block-internal expansion yields a stale value.
+rem Same fallback as the install script: release zip uses Antigravity-zh.exe,
+rem source tree uses dist\antigravity-tool.exe.
 
-set "RC=0"
-if not exist "Antigravity-zh.exe" (
-    echo [错误] 未找到 Antigravity-zh.exe，请从 Releases 下载完整发布包。
+set "TOOL="
+if exist "Antigravity-zh.exe" set "TOOL=Antigravity-zh.exe"
+if not defined TOOL if exist "dist\antigravity-tool.exe" set "TOOL=dist\antigravity-tool.exe"
+
+if not defined TOOL (
+    echo [错误] 未找到安装器。
+    echo.
+    echo   发布包用户：请确认压缩包已完整解压，目录里应有 Antigravity-zh.exe。
+    echo   源码目录：  请先构建，执行 npm run build:rust 生成 dist\antigravity-tool.exe。
     echo.
     pause
     exit /b 1
 )
 
-"Antigravity-zh.exe" revert %*
+echo 使用安装器: %TOOL%
+echo.
+
+set "RC=0"
+"%TOOL%" revert %*
 if errorlevel 1 set "RC=1"
 
 echo.
