@@ -21,7 +21,15 @@ if (!fs.existsSync(SOURCE)) {
 }
 
 fs.mkdirSync(DIST, { recursive: true });
-fs.copyFileSync(SOURCE, path.join(DIST, ARTIFACT_NAME));
+const distArtifact = path.join(DIST, ARTIFACT_NAME);
+fs.copyFileSync(SOURCE, distArtifact);
+// copyFileSync 不保证刷新目标 mtime（Windows 上会沿用源的写入时间）。
+// 而 tests/test-empirical-challenger-m1-cli.js 的「二进制不比 Rust 源码旧」守卫
+// 正是按 mtime 判断的：cargo 判定源码未变、不重新链接时，源产物时间戳就停在旧值，
+// 于是复制过去仍是旧 mtime，守卫误报「二进制过期」。这里显式对齐到复制时刻，
+// 让 mtime 如实反映「本次 build:rust 已把当前产物放到 dist/」。
+const now = new Date();
+fs.utimesSync(distArtifact, now, now);
 
 const manifest = {
   version: pkg.version,
