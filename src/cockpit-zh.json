@@ -1204,7 +1204,7 @@
     "Skills & Rules": "技能与规则",
     "Active Skills": "活动技能",
     "Currently installed": "当前已安装",
-    "Explore the plugin marketplace": "探索插件市场",
+    "Explore the plugin marketplace": "探索扩展市场",
     "Explore other marketplace customizations": "探索更多扩展市场自定义项",
     "Discover helpful skills & plugins": "发现实用的技能与插件",
     "Built In": "内置",
@@ -2038,7 +2038,12 @@
     "Workspace setting": "工作区设置",
     "this project": "此项目",
     "this workspace": "此工作区",
-    "Manage project resources, agent settings, and permissions.": "管理项目资源、智能体设置和权限。"
+    "Manage project resources, agent settings, and permissions.": "管理项目资源、智能体设置和权限。",
+    "New Group": "新建分组",
+    "Create Group": "创建分组",
+    "Worktree Name": "工作树名称",
+    "A group with this name already exists.": "已存在同名分组。",
+    "Browse the Marketplace": "浏览扩展市场"
   },
   "rules": [
     [

@@ -320,22 +320,64 @@ exports.normEngine = normEngine;
 // 菜单归一化索引：构造菜单是一次性动作，直接建全量索引（含规范形态），
 // 让「大小写 × 尾部标点」的变体都能命中，词典里就不必再逐条展开。
 const MENU_NORM = NORM_IMPL.compileNorm(MENU_LABELS, true);
-// 单条菜单文本的翻译：先查 MENU_LABELS，再走归一化。
+// 原生菜单的兜底词典：MENU_LABELS 只覆盖 Electron 自带菜单与应用自建菜单，
+// 但网页右键菜单（window.showContextMenu → buildFromTemplate）传来的 label 有 60+ 条
+// 只存在于 cockpit-zh.json 的 dict 里（Conversation Name / Split Right / Toggle Sidebar ...）。
+// 不回落到 dict，就会出现「同一个词在 DOM 里是中文、在原生菜单里还是英文」。
+// 只查 dict 的精确 + 归一化，不套 rules：规则是给整句兜底的，套到菜单 label 上容易误伤。
+let MENU_DICT = Object.create(null);
+let MENU_DICT_NORM = Object.create(null);
+let menuDictStamp = -1;
+// 按 mtime 缓存：每次建菜单只 stat 一次，词典没改就不重建索引。
+// 这样 npm run sync 热载后原生菜单也能跟着换词，不必重启客户端。
+function refreshMenuDict() {
+    const dicPath = path.join(__dirname, 'cockpit-zh.json');
+    let stamp = 0;
+    try {
+        stamp = fs.statSync(dicPath).mtimeMs;
+    }
+    catch (e) {
+        stamp = 0;
+    }
+    if (stamp === menuDictStamp) {
+        return;
+    }
+    menuDictStamp = stamp;
+    try {
+        const dic = loadDictionary();
+        MENU_DICT = dic.dict;
+        MENU_DICT_NORM = NORM_IMPL.compileNorm(dic.dict, true);
+    }
+    catch (e) {
+        // 词典坏了不能让菜单炸掉：退回只用 MENU_LABELS（菜单只在打开时跑一遍，stat 成本可忽略）
+        MENU_DICT = Object.create(null);
+        MENU_DICT_NORM = Object.create(null);
+    }
+}
+// 单条菜单文本的翻译：MENU_LABELS（手写、优先）→ 菜单归一化 → dict（精确 → 归一化）。
+// 词典索引由调用方在整棵菜单开始处刷新一次 refreshMenuDict()，这里只查表：
+// 一个菜单动辄上百项，逐项 statSync 是白花的系统调用。
 function translateMenuLabel(label) {
     if (typeof label !== 'string' || !label) {
         return label;
     }
-    const zh = MENU_LABELS[label] || MENU_NORM[NORM_IMPL.normKey(label)];
+    const nk = NORM_IMPL.normKey(label);
+    const zh = MENU_LABELS[label] || MENU_NORM[nk] || MENU_DICT[label] || MENU_DICT_NORM[nk];
     return (zh && label !== zh) ? zh : label;
 }
 function translateMenu(menu) {
     if (!menu || !menu.items) {
         return;
     }
+    refreshMenuDict();
+    translateMenuItems(menu);
+}
+// 递归部分不重复刷新词典索引：一个菜单有上百项、若干层子菜单，逐层 statSync 是白花的系统调用。
+function translateMenuItems(menu) {
     for (const item of menu.items) {
         item.label = translateMenuLabel(item.label);
         if (item.submenu) {
-            translateMenu(item.submenu);
+            translateMenuItems(item.submenu);
         }
     }
 }
@@ -345,6 +387,11 @@ function translateMenuTemplate(template) {
     if (!Array.isArray(template)) {
         return template;
     }
+    refreshMenuDict();
+    walkMenuTemplate(template);
+    return template;
+}
+function walkMenuTemplate(template) {
     for (const item of template) {
         if (!item || typeof item !== 'object') {
             continue;
@@ -354,10 +401,9 @@ function translateMenuTemplate(template) {
         }
         item.label = translateMenuLabel(item.label);
         if (Array.isArray(item.submenu)) {
-            translateMenuTemplate(item.submenu);
+            walkMenuTemplate(item.submenu);
         }
     }
-    return template;
 }
 exports.translateMenuTemplate = translateMenuTemplate;
 function loadDictionary() {

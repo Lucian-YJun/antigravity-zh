@@ -123,6 +123,26 @@ f(`Failed to delete ${B.lowercase}`)            // → "Failed to delete project
 判死的代价不对称：**误杀真条目会让界面漏译，而留着一条死条目只是无害冗余。**
 
 
+## 原生菜单（右键菜单）与网页词典是两条路
+
+网页里的文本走注入脚本的 `tr()`（`cockpit-zh.json` 的 `dict` + `rules`）；
+原生菜单（应用菜单、网页传下来的右键菜单）走主进程的 `translateMenu` / `translateMenuTemplate`，
+**两份词典都要有**，否则会出现「同一个词在页面里是中文、在右键菜单里还是英文」。
+
+`zh-i18n.js` 的查表顺序是：`MENU_LABELS`（手写）→ 菜单归一化 → `dict` 精确 → `dict` 归一化。
+第二段是本轮补的：网页右键菜单的 label 大多只在 `dict` 里（`Conversation Name` / `Split Right` /
+`Toggle Sidebar` 等 60+ 条），只查 `MENU_LABELS` 会整片漏译。
+
+新增菜单文案时的判断：
+
+1. 只是页面上的一句普通文案 → 只进 `dict`（`add-terms`），菜单会自动兜底。
+2. Electron 自带 role 菜单项（`Cut` / `Select All` / `Toggle Full Screen` 等）→ 必须进 `MENU_LABELS`，
+   因为它们的 label 由 Electron 内部生成，`dict` 里通常没有。
+3. 两种情况都可能：两处都写，措辞保持一致（`test-dict-normalize.js` 有「MENU_LABELS 每条 key 均被 dict 覆盖」的契约）。
+
+原生菜单同样跟随词典热载：`refreshMenuDict()` 按 `cockpit-zh.json` 的 mtime 重建索引，
+`npm run sync` 后无需重启客户端。没有菜单打开的窗口时，改动只影响下一次弹菜单。
+
 ## 找漏译后的自动预筛
 
 扫描完先跑自动预筛，把「该不该翻」的重复判断交给脚本：

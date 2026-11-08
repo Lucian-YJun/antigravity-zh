@@ -1,6 +1,6 @@
 {
   "source": "antigravity-zh v1.2.1 src/cockpit-zh.json（词典压缩前的完整词条快照）",
-  "note": "冻结基线：压缩前 1607 条「英文原文 → 中文译文」全量快照。tests/test-dict-normalize.js 逐条走真实 tr() 比对，译文必须逐字一致；请勿随词典改动而更新本文件，除非有意变更基线版本。\n[2026-11-08 刻意变更] 应用户要求统一术语，更新了 23 条基线译文：Artifact 制品/产物→成果、Sandbox 沙箱→沙盒、Subagent 子代理→子智能体、Fork Conversation 复制对话→派生对话、Marketplace 市场→扩展市场；并修正 3 条漏网的 agent→「代理」为「智能体」。详见提交信息。",
+  "note": "冻结基线：压缩前 1607 条「英文原文 → 中文译文」全量快照。tests/test-dict-normalize.js 逐条走真实 tr() 比对，译文必须逐字一致；请勿随词典改动而更新本文件，除非有意变更基线版本。\n[2026-11-08 刻意变更] 应用户要求统一术语，更新了 26 条基线译文：Artifact 制品/产物→成果、Sandbox 沙箱→沙盒、Subagent 子代理→子智能体、Fork Conversation 复制对话→派生对话、Marketplace 市场→扩展市场；并修正 3 条漏网的 agent→「代理」为「智能体」。详见提交信息。",
   "entries": {
     "File": "文件",
     "View": "查看",

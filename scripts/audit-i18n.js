@@ -72,6 +72,14 @@ const RULES = {
         'Drive', 'Office', 'Word', 'Excel', 'PowerPoint', 'Android', 'Unicode', 'Issue',
         'refs', 'repo', 'org', 'shell', 'gcert', 'main', 'Data', 'Kit',
     ],
+    /**
+     * 刻意保留英文的整条词条（品牌名 / 功能名）。
+     * 只认「整条相等」，不做子串匹配：`Project` 单独出现仍必须翻译，
+     * 只有 `Project 4K` 这种官方功能名保留原样。
+     */
+    keepEnglish: [
+        'Project 4K',
+    ],
     /** 术语一致性：[说明, 英文源正则, 违规译文正则]。 */
     termChecks: [
         ['Marketplace 应为「扩展市场」', /marketplace/i, /(?<!扩展)市场(?!扩展)/],
@@ -456,6 +464,7 @@ function findDead(dict, ctx) {
 /** ③ 质量：未翻译的英文、术语冲突、标点变体不一致。 */
 function findQuality(dict) {
     const allow = new Set(RULES.allowLatin);
+    const keepEnglish = new Set(RULES.keepEnglish || []);
     const untranslated = [];
     const termHits = [];
     const variantMismatch = [];
@@ -464,13 +473,18 @@ function findQuality(dict) {
         // 未翻译：译文里还有成段英文，且不是白名单技术词
         const latin = (v.match(/[A-Za-z][A-Za-z0-9.'+-]{3,}/g) || []).filter((w) => !allow.has(w));
         const hasCjk = /[\u4e00-\u9fff]/.test(v);
-        if (latin.length && !hasCjk) untranslated.push({ key: k, value: v, latin });
+        if (latin.length && !hasCjk && !keepEnglish.has(k)) untranslated.push({ key: k, value: v, latin });
         for (const [label, enRe, badRe] of RULES.termChecks) {
             if (enRe.test(k) && badRe.test(v)) termHits.push({ rule: label, key: k, value: v });
         }
     }
-    // 同一句子的标点变体之间，译文除标点外应一致
+    // 同一句子的标点变体之间，译文除标点外应一致。
+    // 问句变体允许在句尾多一个语气词：`Allow running regression tests` → 「允许运行回归测试」、
+    // `...tests?` → 「允许运行回归测试吗？」，这是正常的英译中问句形态，不是译文漂移。
+    // 剥掉语气词后再逐字比较，避免把「吗/呢/吧」的增删当成措辞不一致；
+    // 但剥语气词是全局的 —— 只在句尾，且不会掩盖真正的用词差异。
     const strip = (s) => s.replace(/[.。!！?？:：…\s]+$/g, '');
+    const stripParticle = (s) => s.replace(/[吗呢吧嘛么]$/, '');
     const groups = new Map();
     for (const k of Object.keys(dict)) {
         const base = strip(k);
@@ -479,7 +493,7 @@ function findQuality(dict) {
     }
     for (const [base, keys] of groups) {
         if (keys.length < 2) continue;
-        const bodies = new Set(keys.map((k) => strip(dict[k])));
+        const bodies = new Set(keys.map((k) => stripParticle(strip(dict[k]))));
         if (bodies.size > 1) {
             variantMismatch.push({ base, variants: keys.map((k) => [k, dict[k]]) });
         }
