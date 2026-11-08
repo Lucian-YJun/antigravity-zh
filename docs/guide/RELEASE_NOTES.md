@@ -191,6 +191,6 @@ npm run audit:i18n -- --out <file>      # 导出结构化 JSON
 - 若本机 Antigravity 正在运行，安装器会拒绝执行并提示先退出（不强制关进程）。
 - 词典热同步的「实时推送」需要客户端开着 DevTools 端口；不满足时只会更新文件，
   下次切换视图或重启生效。
-- 原生菜单的**注入代码**在 `install` 时写进 asar，改 `MENU_LABELS`、兜底顺序或
-  `translateMenuTemplate` 本身需要重装 + 重启；改 `cockpit-zh.json` 的 `dict` 仍可热载
-  （`zh-patch/` 在 asar 之外，`npm run sync` 会同步）。
+- 原生菜单的三档生效方式见第 2 节表格：改 `dict` 可热载；改 `zh-i18n.js`（含
+  `MENU_LABELS`）需 sync + 重启；改 asar 里的注入点需重装 + 重启。最容易踩的坑是把
+  这三档混成一档，然后误以为「加了词条却没反应」是词典没生效。
