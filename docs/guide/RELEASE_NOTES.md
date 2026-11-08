@@ -175,8 +175,9 @@ npm run audit:i18n -- --out <file>      # 导出结构化 JSON
   M2 边缘用例 66，其余套件 0 失败；cargo test + clippy 无告警。
 - `verify-release` 报告 **20/20 条目与当前源码逐字节一致**。
 - 安装器 `--version` 输出 `antigravity-tool 1.4.3`。
-- 发布包 `Antigravity-zh-patch-v1.4.3.zip`（20 个条目；体积约 3 MB 量级，精确字节数见
-  Release 页面上的资产信息——本文件在 zip 内，写死 KB 会随本文件自身长度漂移）。
+- 发布包 `Antigravity-zh-patch-v1.4.3.zip`（内含安装器、三份 `.bat`、词典与 native 替换表；
+  条目清单与体积以 Release 页面资产为准。本文件本身就在 zip 内，写死字节数会随自身长度
+  漂移，`tests/test-release-notes.js` 会拦下这类写法）。
 
 ## 升级方式
 
