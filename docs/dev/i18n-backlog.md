@@ -2,7 +2,7 @@
 
 > 由 `node scripts/auto-review.js --write-docs` 生成；`--out <path>` 可导出任意结构化 JSON，同源数据见 `docs/dev/i18n-backlog.json`。
 > 数据源：`frontend-bundle.json` 的 `uncovered[]` 减去活体 L 集合（`crosscheck-sets.json` 的 `exact.F_minus_L`）。
-> 生成时间：2026-11-07T08:30:53.678Z；共 651 条，分 16 类。
+> 生成时间：2026-11-07T18:11:23.004Z；共 651 条，分 16 类。
 
 ## 三态含义 / 怎么勾
 
@@ -19,12 +19,12 @@
 | 指标 | 数量 |
 |---|---:|
 | 总条数（旧流程需逐条人工判断） | 651 |
-| `ACCEPT`（自动放行，人工过一眼） | 465 |
+| `ACCEPT`（自动放行，人工过一眼） | 466 |
 | `REJECT`（自动排除） | 1 |
-| `REVIEW`（需人工裁决，重点） | 185 |
-| 自动消化量 | 466 |
+| `REVIEW`（需人工裁决，重点） | 184 |
+| 自动消化量 | 467 |
 
-> 人工**深度裁决**从 651 条降到 185 条；`ACCEPT` 不是零成本，仍需抽检译文，但不再需要判断「该不该翻」。
+> 人工**深度裁决**从 651 条降到 184 条；`ACCEPT` 不是零成本，仍需抽检译文，但不再需要判断「该不该翻」。
 
 ## 勾完怎么走 add-terms
 
@@ -263,7 +263,7 @@
 |   | `ACCEPT` | Rename This Conversation | 重命名此对话 | key:label · main.js:1931123 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
 |   | `ACCEPT` | Copy Conversation ID | 复制对话 ID | key:label · main.js:1931502 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
 |   | `ACCEPT` | Remove from history (Shift+Delete) | 从历史记录中移除（Shift+Delete） | key:title · main.js:3486205 | bundle 中带强 UI 键名 `title`：确定是 label/title/description 一类固定文案 |
-|   | `ACCEPT` | Chat Width | 对话宽度 | key:title · main.js:4603775 | bundle 中带强 UI 键名 `title`：确定是 label/title/description 一类固定文案 |
+|   | `ACCEPT` | Chat Width | 对话宽度 | key:title · norm-covered · main.js:4603775 | 当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态 |
 |   | `ACCEPT` | Chat Input | 对话输入框 | key:title · main.js:4604106 | bundle 中带强 UI 键名 `title`：确定是 label/title/description 一类固定文案 |
 |   | `ACCEPT` | Send messages with the keyboard's Enter key instead of starting a new line. | 使用键盘的 Enter 键发送消息，而不是换行。 | key:description · main.js:4606554 | bundle 中带强 UI 键名 `description`：确定是 label/title/description 一类固定文案 |
 |   | `ACCEPT` | Conversation Steps | 对话步骤 | key:label · main.js:4610674 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
@@ -589,7 +589,7 @@
 |   | `ACCEPT` | What should the agent do on each run? For example: summarize new bugs assigned to me and anything that changed overnight. | 每次运行时智能体应该做什么？例如：汇总分配给我的新缺陷以及夜间发生的变化。 | key:placeholder · main.js:8653023 | bundle 中带强 UI 键名 `placeholder`：确定是 label/title/description 一类固定文案 |
 |   | `ACCEPT` | For example: every morning, summarize new bugs assigned to me and anything that changed overnight. | 例如：每天早上汇总分配给我的新缺陷以及夜间发生的变化。 | key:placeholder · main.js:8655482 | bundle 中带强 UI 键名 `placeholder`：确定是 label/title/description 一类固定文案 |
 
-### 设置（33 条：ACCEPT 27 / REJECT 0 / REVIEW 6）
+### 设置（33 条：ACCEPT 28 / REJECT 0 / REVIEW 5）
 
 | ✔ | 状态 | 原文 | 建议译文 | 依据 | 理由 |
 |---|---|---|---|---|---|
@@ -601,7 +601,7 @@
 |   | `REVIEW` | These settings can only be changed on the computer running the app, not from a remote session. | 这些设置只能在运行本应用的计算机上更改，无法从远程会话更改。 | main.js:4542776 | 缺少 UI 键名上下文：bundle 只给出裸字符串，无法证明是固定界面文案还是拼接片段/示例数据；长句且无键名上下文：可能是说明文字，也可能是截断/拼接的模板，需要人确认边界 |
 |   | `REVIEW` | Feature Environment Override | 功能环境覆盖 | main.js:4631187 | 缺少 UI 键名上下文：bundle 只给出裸字符串，无法证明是固定界面文案还是拼接片段/示例数据 |
 |   | `ACCEPT` | Override feature environment | 覆盖功能环境 | key:label · main.js:4631269 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
-|   | `REVIEW` | For Antigravity Business consumption options, see | 有关 Antigravity Business 的用量方案，请参阅 | main.js:4682844 | 句中含品牌/产品名：整句可能是 UI 文案，但品牌词必须原样保留，需人工看译文（命中：Antigravity）；缺少 UI 键名上下文：bundle 只给出裸字符串，无法证明是固定界面文案还是拼接片段/示例数据；疑似句子片段（以介词/逗号/省略号结尾或含插值），可能不适合逐字入库 |
+|   | `ACCEPT` | For Antigravity Business consumption options, see | 有关 Antigravity Business 的用量方案，请参阅 | norm-covered · main.js:4682844 | 当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态 |
 |   | `ACCEPT` | Configure GitHub access policies. | 配置 GitHub 访问策略。 | key:description · main.js:4839207 | bundle 中带强 UI 键名 `description`：确定是 label/title/description 一类固定文案 |
 |   | `ACCEPT` | Agent Hooks Configuration | 智能体 Hooks 配置 | shape:Agent(14) · main.js:4894039 | 与已有 dict 同形：前缀 `Agent` 在词典中有 14 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案 |
 |   | `ACCEPT` | Search for MCP servers to add to your configuration | 搜索要添加到配置中的 MCP 服务器 | shape:Search(28) · main.js:4904845 | 与已有 dict 同形：前缀 `Search` 在词典中有 28 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案 |
@@ -685,7 +685,7 @@
 |   | `ACCEPT` | Agent terminated due to error | 智能体因错误而终止 | key:title · main.js:7737458 | bundle 中带强 UI 键名 `title`：确定是 label/title/description 一类固定文案 |
 |   | `ACCEPT` | Failed to create worktree | 创建工作树失败 | key:title · main.js:7771685 | bundle 中带强 UI 键名 `title`：确定是 label/title/description 一类固定文案 |
 |   | `ACCEPT` | It was already sent or couldn't be removed from the queue. | 它已发送，或无法从队列中移除。 | key:message · main.js:7927206 | bundle 中带强 UI 键名 `message`：确定是 label/title/description 一类固定文案 |
-|   | `ACCEPT` | Invalid Media | 媒体文件无效 | key:title · main.js:7937118 | bundle 中带强 UI 键名 `title`：确定是 label/title/description 一类固定文案 |
+|   | `ACCEPT` | Invalid Media | 媒体文件无效 | key:title · norm-covered · main.js:7937118 | 当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态 |
 |   | `REVIEW` | No internet. Agent features may not work. | 无网络连接。智能体功能可能无法使用。 | main.js:8545239 | 缺少 UI 键名上下文：bundle 只给出裸字符串，无法证明是固定界面文案还是拼接片段/示例数据 |
 |   | `REVIEW` | Sidecar feature is not available. | Sidecar 功能不可用。 | main.js:8613382 | 句中含品牌/产品名：整句可能是 UI 文案，但品牌词必须原样保留，需人工看译文（命中：Sidecar）；缺少 UI 键名上下文：bundle 只给出裸字符串，无法证明是固定界面文案还是拼接片段/示例数据 |
 |   | `REVIEW` | " not found. | " 未找到。 | main.js:8613617 | 缺少 UI 键名上下文：bundle 只给出裸字符串，无法证明是固定界面文案还是拼接片段/示例数据 |

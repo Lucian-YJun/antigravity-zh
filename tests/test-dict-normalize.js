@@ -324,6 +324,13 @@ const ruleFallbackCases = [
   ['Turn 4', '第 4 轮'],
   ['Connecting to WSL…', '正在连接到 WSL…'],
   ['Downloading update...', '正在下载更新...'],
+  // 项目删除确认：xBb() 先拼「N active conversations」/「M archived conversations」，
+  // 再 c.join(" and ")，句号由调用方补 —— 前后都是变量，词典无法逐字收录，只能靠规则。
+  // 源码里 a===1 时用单数，故单复数四种组合都要能命中。
+  ['1 active conversation and 8 archived conversations.', '1 个活动对话，8 个归档对话。'],
+  ['1 active conversations and 8 archived conversations.', '1 个活动对话，8 个归档对话。'],
+  ['3 active conversations and 1 archived conversation.', '3 个活动对话，1 个归档对话。'],
+  ['12 active conversations and 4 archived conversations', '12 个活动对话，4 个归档对话。'],
   // 既有形态回归：新规则不得抢走旧规则/归一化命中
   ['9d', '9 天前'],
   ['Turn 3 of 7', '第 3 轮，共 7 轮'],
@@ -484,6 +491,23 @@ for (const [en, want] of menuAddedTerms) {
 }
 check('菜单补录词条清单完整（本轮 27 条，防止删条目空转）', menuAddedTerms.length >= 27,
   `当前 ${menuAddedTerms.length} 条`);
+
+// 本轮经 add-terms 补录的 3 条固定文案（发送按钮与对话不可用的错误/空状态）。
+// 与 menuAddedTerms 同口径：既核对 exact，也用真实 tr() 兜一层，
+// 防止「写进词典却被某条规则改写成别的措辞」，也防止以后再压缩词典时被悄悄删掉。
+const uiTextAddedTerms = [
+  ['Send Now', '立即发送'],
+  ['Conversation unavailable', '对话不可用'],
+  ['The conversation could not be loaded because its data was not found.', '无法加载该对话，因为找不到其数据。'],
+];
+for (const [en, want] of uiTextAddedTerms) {
+  const got = tr(en);
+  check(`界面文案补录词条 ${JSON.stringify(en)}`,
+    dictFile.dict[en] === want && got === want,
+    `期望 exact=${JSON.stringify(want)} 且 tr()=${JSON.stringify(want)}，实际 exact=${JSON.stringify(dictFile.dict[en])} / tr()=${JSON.stringify(got)}`);
+}
+check('界面文案补录词条清单完整（本轮 3 条，防止删条目空转）', uiTextAddedTerms.length >= 3,
+  `当前 ${uiTextAddedTerms.length} 条`);
 
 // ---- 7. 规模兜底 ----
 // 这里只做「异常膨胀」的兜底，不是覆盖率目标：官方每次更新都可能新增界面文案，

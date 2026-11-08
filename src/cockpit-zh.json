@@ -1312,7 +1312,15 @@
     "Hide Others": "隐藏其他",
     "Preferences": "偏好设置",
     "Docs": "文档",
-    "Downloading Update...": "正在下载更新..."
+    "Downloading Update...": "正在下载更新...",
+    "Chat Width": "对话宽度",
+    "Invalid Media": "媒体文件无效",
+    "Restore Pane": "还原窗格",
+    "For Antigravity Business consumption options, see": "有关 Antigravity Business 的用量方案，请参阅",
+    "documentation": "文档",
+    "Send Now": "立即发送",
+    "Conversation unavailable": "对话不可用",
+    "The conversation could not be loaded because its data was not found.": "无法加载该对话，因为找不到其数据。"
   },
   "rules": [
     [
@@ -2593,6 +2601,10 @@
     [
       "^Downloading [Uu]pdate\\.\\.\\.$",
       "正在下载更新..."
+    ],
+    [
+      "^(\\d+) active conversations? and (\\d+) archived conversations?\\.?$",
+      "$1 个活动对话，$2 个归档对话。"
     ]
   ]
 }
