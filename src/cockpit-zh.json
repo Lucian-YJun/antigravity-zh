@@ -2007,7 +2007,8 @@
     "Telemetry": "遥测",
     "Asked": "已提问",
     "Asking": "正在提问",
-    "Running": "运行中"
+    "Running": "运行中",
+    "Conversation as Markdown": "对话 Markdown"
   },
   "rules": [
     [

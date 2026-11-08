@@ -288,6 +288,28 @@ const MENU_LABELS = {
     'Local Checkouts.': '本地检出。',
     'Local Checkouts...': '本地检出...',
     'Local Checkouts:': '本地检出：',
+    'Rename': '重命名',
+    'Mark Unread': '标记为未读',
+    'Mark Read': '标记为已读',
+    'Archive': '归档',
+    'Unpin': '取消置顶',
+    'Pin': '置顶',
+    'Share': '分享',
+    'Stop': '停止',
+    'View Debug': '查看调试信息',
+    'Restore': '恢复',
+    'Delete Permanently': '永久删除',
+    'Telemetry': '遥测',
+    'View archived in the sidebar': '在侧边栏中查看已归档对话',
+    'Fork': '派生',
+    'Split': '拆分',
+    'Conversation ID': '对话 ID',
+    'Conversation as Markdown': '对话 Markdown',
+    'Conversation Title': '对话标题',
+    'Copy Path': '复制路径',
+    'More Actions': '更多操作',
+    'Learn More': '了解更多',
+    'Sign Out': '退出登录',
 };
 exports.MENU_LABELS = MENU_LABELS;
 // 供工具复用同一份归一化逻辑（add-terms 用它判断新词条是否已被现有条目覆盖），
@@ -296,27 +318,46 @@ exports.normEngine = normEngine;
 // 菜单归一化索引：构造菜单是一次性动作，直接建全量索引（含规范形态），
 // 让「大小写 × 尾部标点」的变体都能命中，词典里就不必再逐条展开。
 const MENU_NORM = NORM_IMPL.compileNorm(MENU_LABELS, true);
+// 单条菜单文本的翻译：先查 MENU_LABELS，再走归一化。
+function translateMenuLabel(label) {
+    if (typeof label !== 'string' || !label) {
+        return label;
+    }
+    const zh = MENU_LABELS[label] || MENU_NORM[NORM_IMPL.normKey(label)];
+    return (zh && label !== zh) ? zh : label;
+}
 function translateMenu(menu) {
     if (!menu || !menu.items) {
         return;
     }
     for (const item of menu.items) {
-        const label = item.label;
-        if (typeof label === 'string' && label) {
-            let zh = MENU_LABELS[label];
-            // 菜单只在建菜单时跑一遍，不做快路径判断：省下的一次查表远不值当漏译的风险
-            if (!zh) {
-                zh = MENU_NORM[NORM_IMPL.normKey(label)];
-            }
-            if (zh && label !== zh) {
-                item.label = zh;
-            }
-        }
+        item.label = translateMenuLabel(item.label);
         if (item.submenu) {
             translateMenu(item.submenu);
         }
     }
 }
+// 处理 Electron Menu.buildFromTemplate 的数组形态（网页右键菜单走这条路）。
+// 与 translateMenu 共用同一份 MENU_LABELS + 归一化索引，避免两套规则漂移。
+function translateMenuTemplate(template) {
+    if (!Array.isArray(template)) {
+        return template;
+    }
+    for (const item of template) {
+        if (!item || typeof item !== 'object') {
+            continue;
+        }
+        if (item.type === 'separator') {
+            continue;
+        }
+        item.label = translateMenuLabel(item.label);
+        if (Array.isArray(item.submenu)) {
+            translateMenuTemplate(item.submenu);
+        }
+    }
+    return template;
+}
+exports.translateMenuTemplate = translateMenuTemplate;
 function loadDictionary() {
     const dicPath = path.join(__dirname, 'cockpit-zh.json');
     const raw = JSON.parse(fs.readFileSync(dicPath, 'utf-8'));
