@@ -2002,7 +2002,9 @@
     "Grant read access to workflow runs and allow dispatching workflows on specific files and refs.": "授予工作流运行的读取权限，并允许针对特定文件和 refs 触发工作流。",
     "Confirming this undo action will make the following changes:": "确认撤销后，将进行以下更改：",
     "View archived in the sidebar (Display options menu).": "在侧边栏中查看已归档对话（显示选项菜单）。",
-    "menu)": "菜单）"
+    "menu)": "菜单）",
+    "Unpin": "取消置顶",
+    "Telemetry": "遥测"
   },
   "rules": [
     [
