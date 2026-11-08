@@ -1,6 +1,6 @@
 {
   "source": "antigravity-zh v1.2.1 src/cockpit-zh.json（词典压缩前的完整词条快照）",
-  "note": "冻结基线：压缩前 1607 条「英文原文 → 中文译文」全量快照。tests/test-dict-normalize.js 逐条走真实 tr() 比对，译文必须逐字一致；请勿随词典改动而更新本文件，除非有意变更基线版本。\n[2026-11-08 刻意变更] 应用户要求统一术语，更新了 20 条基线译文：Artifact 制品/产物→成果、Sandbox 沙箱→沙盒、Subagent 子代理→子智能体、Fork Conversation 复制对话→派生对话、Marketplace 市场→扩展市场。详见提交信息。",
+  "note": "冻结基线：压缩前 1607 条「英文原文 → 中文译文」全量快照。tests/test-dict-normalize.js 逐条走真实 tr() 比对，译文必须逐字一致；请勿随词典改动而更新本文件，除非有意变更基线版本。\n[2026-11-08 刻意变更] 应用户要求统一术语，更新了 23 条基线译文：Artifact 制品/产物→成果、Sandbox 沙箱→沙盒、Subagent 子代理→子智能体、Fork Conversation 复制对话→派生对话、Marketplace 市场→扩展市场；并修正 3 条漏网的 agent→「代理」为「智能体」。详见提交信息。",
   "entries": {
     "File": "文件",
     "View": "查看",
@@ -608,9 +608,9 @@
     "Provides a comprehensive guide, quick reference, and sitemap for Google Antigravity (AGY), including the Antigravity CLI (agy), Antigravity 2.0, Antigravity IDE, Python SDK, slash commands, keybindings, and customizations (skills, rules, MCP, sidecars). Activate this skill when the user asks questions about how to use, configure, or customize Antigravity, AGY, the agy CLI, the Antigravity IDE, or Antigravity 2.0.": "提供 Google Antigravity（AGY）的综合指南、速查表和导览，涵盖 Antigravity CLI（agy）、Antigravity 2.0、Antigravity IDE、Python SDK、斜杠命令、快捷键和自定义配置（技能、规则、MCP、侧边视图）。当用户询问如何使用、配置或定制 Antigravity 及其相关组件时启用此技能。",
     "How to render rich interactive HTML widgets inline in the chat or as standalone artifacts. Use this skill when you want to show the user diagrams, data visualizations, interactive controls, educational walkthroughs, or any rich visual content beyond plain text and markdown.": "如何在对话中内嵌渲染丰富的交互式 HTML 组件，或作为独立成果展示。当需要向用户展示图表、数据可视化、交互控件、教学演示，或任何超出纯文本和 Markdown 的丰富内容时使用此技能。",
     "Automatically migrate legacy workflows to modern skills across global and workspace configurations. Scans for existing workflows, creates target SKILL.md files, and safely archives old workflow files.": "自动将旧版工作流迁移为现代技能格式，覆盖全局和工作区配置。扫描现有工作流，生成目标 SKILL.md 文件，并安全归档旧工作流文件。",
-    "Guidelines for interacting with GitHub and request permissions from the user when commands fail due to restrictions in the agent environment.": "与 GitHub 交互的指南；当命令因代理环境限制而失败时，向用户请求相应权限。",
+    "Guidelines for interacting with GitHub and request permissions from the user when commands fail due to restrictions in the agent environment.": "与 GitHub 交互的指南；当命令因智能体环境限制而失败时，向用户请求相应权限。",
     "Interactive guide to design and create a scheduled background automation. Use this skill when the user wants to create an automated or recurring scheduled task (e.g. \"summarize my emails every morning\", \"every Monday send me a to-do list\"). Also triggered by the /automation slash command.": "设计与创建定时后台自动化任务的交互式指南。当用户希望创建自动化或周期性定时任务时（例如“每天早晨总结我的邮件”、“每周一向我发送待办清单”）使用此技能。亦可通过 /automation 斜杠命令触发。",
-    "How to manage and create plugins — namespaced bundles of skills, agents, rules, MCP servers and hooks that install, enable and disable as a single unit. Use this skill when the user wants to enable, disable, install or uninstall a plugin, when they want to create a new plugin, or when a new customization should be packaged into a plugin rather than left loose. Also triggered by the /plugin slash command. Don't use for the underlying customization system itself — discovery roots, loading priority, or authoring a standalone skill, agent, rule, hook or MCP server outside a plugin; see the customizations guide skill for those.": "如何管理与创建插件——包含技能、代理、规则、MCP 服务器和钩子的命名空间集合包，可作为单一单元整体安装、启用和禁用。当用户希望启用、禁用、安装或卸载插件、创建新插件，或需要将新自定义项打包为插件而非零散放置时使用此技能。亦可通过 /plugin 斜杠命令触发。请勿用于底层自定义系统本身（如发现根目录、加载优先级，或在插件外部编写独立的技能、代理、规则、钩子或 MCP 服务器；这些请参阅自定义指南技能）。",
+    "How to manage and create plugins — namespaced bundles of skills, agents, rules, MCP servers and hooks that install, enable and disable as a single unit. Use this skill when the user wants to enable, disable, install or uninstall a plugin, when they want to create a new plugin, or when a new customization should be packaged into a plugin rather than left loose. Also triggered by the /plugin slash command. Don't use for the underlying customization system itself — discovery roots, loading priority, or authoring a standalone skill, agent, rule, hook or MCP server outside a plugin; see the customizations guide skill for those.": "如何管理与创建插件——包含技能、智能体、规则、MCP 服务器和钩子的命名空间集合包，可作为单一单元整体安装、启用和禁用。当用户希望启用、禁用、安装或卸载插件、创建新插件，或需要将新自定义项打包为插件而非零散放置时使用此技能。亦可通过 /plugin 斜杠命令触发。请勿用于底层自定义系统本身（如发现根目录、加载优先级，或在插件外部编写独立的技能、智能体、规则、钩子或 MCP 服务器；这些请参阅自定义指南技能）。",
     "No MCP servers installed": "未安装 MCP 服务器",
     "Use Add MCP to browse the store, or add a custom server via the MCP config.": "使用「添加 MCP」浏览商店，或通过 MCP 配置添加自定义服务器。",
     "Open File": "打开文件",
@@ -643,7 +643,7 @@
     "Danger Zone": "危险区域",
     "Delete Project": "删除项目",
     "No conversations yet": "尚无对话",
-    "Manage folders, agents, and permissions.": "管理文件夹、代理和权限。",
+    "Manage folders, agents, and permissions.": "管理文件夹、智能体设置和权限。",
     "Folders": "文件夹",
     "Inherit Global": "继承全局",
     "Inherits your Global Permissions when working in this project.": "在此项目中工作时继承你的全局权限。",

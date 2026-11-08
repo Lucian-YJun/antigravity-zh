@@ -395,6 +395,36 @@ const ruleFallbackCases = [
   ['ALLOW ONCE?', '仅允许一次'],
   ['allow ONCE?', '仅允许一次'],
   ['Allow something?', '允许 something 吗？'],
+
+  // ---- A5：运行时计数/列表文案（源码用模板拼接，静态词典抓不到，只能靠规则）----
+  // 背景：bundle 里写作 `1 browser step` / `${n} browser steps` 这类三元或模板，
+  // grep 原始 bundle 找不到整句，于是长期漏译成英文。每条都对应源码里真实存在的模板。
+  ['1 browser step', '1 个浏览器步骤'],
+  ['3 browser steps', '3 个浏览器步骤'],
+  ['4 models selected', '已选择 4 个模型'],
+  ['1 File With Changes', '1 个文件有更改'],
+  ['2 Files With Changes', '2 个文件有更改'],
+  ['1 Side Question', '1 个侧边提问'],
+  ['2 Side Questions', '2 个侧边提问'],
+  ['View 2 side questions', '查看 2 个侧边提问'],
+  ['1 active mode', '1 个活动模式'],
+  ['2 active modes', '2 个活动模式'],
+  ['Modes', '模式'],
+  ['45% of the context window used', '已使用上下文窗口的 45%'],
+  ['12 lines added, 3 lines removed', '新增 12 行，删除 3 行'],
+  ['+3 more (Show all)', '还有 3 个（显示全部）'],
+  ['1 image attachment', '1 个图片附件'],
+  ['3 image attachments', '3 个图片附件'],
+  ['1 video attachment', '1 个视频附件'],
+  ['2 audio attachments', '2 个音频附件'],
+  ['1 attachment', '1 个附件'],
+  ['4 attachments', '4 个附件'],
+  ['3 tasks running', '3 个任务运行中'],
+  // 智能体计数：此前规则译作「子代理」/「Agent 运行中」，与用户定下的「子智能体」不一致
+  ['3 subagents running', '3 个子智能体正在运行'],
+  ['Open Subagent: foo', '打开子智能体：foo'],
+  ['2 agents running', '2 个智能体运行中'],
+  ['No agents running', '没有正在运行的智能体'],
 ];
 for (const [input, want] of ruleFallbackCases) {
   const got = tr(input);

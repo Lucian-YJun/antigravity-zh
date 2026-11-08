@@ -304,7 +304,6 @@ const MENU_LABELS = {
     'Fork': '派生',
     'Split': '拆分',
     'Conversation ID': '对话 ID',
-    'Conversation as Markdown': '对话 Markdown',
     'Conversation Title': '对话标题',
     'Copy Path': '复制路径',
     'More Actions': '更多操作',
