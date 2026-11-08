@@ -1997,7 +1997,7 @@
     "Check pending conversations in the last 3 days that require action from me.": "检查最近 3 天内需要我处理的待办对话。",
     "Check CLs that require my attention and fix them in their respective conversations.": "检查需要我关注的 CL，并在各自所属的对话中修复。",
     "Learn from my conversation history to write a personalized set of rules for future agentic interactions.": "从我的对话历史中学习，为今后的智能体交互编写一套个性化规则。",
-    "Confirm the command is safe to run outside of the sandbox with full network and disk access.": "确认该命令在沙箱外运行是安全的，且可完全访问网络和磁盘。",
+    "Confirm the command is safe to run outside of the sandbox with full network and disk access.": "确认该命令在沙盒外运行是安全的，且可完全访问网络和磁盘。",
     "Sidecar feature is not available.": "Sidecar 功能不可用。",
     "Read access to code, refs, commits, and other repository contents.": "对代码、refs、提交和其他仓库内容的读取权限。",
     "Grant read access to workflow runs and allow dispatching workflows on specific files and refs.": "授予工作流运行的读取权限，并允许针对特定文件和 refs 触发工作流。"
