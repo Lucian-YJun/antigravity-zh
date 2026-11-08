@@ -284,7 +284,7 @@ const ruleFallbackCases = [
   ['SEARCH AUTOMATIONS', '搜索自动化'],
   ['Search automations', '搜索自动化'],
   // 词典精确条目优先于规则，因此这里得到的是词典里的值
-  ['Build With Google Plugins', 'Build With Google 插件'],
+  ['Build With Google Plugins', 'Build with Google 插件'],
   ['build with google plugins', 'Build with Google 插件'],
   ['Build with google plugins', 'Build with Google 插件'],
   // 带数字的后缀形态：旧版只能靠精确条目，未收录的数量会回落英文
@@ -396,17 +396,23 @@ for (const [input, want] of ruleFallbackCases) {
   const got = tr(input);
   check(`规则兜底 ${JSON.stringify(input)}`, got === want, `期望 ${JSON.stringify(want)}，实际 ${JSON.stringify(got)}`);
 }
-// 记录一个已知的词典不一致（内容问题，非代码问题）：同一条原文的两种写法译成了
-// 不同的 "With/with" —— 「Build With Google Plugins」→「Build With Google 插件」
-// 而「Build with Google Plugins」→「Build with Google 插件」。归一化歧义组会因此
-// 整组作废，未收录的写法落到规则上，得到 "Build with Google 插件"。
-// 若要统一措辞，需改译文并同步冻结基线，属刻意的内容变更。
+// 此前的已知不一致已修复（2026-11-08）：
+// 原文两种写法「Build With Google Plugins」与「Build with Google Plugins」
+// 曾译成 With/with 大小写不同的两条译文，使归一化歧义组整组作废。
+// 现已统一译文并删除冗余的那条（大小写差异由归一化查找覆盖），
+// 词典里只保留「Build with Google Plugins」一条。
 check(
-  '记录已知不一致：Build With/with 的译文大小写不统一',
-  dictFile.dict['Build With Google Plugins'] === 'Build With Google 插件'
+  'Build With/with 冗余变体已合并（归一化查找覆盖大小写差异）',
+  dictFile.dict['Build With Google Plugins'] === undefined
     && dictFile.dict['Build with Google Plugins'] === 'Build with Google 插件',
-  '词典已不再保持该状态，请同步更新本断言与相关注释'
+  `词典应为：Build With 变体已移除、Build with 保留且译文正确；实际 ` +
+    `Build With=${JSON.stringify(dictFile.dict['Build With Google Plugins'])} / ` +
+    `Build with=${JSON.stringify(dictFile.dict['Build with Google Plugins'])}`
 );
+// 两种大小写写法经 tr() 都必须译出同一结果（验证归一化真的覆盖了）
+check('大小写两种写法的 tr() 结果一致',
+  tr('Build With Google Plugins') === tr('Build with Google Plugins'),
+  `With=${JSON.stringify(tr('Build With Google Plugins'))} / with=${JSON.stringify(tr('Build with Google Plugins'))}`);
 
 // ---- 6c. 契约：MENU_LABELS 与网页词典 dict 不得再次不同步 ----
 // 原生菜单层由 zh-i18n.js 的 MENU_LABELS 独立负责，但同样的文字出现在网页 DOM 里
