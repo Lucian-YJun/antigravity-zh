@@ -331,6 +331,9 @@ const ruleFallbackCases = [
   ['1 active conversations and 8 archived conversations.', '1 个活动对话，8 个归档对话。'],
   ['3 active conversations and 1 archived conversation.', '3 个活动对话，1 个归档对话。'],
   ['12 active conversations and 4 archived conversations', '12 个活动对话，4 个归档对话。'],
+  // 仅归档计数单独出现（active=0, archived>0）
+  ['3 archived conversations.', '3 个归档对话。'],
+  ['1 archived conversation.', '1 个归档对话。'],
   // 既有形态回归：新规则不得抢走旧规则/归一化命中
   ['9d', '9 天前'],
   ['Turn 3 of 7', '第 3 轮，共 7 轮'],

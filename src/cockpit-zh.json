@@ -2605,6 +2605,10 @@
     [
       "^(\\d+) active conversations? and (\\d+) archived conversations?\\.?$",
       "$1 个活动对话，$2 个归档对话。"
+    ],
+    [
+      "^(\\d+) archived conversations?\\.?$",
+      "$1 个归档对话。"
     ]
   ]
 }

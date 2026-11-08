@@ -72,7 +72,7 @@ dependencies = [
 
 [[package]]
 name = "antigravity-asar"
-version = "1.4.1"
+version = "1.4.2"
 dependencies = [
  "memmap2",
  "rayon",
@@ -86,7 +86,7 @@ dependencies = [
 
 [[package]]
 name = "antigravity-cli"
-version = "1.4.1"
+version = "1.4.2"
 dependencies = [
  "antigravity-asar",
  "antigravity-installer",
@@ -99,7 +99,7 @@ dependencies = [
 
 [[package]]
 name = "antigravity-installer"
-version = "1.4.1"
+version = "1.4.2"
 dependencies = [
  "antigravity-asar",
  "antigravity-replacer",
@@ -113,7 +113,7 @@ dependencies = [
 
 [[package]]
 name = "antigravity-replacer"
-version = "1.4.1"
+version = "1.4.2"
 dependencies = [
  "aho-corasick",
  "regex",

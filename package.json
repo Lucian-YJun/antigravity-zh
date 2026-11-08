@@ -1,6 +1,6 @@
 {
   "name": "antigravity-zh",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "description": "Antigravity 中文汉化补丁 - 首屏优先与渐进式翻译",
   "scripts": {
     "build": "npm run build:rust && npm run release:package",
@@ -24,7 +24,7 @@
     "test:publish": "node tests/test-publish-guard.js",
     "add-terms": "node scripts/add-terms.js",
     "test:add-terms": "node tests/test-add-terms.js",
-    "test:lib": "node tests/test-zip.js && node tests/test-env.js && node tests/test-replacement-engine.js && node tests/test-dict-manager.js && node tests/test-cdp-client.js && node tests/test-process-manager.js && node tests/test-backup-manager.js && node tests/test-deployer.js && node tests/test-release-consistency.js",
+    "test:lib": "node tests/test-zip.js && node tests/test-env.js && node tests/test-replacement-engine.js && node tests/test-dict-manager.js && node tests/test-cdp-client.js && node tests/test-process-manager.js && node tests/test-backup-manager.js && node tests/test-deployer.js && node tests/test-rust-source-digest.js && node tests/test-release-consistency.js",
     "test:cargo": "cargo test --workspace --manifest-path rust/Cargo.toml && cargo clippy --workspace --all-targets --manifest-path rust/Cargo.toml -- -D warnings",
     "test:adversarial": "npm run build:rust && node tests/test-adversarial-treewalker.js && node tests/test-m2-edge-cases.js && node tests/stress-m1-empirical.js && node tests/test-empirical-challenger-m1.js && node tests/test-empirical-challenger-m1-cli.js && node tests/test-empirical-challenger-m2-rust.js",
     "verify:release": "node scripts/verify-release.js",

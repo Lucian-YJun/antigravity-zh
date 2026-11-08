@@ -116,28 +116,38 @@ runTest('BIN', 'dist/ copy is byte-identical to rust/target/release/', () => {
 runTest('BIN', 'dist binary is not stale relative to the Rust sources', () => {
   // 这条才有实际价值：源码改过但二进制没重新构建时，上面那条依然全绿，
   // 于是「测试通过」的二进制和仓库里的源码根本不是同一个东西。
-  const rustRoot = path.join(__dirname, '..', 'rust');
-  const binMtime = fs.statSync(DIST_BIN).mtimeMs;
-  const newest = { mtime: 0, file: '' };
-  const walk = (dir) => {
-    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
-      if (e.name === 'target' || e.name === '.git') continue;
-      const full = path.join(dir, e.name);
-      if (e.isDirectory()) {
-        walk(full);
-      } else if (/\.(rs|toml|lock)$/.test(e.name)) {
-        const m = fs.statSync(full).mtimeMs;
-        if (m > newest.mtime) { newest.mtime = m; newest.file = full; }
-      }
-    }
-  };
-  walk(rustRoot);
+  //
+  // 判据用**内容摘要**而不是 mtime。早期版本比 mtime，有两个绕不过去的毛病：
+  //   1) `git checkout`/`git pull` 会把未改动的源文件重写一遍，mtime 变新而内容没变，
+  //      于是明明是最新的二进制也被判成「过期」，属于误报；
+  //   2) 若为了消掉误报而在构建脚本里把产物 mtime 刷成「现在」（本仓库一度这么改过，
+  //      Codex 在 PR #11 指出），那么「cargo 判定源码未变、没有重新链接、产物其实是旧的」
+  //      这种真问题会被一并掩盖 —— 守卫永远通过，等于失效。
+  // 摘要不受检出时间影响，也不依赖「刚才有没有构建」：内容一变摘要必变。
+  const { rustSourceDigest } = require(path.join(__dirname, '..', 'scripts', 'lib', 'rust-source-digest'));
+  const manifestPath = path.join(ROOT_DIR, 'dist', 'build-manifest.json');
+  assert(fs.existsSync(manifestPath), '缺少 dist/build-manifest.json，无法判定二进制是否对应当前源码。请运行 `npm run build:rust`。');
+
+  let manifest;
+  try {
+    manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+  } catch (e) {
+    assert.fail(`dist/build-manifest.json 不是合法 JSON: ${e.message}`);
+  }
   assert(
-    binMtime >= newest.mtime,
-    `dist/antigravity-tool.exe 比最新的 Rust 源文件还旧，本套件跑的不是当前源码构建出的二进制。\n`
-    + `       二进制 mtime: ${new Date(binMtime).toISOString()}\n`
-    + `       最新源文件:   ${newest.file} @ ${new Date(newest.mtime).toISOString()}\n`
-    + `       请运行 \`npm run build:rust\`。`
+    typeof manifest.rustSourceDigest === 'string' && manifest.rustSourceDigest.length === 64,
+    'dist/build-manifest.json 缺少 rustSourceDigest（旧版构建产物或手工改过）。'
+    + ' 请运行 `npm run build:rust` 重新生成溯源信息。'
+  );
+
+  const { digest: currentDigest, files: currentFiles } = rustSourceDigest(path.join(__dirname, '..', 'rust'));
+  assert.strictEqual(
+    manifest.rustSourceDigest,
+    currentDigest,
+    `dist 里的二进制不是由当前 Rust 源码构建出来的（源码内容已变）。` +
+      `\n       manifest 记录的源码摘要: ${manifest.rustSourceDigest.slice(0, 16)}…（${manifest.rustSourceFiles} 个文件）` +
+      `\n       当前 rust/ 源码摘要:     ${currentDigest.slice(0, 16)}…（${currentFiles} 个文件）` +
+      `\n       请运行 \`npm run build:rust\`。`
   );
 });
 
