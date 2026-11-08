@@ -320,6 +320,25 @@ check('translateMenu 翻译补全菜单项 (图 3: 检出操作大写与复数�
   menuScreenshots.items[105].label === '本地检出：'
 );
 
+// 1c. translateMenuTemplate：网页右键菜单走 buildFromTemplate 的数组形态
+const nativeTemplate = [
+  { label: 'Copy Conversation Markdown' },
+  { label: 'Copy Conversation ID' },
+  { label: 'Copy Trajectory ID' },
+  { type: 'separator' },
+  { label: 'Custom XYZ' },
+  { label: 'Pin', submenu: [{ label: 'Archive' }] },
+];
+const returnedTemplate = zh.translateMenuTemplate(nativeTemplate);
+check('translateMenuTemplate 返回原数组（适配 buildFromTemplate 入参）', returnedTemplate === nativeTemplate);
+check('translateMenuTemplate 翻译对话复制项',
+  nativeTemplate[0].label === '复制对话 Markdown' &&
+  nativeTemplate[1].label === '复制对话 ID' &&
+  nativeTemplate[2].label === '复制轨迹 ID');
+check('translateMenuTemplate 保留分隔符与未知项',
+  nativeTemplate[3].type === 'separator' && nativeTemplate[4].label === 'Custom XYZ');
+check('translateMenuTemplate 递归翻译子菜单', nativeTemplate[5].submenu[0].label === '归档');
+
 // 2-4. attachWebTranslator：捕获注入脚本并验证质量
 const calls = [];
 const win = {
