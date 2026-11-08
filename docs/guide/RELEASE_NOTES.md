@@ -34,7 +34,9 @@ ipcMain.handle('window:show-context-menu', async (_event, items) => {
    `Conversation ID` / `Conversation Title` / `Copy Conversation Markdown` /
    `Copy Conversation ID` / `Copy Trajectory ID` / `Copy Path` / `More Actions` / `Sign Out`。
 
-> 原生替换在 asar 注入层，需要**重启客户端**才生效；词典热载管不到原生菜单。
+> 需要重装 + 重启的只是 **asar 里的替换代码**（`ipchandlers.js` 的注入点）。
+> 词典内容本身照样能热载：`npm run sync` 会同步 `resources/zh-patch/` 下的
+> `cockpit-zh.json` 与 `zh-i18n.js`，而 `zh-patch/` 在 asar 之外。
 
 ## 2. 修复：原生菜单兜底到网页词典
 
@@ -51,10 +53,19 @@ MENU_LABELS（手写，优先）→ 菜单归一化 → dict 精确 → dict 归
 
 只查 `dict` 的精确 + 归一化，**不套 `rules`**：规则是给整句兜底的，套到菜单 label 上容易误伤。
 
-`refreshMenuDict()` 按 `cockpit-zh.json` 的 mtime 缓存索引，`npm run sync` 热载后原生菜单
-也能跟着换词，不必重启客户端。索引在整棵菜单开始处刷新一次，不逐项 `statSync`
+`refreshMenuDict()` 按 `cockpit-zh.json` 的 mtime 缓存索引。安装目录里的 `zh-patch/` 在 asar
+之外，`npm run sync` 会同时推送该词典与 `zh-i18n.js`，所以**只加词条时可以热载**：下一个
+弹出的菜单就是新词，不必重启客户端。索引在整棵菜单开始处刷新一次，不逐项 `statSync`
 （一个菜单动辄上百项，逐项 stat 是白花的系统调用）。词典读坏时退回只用 `MENU_LABELS`，
 不让菜单炸掉。
+
+界线在这里，三者别混：
+
+| 改什么 | 怎么生效 |
+|---|---|
+| `cockpit-zh.json` 的 `dict`（加词条） | `npm run sync` **热载**，下一个菜单就是新词 |
+| `zh-i18n.js`（`MENU_LABELS`、兜底顺序、`translateMenuTemplate`） | `npm run sync` + **重启客户端** |
+| asar 里的注入点（`ipchandlers.js` 的 `buildFromTemplate` 替换） | **重装**（重新注入）+ 重启 |
 
 ## 3. 修复：中文前缀 + 英文尾巴同处一个文本节点
 
@@ -164,12 +175,14 @@ npm run audit:i18n -- --out <file>      # 导出结构化 JSON
   M2 边缘用例 66，其余套件 0 失败；cargo test + clippy 无告警。
 - `verify-release` 报告 **20/20 条目与当前源码逐字节一致**。
 - 安装器 `--version` 输出 `antigravity-tool 1.4.3`。
-- 发布包 `Antigravity-zh-patch-v1.4.3.zip`（3093.8 KB，20 个条目）。
+- 发布包 `Antigravity-zh-patch-v1.4.3.zip`（20 个条目；体积约 3 MB 量级，精确字节数见
+  Release 页面上的资产信息——本文件在 zip 内，写死 KB 会随本文件自身长度漂移）。
 
 ## 升级方式
 
 下载本版 zip 解压，先运行 `一键还原.bat`（清除旧版部署）再运行 `一键安装.bat`。
-原生菜单的翻译改动在 asar 注入层，**安装后需要重启客户端**。
+原生菜单的**注入代码**（asar 里的 `buildFromTemplate` 替换）需要重装并重启才生效；
+菜单词条本身可以只靠 `快速同步词典.bat` 热载。
 
 只想更新词典、不想动安装目录的，可以直接双击 `快速同步词典.bat`。
 
@@ -178,5 +191,6 @@ npm run audit:i18n -- --out <file>      # 导出结构化 JSON
 - 若本机 Antigravity 正在运行，安装器会拒绝执行并提示先退出（不强制关进程）。
 - 词典热同步的「实时推送」需要客户端开着 DevTools 端口；不满足时只会更新文件，
   下次切换视图或重启生效。
-- 原生菜单的翻译在 `install` 时写进 asar，**词典热载对它无效**（改动 `MENU_LABELS`
-  或菜单兜底逻辑后必须重装 + 重启）。
+- 原生菜单的**注入代码**在 `install` 时写进 asar，改 `MENU_LABELS`、兜底顺序或
+  `translateMenuTemplate` 本身需要重装 + 重启；改 `cockpit-zh.json` 的 `dict` 仍可热载
+  （`zh-patch/` 在 asar 之外，`npm run sync` 会同步）。
