@@ -2,7 +2,7 @@
 
 > 由 `node scripts/auto-review.js --write-docs` 生成；`--out <path>` 可导出任意结构化 JSON，同源数据见 `docs/dev/i18n-backlog.json`。
 > 数据源：`frontend-bundle.json` 的 `uncovered[]` 减去活体 L 集合（`crosscheck-sets.json` 的 `exact.F_minus_L`）。
-> 生成时间：2026-11-07T18:11:23.004Z；共 651 条，分 16 类。
+> 生成时间：2026-11-08T05:04:51.248Z；共 651 条，分 16 类。
 
 ## 三态含义 / 怎么勾
 
@@ -19,12 +19,12 @@
 | 指标 | 数量 |
 |---|---:|
 | 总条数（旧流程需逐条人工判断） | 651 |
-| `ACCEPT`（自动放行，人工过一眼） | 466 |
+| `ACCEPT`（自动放行，人工过一眼） | 467 |
 | `REJECT`（自动排除） | 1 |
-| `REVIEW`（需人工裁决，重点） | 184 |
-| 自动消化量 | 467 |
+| `REVIEW`（需人工裁决，重点） | 183 |
+| 自动消化量 | 468 |
 
-> 人工**深度裁决**从 651 条降到 184 条；`ACCEPT` 不是零成本，仍需抽检译文，但不再需要判断「该不该翻」。
+> 人工**深度裁决**从 651 条降到 183 条；`ACCEPT` 不是零成本，仍需抽检译文，但不再需要判断「该不该翻」。
 
 ## 勾完怎么走 add-terms
 
@@ -72,7 +72,7 @@
 |   | `REVIEW` | Whether it never connects or is intermittent/flaky | 是始终无法连接，还是时好时坏 | main.js:4664743 | 缺少 UI 键名上下文：bundle 只给出裸字符串，无法证明是固定界面文案还是拼接片段/示例数据 |
 |   | `REVIEW` | Did restarting the desktop app help? | 重启桌面应用是否有帮助？ | main.js:4664823 | 缺少 UI 键名上下文：bundle 只给出裸字符串，无法证明是固定界面文案还是拼接片段/示例数据 |
 |   | `REVIEW` | Ask questions, report issues, and discuss features | 提问、反馈问题、讨论功能 | main.js:4667908 | 缺少 UI 键名上下文：bundle 只给出裸字符串，无法证明是固定界面文案还是拼接片段/示例数据 |
-|   | `ACCEPT` | Input device for voice mode and dictation. | 语音模式和听写所用的输入设备。 | key:description · main.js:4778989 | bundle 中带强 UI 键名 `description`：确定是 label/title/description 一类固定文案 |
+|   | `ACCEPT` | Input device for voice mode and dictation. | 语音模式和听写所用的输入设备。 | key:description · norm-covered · main.js:4778989 | 当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态 |
 |   | `ACCEPT` | Only stored on your machine. | 仅保存在你的设备上。 | key:description · main.js:4779786 | bundle 中带强 UI 键名 `description`：确定是 label/title/description 一类固定文案 |
 |   | `ACCEPT` | All tools (*) | 所有工具 (*) | key:label · main.js:4881653 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
 |   | `ACCEPT` | Hook will trigger if any tool is executed. | 执行任意工具时都会触发此 Hook。 | key:description · main.js:4881681 | bundle 中带强 UI 键名 `description`：确定是 label/title/description 一类固定文案 |
@@ -110,7 +110,7 @@
 |   | `ACCEPT` | Text attachment | 文本附件 | key:text · main.js:7835366 | bundle 中带强 UI 键名 `text`：确定是 label/title/description 一类固定文案 |
 |   | `REVIEW` | Switch mic | 切换麦克风 | main.js:7849148 | 缺少 UI 键名上下文：bundle 只给出裸字符串，无法证明是固定界面文案还是拼接片段/示例数据；短裸串：可能是按钮/标签，也可能是枚举值或内部标识符 |
 |   | `ACCEPT` | Chief of Staff voice mode is active | Chief of Staff 语音模式已启用 | key:title · main.js:7872444 | bundle 中带强 UI 键名 `title`：确定是 label/title/description 一类固定文案 |
-|   | `ACCEPT` | Send Now | 立即发送 | key:tooltip · main.js:7897168 | bundle 中带强 UI 键名 `tooltip`：确定是 label/title/description 一类固定文案 |
+|   | `ACCEPT` | Send Now | 立即发送 | key:tooltip · norm-covered · main.js:7897168 | 当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态 |
 |   | `ACCEPT` | The full developer experience with code and tooling. | 包含代码与工具的完整开发体验。 | key:description · main.js:7962244 | bundle 中带强 UI 键名 `description`：确定是 label/title/description 一类固定文案 |
 |   | `REVIEW` | Learn more by visiting our | 详情请访问我们的 | main.js:7992367 | 缺少 UI 键名上下文：bundle 只给出裸字符串，无法证明是固定界面文案还是拼接片段/示例数据 |
 |   | `ACCEPT` | Build with Google | 使用 Google 构建 | shape:Build With(3) · main.js:7998425 | 与已有 dict 同形：前缀 `Build With` 在词典中有 3 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案 |
@@ -208,7 +208,7 @@
 |   | `ACCEPT` | Open in Side Pane | 在侧边窗格中打开 | shape:Open in(5) · main.js:7366762 | 与已有 dict 同形：前缀 `Open in` 在词典中有 5 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案 |
 |   | `REVIEW` | UI view does not exist. | 该界面视图不存在。 | main.js:7560261 | 缺少 UI 键名上下文：bundle 只给出裸字符串，无法证明是固定界面文案还是拼接片段/示例数据 |
 |   | `ACCEPT` | Next match | 下一个匹配项 | key:title · main.js:7577766 | bundle 中带强 UI 键名 `title`：确定是 label/title/description 一类固定文案 |
-|   | `ACCEPT` | Send Feedback | 发送反馈 | shape:Send(6) · main.js:7606004 | 与已有 dict 同形：前缀 `Send` 在词典中有 6 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案 |
+|   | `ACCEPT` | Send Feedback | 发送反馈 | shape:Send(7) · main.js:7606004 | 与已有 dict 同形：前缀 `Send` 在词典中有 7 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案 |
 |   | `ACCEPT` | View Debug | 查看调试信息 | key:label · main.js:7625424 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
 |   | `ACCEPT` | Drag to resize, double-click to reset | 拖动调整大小，双击重置 | key:title · main.js:7701543 | bundle 中带强 UI 键名 `title`：确定是 label/title/description 一类固定文案 |
 |   | `ACCEPT` | Copy debug info | 复制调试信息 | key:label · main.js:7735224 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
@@ -266,8 +266,8 @@
 |   | `ACCEPT` | Chat Width | 对话宽度 | key:title · norm-covered · main.js:4603775 | 当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态 |
 |   | `ACCEPT` | Chat Input | 对话输入框 | key:title · main.js:4604106 | bundle 中带强 UI 键名 `title`：确定是 label/title/description 一类固定文案 |
 |   | `ACCEPT` | Send messages with the keyboard's Enter key instead of starting a new line. | 使用键盘的 Enter 键发送消息，而不是换行。 | key:description · main.js:4606554 | bundle 中带强 UI 键名 `description`：确定是 label/title/description 一类固定文案 |
-|   | `ACCEPT` | Conversation Steps | 对话步骤 | key:label · main.js:4610674 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
-|   | `ACCEPT` | Choose how much detail is shown during a conversation. | 选择对话过程中显示的详细程度。 | key:description · main.js:4610707 | bundle 中带强 UI 键名 `description`：确定是 label/title/description 一类固定文案 |
+|   | `ACCEPT` | Conversation Steps | 对话步骤 | key:label · norm-covered · main.js:4610674 | 当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态 |
+|   | `ACCEPT` | Choose how much detail is shown during a conversation. | 选择对话过程中显示的详细程度。 | key:description · norm-covered · main.js:4610707 | 当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态 |
 |   | `ACCEPT` | Background tasks and terminals agents left running, across all conversations. | 所有对话中由智能体遗留运行的后台任务与终端。 | key:description · main.js:4702165 | bundle 中带强 UI 键名 `description`：确定是 label/title/description 一类固定文案 |
 |   | `ACCEPT` | Open Conversation in New Tab | 在新标签页中打开对话 | key:label · main.js:4723066 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
 |   | `ACCEPT` | Browsing History | 浏览历史 | key:label · main.js:4856076 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
@@ -294,8 +294,8 @@
 |   | `REVIEW` | Only Archived | 仅已归档 | main.js:6829177 | 缺少 UI 键名上下文：bundle 只给出裸字符串，无法证明是固定界面文案还是拼接片段/示例数据；短裸串：可能是按钮/标签，也可能是枚举值或内部标识符 |
 |   | `ACCEPT` | Search for conversations... | 搜索对话... | key:placeholder · main.js:6836410 | bundle 中带强 UI 键名 `placeholder`：确定是 label/title/description 一类固定文案 |
 |   | `ACCEPT` | Couldn't mark conversations as read | 无法将对话标记为已读 | key:title · main.js:6846817 | bundle 中带强 UI 键名 `title`：确定是 label/title/description 一类固定文案 |
-|   | `ACCEPT` | Conversation unavailable | 对话不可用 | key:title · main.js:6862369 | bundle 中带强 UI 键名 `title`：确定是 label/title/description 一类固定文案 |
-|   | `ACCEPT` | The conversation could not be loaded because its data was not found. | 无法加载该对话，因为找不到其数据。 | key:message · main.js:6862404 | bundle 中带强 UI 键名 `message`：确定是 label/title/description 一类固定文案 |
+|   | `ACCEPT` | Conversation unavailable | 对话不可用 | key:title · norm-covered · main.js:6862369 | 当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态 |
+|   | `ACCEPT` | The conversation could not be loaded because its data was not found. | 无法加载该对话，因为找不到其数据。 | key:message · norm-covered · main.js:6862404 | 当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态 |
 |   | `REVIEW` | This conversation grew too large, so the history before this point may be missing or incomplete. | 此对话变得过长，此前的历史记录可能缺失或不完整。 | main.js:7285705 | 缺少 UI 键名上下文：bundle 只给出裸字符串，无法证明是固定界面文案还是拼接片段/示例数据；长句且无键名上下文：可能是说明文字，也可能是截断/拼接的模板，需要人确认边界 |
 |   | `ACCEPT` | Rename Conversation | 重命名对话 | key:title · main.js:7613208 | bundle 中带强 UI 键名 `title`：确定是 label/title/description 一类固定文案 |
 |   | `ACCEPT` | Fork | 派生 | key:label · main.js:7625659 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
@@ -354,7 +354,7 @@
 |   | `ACCEPT` | Files and resources in cloud workspaces | 云工作区中的文件与资源 | key:title · main.js:4989737 | bundle 中带强 UI 键名 `title`：确定是 label/title/description 一类固定文案 |
 |   | `REVIEW` | All Workspaces | 所有工作区 | main.js:5012949 | 缺少 UI 键名上下文：bundle 只给出裸字符串，无法证明是固定界面文案还是拼接片段/示例数据；短裸串：可能是按钮/标签，也可能是枚举值或内部标识符 |
 |   | `ACCEPT` | Open Diff | 查看差异 | shape:Open(16) · main.js:6385309 | 与已有 dict 同形：前缀 `Open` 在词典中有 16 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案 |
-|   | `ACCEPT` | Revert file changes | 还原文件更改 | key:label · main.js:6387289 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |
+|   | `ACCEPT` | Revert file changes | 还原文件更改 | key:label · norm-covered · main.js:6387289 | 当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态 |
 |   | `ACCEPT` | File Diff Comments | 文件差异评论 | shape:File(6) · main.js:6411424 | 与已有 dict 同形：前缀 `File` 在词典中有 6 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案 |
 |   | `ACCEPT` | File Comments | 文件评论 | shape:File(6) · main.js:6411726 | 与已有 dict 同形：前缀 `File` 在词典中有 6 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案 |
 |   | `ACCEPT` | Could not create project | 无法创建项目 | key:title · main.js:6558261 | bundle 中带强 UI 键名 `title`：确定是 label/title/description 一类固定文案 |
@@ -627,7 +627,7 @@
 |   | `ACCEPT` | Toggle this on to enable read access on contents. | 开启此项以启用对内容的读取权限。 | shape:Toggle(14) · main.js:10389425 | 与已有 dict 同形：前缀 `Toggle` 在词典中有 14 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案 |
 |   | `ACCEPT` | Toggle Thumbnails | 切换缩略图 | key:title · main.js:10786986 | bundle 中带强 UI 键名 `title`：确定是 label/title/description 一类固定文案 |
 
-### 插件/技能/MCP/智能体（28 条：ACCEPT 19 / REJECT 0 / REVIEW 9）
+### 插件/技能/MCP/智能体（28 条：ACCEPT 20 / REJECT 0 / REVIEW 8）
 
 | ✔ | 状态 | 原文 | 建议译文 | 依据 | 理由 |
 |---|---|---|---|---|---|
@@ -641,7 +641,7 @@
 |   | `ACCEPT` | Select text in the artifact to add a comment | 在产物中选择文本以添加评论 | shape:Select(9) · main.js:7156737 | 与已有 dict 同形：前缀 `Select` 在词典中有 9 条界面文案，且本条无插值/代码字符，可判为固定 UI 文案 |
 |   | `REVIEW` | Artifacts like Google Docs, PDFs, Office documents (Word, Excel, PowerPoint), etc. Everything else the agent creates is under Artifacts. | 产物包括 Google 文档、PDF、Office 文档（Word、Excel、PowerPoint）等。智能体创建的其它内容都归在「产物」下。 | main.js:7229685 | 句中含品牌/产品名：整句可能是 UI 文案，但品牌词必须原样保留，需人工看译文（命中：Google）；缺少 UI 键名上下文：bundle 只给出裸字符串，无法证明是固定界面文案还是拼接片段/示例数据；长句且无键名上下文：可能是说明文字，也可能是截断/拼接的模板，需要人确认边界 |
 |   | `ACCEPT` | Stop All Subagents | 停止所有子智能体 | key:tooltip · main.js:7237744 | bundle 中带强 UI 键名 `tooltip`：确定是 label/title/description 一类固定文案 |
-|   | `REVIEW` | User cancelled agent execution. | 用户已取消智能体执行。 | main.js:7272261 | 缺少 UI 键名上下文：bundle 只给出裸字符串，无法证明是固定界面文案还是拼接片段/示例数据 |
+|   | `ACCEPT` | User cancelled agent execution. | 用户已取消智能体执行。 | norm-covered · main.js:7272261 | 当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态 |
 |   | `ACCEPT` | Ask the agent to diagnose and fix this server | 让智能体诊断并修复此服务器 | key:tooltip · main.js:7322881 | bundle 中带强 UI 键名 `tooltip`：确定是 label/title/description 一类固定文案 |
 |   | `REVIEW` | Fix with Agent | 使用智能体修复 | main.js:7323031 | 缺少 UI 键名上下文：bundle 只给出裸字符串，无法证明是固定界面文案还是拼接片段/示例数据 |
 |   | `ACCEPT` | Plugin update required | 需要更新插件 | key:label · main.js:7343449 | bundle 中带强 UI 键名 `label`：确定是 label/title/description 一类固定文案 |

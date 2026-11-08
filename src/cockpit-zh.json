@@ -1320,7 +1320,23 @@
     "documentation": "文档",
     "Send Now": "立即发送",
     "Conversation unavailable": "对话不可用",
-    "The conversation could not be loaded because its data was not found.": "无法加载该对话，因为找不到其数据。"
+    "The conversation could not be loaded because its data was not found.": "无法加载该对话，因为找不到其数据。",
+    "Voice mode": "语音模式",
+    "Voice": "语音",
+    "Microphone": "麦克风",
+    "System default": "系统默认",
+    "Input device for voice mode and dictation.": "语音模式和听写所用的输入设备。",
+    "The voice used in Voice mode. Powered by Gemini Live.": "语音模式使用的音色，由 Gemini Live 提供支持。",
+    "Not set": "未设置",
+    "Chat": "对话",
+    "Accessibility": "无障碍",
+    "Conversation Steps": "对话步骤",
+    "Choose how much detail is shown during a conversation.": "选择对话过程中显示的详细程度。",
+    "Verbose": "详细",
+    "Revert file changes": "还原文件更改",
+    "Only the conversation will be rewound; your files will be left as-is.": "仅回溯对话，你的文件会保持原样。",
+    "Undo restores your entire workspace to its state at this point.": "撤销会把整个工作区恢复到此时的状态。",
+    "User cancelled agent execution.": "用户已取消智能体执行。"
   },
   "rules": [
     [
