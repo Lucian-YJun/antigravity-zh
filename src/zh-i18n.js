@@ -635,7 +635,7 @@ const TRANSLATOR_BODY = [
     // rev 为可选词典版本号：多窗口并发热载时，慢窗口的旧 payload 不得覆盖新 payload
     '  setData:function(nd,rev){if(!nd){return;}',
     '    if(rev>0){if(rev<=dataRev){return;}dataRev=rev;}',
-    '    D=nd;dict=nd.dict||{};missCurr.clear();missPrev.clear();normHit.clear();nodeMap=new WeakMap();cooldownQueue=[];if(cooldownTimer!==null){clearTimeout(cooldownTimer);cooldownTimer=null;}RC=compileRules(nd.rules);NORM=NE.compileNorm(dict,true);try{walk(document.body);}catch(e){}}};',
+    '    D=nd;dict=nd.dict||{};missCurr.clear();missPrev.clear();normHit.clear();mixedCache.clear();nodeMap=new WeakMap();cooldownQueue=[];if(cooldownTimer!==null){clearTimeout(cooldownTimer);cooldownTimer=null;}RC=compileRules(nd.rules);NORM=NE.compileNorm(dict,true);try{walk(document.body);}catch(e){}}};',
     'walk(document.body);var t0=tr(document.title);if(t0){document.title=t0;}'
 ].join('\n');
 function buildScript(dic) {

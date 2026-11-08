@@ -103,6 +103,21 @@ check('不同混排串互不干扰',
   a && b && a !== b && a.includes('在此项目中') && b.includes('在这些对话中'),
   'a=' + JSON.stringify(a) + ' b=' + JSON.stringify(b));
 
+// ---- 7) 词典热更新后混排缓存必须失效 ----
+// 回归：setData 此前只清了 normHit / missCurr，mixedCache 仍保留旧词典结果，
+// 导致新增的英文尾巴在 npm run sync 热载后继续显示英文，必须重启窗口才生效。
+const mixedInput = '同时包含全局权限 when working in these conversations.';
+const beforeHot = tr(mixedInput);
+const hotDict = JSON.parse(fs.readFileSync(path.join(SRC, 'cockpit-zh.json'), 'utf8'));
+// 混排分支会先剥掉行尾标点，再按无句点形态查表；两条都要改，才能证明缓存失效。
+hotDict.dict['when working in these conversations.'] = '热更新尾巴。';
+hotDict.dict['when working in these conversations'] = '热更新尾巴';
+dom.window.__antigravityZh.setData(hotDict);
+const afterHot = tr(mixedInput);
+check('setData 后混排缓存失效（不沿用旧词典结果）',
+  beforeHot !== afterHot && afterHot === '同时包含全局权限 热更新尾巴.',
+  'before=' + JSON.stringify(beforeHot) + ' after=' + JSON.stringify(afterHot));
+
 dom.window.close();
 fs.rmSync(SIM, { recursive: true, force: true });
 console.log(`\n混排串回归: ${pass} 通过, ${fail} 失败`);
