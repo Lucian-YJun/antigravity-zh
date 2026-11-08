@@ -1356,7 +1356,9 @@
     "Project deleted": "项目已删除",
     "Font": "字体",
     "Font Size": "字号",
-    "Font Name": "字体名称"
+    "Font Name": "字体名称",
+    "when working": "工作时",
+    "in these conversations": "在这些对话中"
   },
   "rules": [
     [
