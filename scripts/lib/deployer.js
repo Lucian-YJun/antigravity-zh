@@ -50,9 +50,8 @@ function setupUnpackedJunction(resourcesDir, sourceAsar, asarPath) {
  * @param {string} to
  */
 function deployRename(from, to) {
-  // 故障注入只在源码运行时生效：package.json 的 pkg.assets 把 scripts/lib/**/*
-  // 打进了发布 exe，一个恰好同名的环境变量不该让生产安装凭空失败。
-  const probe = process.pkg ? null : process.env.AGY_ZH_TEST_FAIL_RENAME;
+  // 故障注入只在源码/测试运行时用环境变量显式开启，正常安装不受影响。
+  const probe = process.env.AGY_ZH_TEST_FAIL_RENAME;
   if (probe && `${path.basename(from)}>${path.basename(to)}` === probe) {
     const err = new Error(`注入的部署失败（测试用）: ${path.basename(from)} → ${path.basename(to)}`);
     err.code = 'EIO';

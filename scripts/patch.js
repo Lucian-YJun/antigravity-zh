@@ -34,9 +34,8 @@ const { parseProcessList } = processManager;
 // sidecar 判定特征：无主窗口、不含 --type=、命中运行时特征。
 const SIDECAR_POWERSHELL_FILTER = "$win=[int]$gp.MainWindowHandle; if ($c -and $win -eq 0 -and ($c -notmatch '--type='))";
 
-// 被测试 require 时只导出纯函数，不执行安装流程。
-// pkg 打包后的 exe 里 process.pkg 有值，因此始终走下面的主流程。
-const DETECT_ONLY = !process.pkg && require.main !== module;
+// 被测试 require 时只导出纯函数，不执行安装流程（本文件已不再打包成 exe）。
+const DETECT_ONLY = require.main !== module;
 if (DETECT_ONLY) {
     module.exports = { parseProcessList, SIDECAR_POWERSHELL_FILTER };
 }

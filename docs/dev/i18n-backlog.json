@@ -1,20 +1,20 @@
 {
-  "generatedAt": "2026-11-07T08:30:53.678Z",
+  "generatedAt": "2026-11-07T18:11:23.004Z",
   "source": {
     "bundle": "C:\\Users\\35332\\.gemini\\antigravity\\brain\\008f16c3-08fc-461a-afe6-25eb0b08548e\\scratch\\findings\\frontend-bundle.json",
     "crosscheck": "C:\\Users\\35332\\.gemini\\antigravity\\brain\\008f16c3-08fc-461a-afe6-25eb0b08548e\\scratch\\findings\\crosscheck-sets.json",
-    "dictionary": "C:\\Users\\35332\\.gemini\\antigravity\\worktrees\\antigravity-zh\\multi_agent_antigravity2_29\\src\\cockpit-zh.json",
+    "dictionary": "C:\\Users\\35332\\.gemini\\antigravity\\scratch\\antigravity-zh\\src\\cockpit-zh.json",
     "set": "exact.F_minus_L"
   },
   "counts": {
     "total": 651,
-    "ACCEPT": 465,
+    "ACCEPT": 466,
     "REJECT": 1,
-    "REVIEW": 185,
+    "REVIEW": 184,
     "categories": 16,
     "manualBaseline": 651,
-    "manualAfter": 185,
-    "reduction": 466
+    "manualAfter": 184,
+    "reduction": 467
   },
   "items": [
     {
@@ -3789,14 +3789,14 @@
         "strongUiKey": "title",
         "weakUiKey": null,
         "shapePrefix": null,
-        "normCovered": false,
-        "exactDict": false,
+        "normCovered": true,
+        "exactDict": true,
         "brandStandalone": false,
         "exampleData": false
       },
       "state": "ACCEPT",
       "reasons": [
-        "bundle 中带强 UI 键名 `title`：确定是 label/title/description 一类固定文案"
+        "当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态"
       ],
       "checked": false
     },
@@ -5216,16 +5216,14 @@
         "strongUiKey": null,
         "weakUiKey": null,
         "shapePrefix": null,
-        "normCovered": false,
-        "exactDict": false,
+        "normCovered": true,
+        "exactDict": true,
         "brandStandalone": false,
         "exampleData": false
       },
-      "state": "REVIEW",
+      "state": "ACCEPT",
       "reasons": [
-        "句中含品牌/产品名：整句可能是 UI 文案，但品牌词必须原样保留，需人工看译文（命中：Antigravity）",
-        "缺少 UI 键名上下文：bundle 只给出裸字符串，无法证明是固定界面文案还是拼接片段/示例数据",
-        "疑似句子片段（以介词/逗号/省略号结尾或含插值），可能不适合逐字入库"
+        "当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态"
       ],
       "checked": false
     },
@@ -17191,14 +17189,14 @@
         "strongUiKey": "title",
         "weakUiKey": null,
         "shapePrefix": null,
-        "normCovered": false,
-        "exactDict": false,
+        "normCovered": true,
+        "exactDict": true,
         "brandStandalone": false,
         "exampleData": false
       },
       "state": "ACCEPT",
       "reasons": [
-        "bundle 中带强 UI 键名 `title`：确定是 label/title/description 一类固定文案"
+        "当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态"
       ],
       "checked": false
     },
