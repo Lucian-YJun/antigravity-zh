@@ -1423,7 +1423,9 @@
     "Enterprise Gateway": "企业网关",
     "Authenticated via Enterprise Gateway": "通过企业网关认证",
     "Project ID:": "项目 ID：",
-    "Manage License": "管理许可证"
+    "Manage License": "管理许可证",
+    "No folders added yet.": "尚未添加文件夹。",
+    "No resources added yet.": "尚未添加资源。"
   },
   "rules": [
     [
