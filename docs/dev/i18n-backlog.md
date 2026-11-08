@@ -2,7 +2,7 @@
 
 > 由 `node scripts/auto-review.js --write-docs` 生成；`--out <path>` 可导出任意结构化 JSON，同源数据见 `docs/dev/i18n-backlog.json`。
 > 数据源：`frontend-bundle.json` 的 `uncovered[]` 减去活体 L 集合（`crosscheck-sets.json` 的 `exact.F_minus_L`）。
-> 生成时间：2026-11-08T05:51:04.538Z；共 651 条，分 16 类。
+> 生成时间：2026-11-08T05:55:11.576Z；共 651 条，分 16 类。
 
 ## 三态含义 / 怎么勾
 

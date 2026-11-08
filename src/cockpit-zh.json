@@ -1419,7 +1419,11 @@
     "Previous Side Panel Tab": "上一个侧边面板标签页",
     "Focus Chat Input": "聚焦聊天输入框",
     "New Conversation in Current Workspace": "在当前工作区新建对话",
-    "Reload Window": "重新加载窗口"
+    "Reload Window": "重新加载窗口",
+    "Enterprise Gateway": "企业网关",
+    "Authenticated via Enterprise Gateway": "通过企业网关认证",
+    "Project ID:": "项目 ID：",
+    "Manage License": "管理许可证"
   },
   "rules": [
     [
