@@ -373,7 +373,8 @@ const ruleFallbackCases = [
   ['Edited file', '已编辑文件'],
   ['Switch in context details', '在上下文详情中切换'],
   ['English', '英语'],
-  ['Token', '令牌'],
+  // Token 保留英文（用户 2026-11-08 决定：与 token/Token 复合词写法一致，不译作「令牌」）
+  ['Token', 'Token'],
   ['Year', '年份'],
   ['Previous', '上一个'],
 
