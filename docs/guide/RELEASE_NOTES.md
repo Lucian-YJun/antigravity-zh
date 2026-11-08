@@ -1,91 +1,86 @@
-# Release v1.4.0: 安装器换成原生实现，体积从 59 MB 降到 3 MB
+# Release v1.4.1: 补齐 2.29 新增英文，动态拼句不再漏译
 
-本版把安装器从「Node.js 脚本 + 内嵌 Node 运行时」换成 Rust 原生二进制。
-下载体积缩小约 **20 倍**，用户侧彻底不再需要 Node。
+本版把 Antigravity 2.29 以来仍显示英文的界面文案补齐：**词典 1267 → 1320 条**、
+**规则 302 → 319 条**、**原生替换表 7 → 12 个**。
 
-**补丁内容本身与此前逐字节相同**——已用真实客户端逐文件核对（见下）。
+主要解决两类漏译：一类是界面新增的固定文案，另一类是**由代码拼出来的句子**——
+后者逐字收录进词典根本收不到，只能靠规则。
 
-## 1. 安装器改为原生二进制（v1.4.0 的主要变化）
+## 1. 动态拼接的句子：只能靠规则兜
 
-| | 上一版 | 本版 |
-|---|---|---|
-| 安装器 | `Antigravity-zh-patch.exe`（内嵌 Node 22） | `Antigravity-zh.exe`（Rust 原生） |
-| exe 体积 | 58.7 MB | **2.9 MB** |
-| 压缩包体积 | 58.9 MB | **约 3.4 MB** |
-| 用户需要安装 Node | 否（内嵌） | 否（根本不需要） |
+官方把一些句子拆成几段拼接，界面上看到的是完整一句，但源码里从来不存在这个完整字符串。
 
-三个 `.bat` 已改为调用新安装器：
-`一键安装.bat` → `Antigravity-zh.exe install`，
-`一键还原.bat` → `... revert`，
-`快速同步词典.bat` → `... sync`。
+**项目删除确认框**（`xBb()`）：
 
-源码检出场景（没有 exe）仍会自动退回 `node scripts/patch.js`，开发流程不变。
-
-### 为什么敢换：真实客户端逐字节对拍
-
-不是只跑测试。用真实的 `app.asar`（4.8 MB / 1092 个文件）建了两个沙箱，
-分别用 Node 版与 Rust 版完整安装，然后比对产物：
-
-```
-app/ 树          1092 个文件 / 17,803,020 字节   diff -r 无差异
-app.asar.orig    SHA256 与原包完全一致
-zh-patch/        内容一致
-revert 后的 app.asar  SHA256 与原包完全一致
+```js
+a > 0 && c.push(a === 1 ? "1 active conversation" : `${a} active conversations`)
+b > 0 && c.push(b === 1 ? "1 archived conversation"  : `${b} archived conversations`)
+return c.join(" and ")   // 句号由调用方补
 ```
 
-也验证了故障路径：`LOCALAPPDATA` 为空、资源目录不存在、asar 损坏、
-词典 JSON 损坏（中止且不改安装目录）、CDP 端口不可达（降级而非报错）。
+也就是说「1 active conversations and 8 archived conversations.」这句话在 bundle 里
+**一次都不出现**。新增规则兜住，单复数四种组合都能命中：
 
-## 2. 修复：词典热同步在 Rust 版里什么都没做
+```
+^(\d+) active conversations? and (\d+) archived conversations?\.?$
+→ $1 个活动对话，$2 个归档对话。
+```
 
-验证时发现 Rust 的 `sync` 只做 CDP 推送、**从不把词典复制进 `zh-patch/`**，
-而且没有 DevTools 端口时直接报错退出。也就是说用新安装器点「快速同步词典」
-会失败，且安装目录里的词典不会更新。
+**数量与进度类文案**同样如此，本轮补上 22 条规则：
 
-现已对齐 Node 的行为：先校验词典（写坏了就中止，不覆盖可用的那份）→
-复制词典与翻译引擎 → 再尽力推送，推不到就降级为「下次切换视图或重启生效」。
+| 形态 | 示例 |
+|---|---|
+| 相对时间（`mo` 优先于 `m`） | `4mo ago` → 4 个月前 / `58m ago` → 58 分钟前 |
+| 加载更早的消息 | `Load older messages, showing 252 of 579` |
+| 重试倒计时 | `Retrying in 5s` → 将在 5 秒后重试 |
+| 分页/步骤/轮次 | `3 of 12`、`Step 2 of 7`、`Turn 4` |
 
-## 3. 修复：按 README 双击 bat 其实会失败（1.3.1 起就存在）
+顺带修掉三组「大小写/尾部标点变体会静默回落英文」的歧义组（`files changed`、
+`allow once`、`it requires`），以及 `Toggle Full View` 规则里的 `[vV]e?iw` 拼写错误。
 
-旧的三个 bat 调用 `node scripts/patch.js` 并要求 `npm install`，而发布 zip 里
-既没有 `scripts/` 也没有 `node_modules/`；反过来，那个内嵌 Node 的 exe
-没有任何地方调用它。按 README「解压后双击一键安装.bat」必然失败。
+## 2. 设置与错误提示的固定文案（53 条）
 
-顺带修掉两个批处理陷阱：`goto` 标签在 UTF-8 多字节文本下会按字节偏移错位、
-把注释当命令执行；括号块内的 `%errorlevel%` 在解析期展开恒为 0，会让失败也报成功。
+| 分类 | 例子 |
+|---|---|
+| 设置分区与快捷键 | `Chat Width`、`Toggle Side Panel`、`Toggle Developer Tools`、`Zoom` |
+| 错误与空状态 | `Invalid Media`、`Conversation unavailable`、`Send Now` |
+| 对话与窗格 | `Restore Pane`、`Overview tab`、`Review tab`、`Skills Used` |
+| 菜单项 | `New Window`、`Cut`、`Paste`、`Select All`、`Start Dictation` |
 
-## 4. 数据丢失修复（本版最重要的正确性修复）
+其中 `For Antigravity Business consumption options, see documentation.` 在源码里是
+**三个独立文本节点**（前半句、`<a>documentation</a>`、句号），整句不会作为单个节点
+出现，因此拆成「前半句」+「documentation」两条收录，而不是硬塞整句。
 
-安装时会把 `app.asar` 改名备份。如果这个过程被硬中断（Ctrl+C、断电、
-任务管理器结束），下一次运行的清理逻辑会**把保存当前版本的那唯一一份副本
-当成残渣删掉**，只留下更早的旧备份 —— 客户端被静默降级，新版原包永久丢失。
+## 3. 原生替换覆盖面（7 → 12 个替换表）
 
-两套实现都已修正：恢复时先把这份副本放回 `app.asar`，再继续。
-Rust 侧另外移除了 `panic = "abort"`，部署过程中的 panic 现在也能触发回滚。
+新增 `cablev2`、`provisionSplash`、`qrEncoder`、`webauthn`、`wsl` 五张表，
+并更新 `main` / `wizard`。这几处是 asar 里的原生代码文案，网页层词典覆盖不到。
 
-## 5. 替换引擎语义统一（以 Rust 为契约）
+> 上一版发布的包里只带了 7 张表，本次重新打包后是 12 张。若你之前装过 v1.4.0，
+> 那次部署缺的正是这 5 张表的替换。
 
-Node 与 Rust 此前对同一条规则产出不同结果：Node 只替换第一处且会顺序重扫，
-Rust 是单遍全量。已统一到 Rust 语义（单遍、全量、字面量、最左优先），
-并修掉 `$&` / `$$` / `` $` `` / `$'` 被当成替换模式展开的隐患
-（实测 `X$&Y` 会被写成 `XHelloY`）。
+## 4. 引擎与工具链
 
-真实客户端实测：30 条规则中 29 条恰好命中一次、1 条 0 次（版本漂移）、
-**0 条多命中**，新旧引擎输出 7 个文件全部一致。
+- 翻译引擎精简（`zh-i18n.js` −149 行 / +24 行），行为不变，测试全绿。
+- 移除已废弃的 `pkg` 打包链与对应测试；安装器只走 Rust 原生二进制。
+- 发布链路加固：打包前校验 zip 与源码逐字节一致、缺 native 表直接失败。
+- 新增 `auto-review` 自动预筛（三态 ACCEPT/REJECT/REVIEW），把「该不该翻」的
+  重复判断交给脚本，人工只裁决灰区。
 
-## 6. 其它
+## 5. 验证
 
-- 从 IDE 内置终端运行安装器会拒绝执行（避免关掉承载当前控制台的 IDE）
-- 打包/发布链路加固：缺安装器直接失败、发布前校验构建溯源版本
-- 依赖从已弃用的 `asar` 迁移到 `@electron/asar`，生产依赖安全公告归零
-- `cargo clippy -D warnings` 与 `cargo audit` 纳入门禁
-- 性能基准加入 10 项阈值门禁（此前只打印数字，从不影响成败）
-- 用规则兜住 6 组「大小写/标点变体会静默回落英文」的词典歧义
+- `npm test` 全绿：静态体检、主程序、页面翻译器、词典压缩回归、TreeWalker 对抗、
+  M2 边缘用例、empirical 压测、cargo test/clippy，全部 0 失败。
+- 发布包 `verify-release` 报告 **20/20 条目与当前源码逐字节一致**。
+- 新增词条全部补了断言：同时核对 exact 命中与真实 `tr()` 产物，
+  防止写进词典却被规则改写、或日后压缩词典时被悄悄删掉。
 
 ## 升级方式
 
 下载本版 zip 解压，先运行 `一键还原.bat`（清除旧版部署）再运行 `一键安装.bat`。
 新安装器会自动识别已打补丁的旧部署。
+
+只想更新词典、不想动安装目录的，可以直接双击 `快速同步词典.bat`。
 
 ## 已知边界
 

@@ -1,6 +1,6 @@
 {
   "name": "antigravity-zh",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "Antigravity 中文汉化补丁 - 首屏优先与渐进式翻译",
   "scripts": {
     "build": "npm run build:rust && npm run release:package",
