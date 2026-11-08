@@ -1336,7 +1336,21 @@
     "Revert file changes": "还原文件更改",
     "Only the conversation will be rewound; your files will be left as-is.": "仅回溯对话，你的文件会保持原样。",
     "Undo restores your entire workspace to its state at this point.": "撤销会把整个工作区恢复到此时的状态。",
-    "User cancelled agent execution.": "用户已取消智能体执行。"
+    "User cancelled agent execution.": "用户已取消智能体执行。",
+    "Other Customizations": "其他自定义项",
+    "Screen Reader Mode": "屏幕阅读器模式",
+    "Optimize the interface and terminal output for screen readers.": "为屏幕阅读器优化界面与终端输出。",
+    "Search shortcuts...": "搜索快捷键...",
+    "Search shortcuts": "搜索快捷键",
+    "No keyboard shortcuts found matching your filter.": "没有符合筛选条件的键盘快捷键。",
+    "Reset All to Defaults": "全部重置为默认值",
+    "Fill": "填充",
+    "just now": "刚刚",
+    "Terminal Placement": "终端位置",
+    "Choose where terminal sessions appear.": "选择终端会话的显示位置。",
+    "Bottom Panel": "底部面板",
+    "Context and Quota Indicator": "上下文与额度指示器",
+    "Show how full the context window is next to the send button. Click it for a breakdown and to see your model quota.": "在发送按钮旁显示上下文窗口的占用情况。点击可查看明细与模型额度。"
   },
   "rules": [
     [
