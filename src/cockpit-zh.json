@@ -1350,7 +1350,13 @@
     "Choose where terminal sessions appear.": "选择终端会话的显示位置。",
     "Bottom Panel": "底部面板",
     "Context and Quota Indicator": "上下文与额度指示器",
-    "Show how full the context window is next to the send button. Click it for a breakdown and to see your model quota.": "在发送按钮旁显示上下文窗口的占用情况。点击可查看明细与模型额度。"
+    "Show how full the context window is next to the send button. Click it for a breakdown and to see your model quota.": "在发送按钮旁显示上下文窗口的占用情况。点击可查看明细与模型额度。",
+    "No artifacts generated": "尚未生成成果",
+    "What can we get done today?": "今天想做点什么？",
+    "Project deleted": "项目已删除",
+    "Font": "字体",
+    "Font Size": "字号",
+    "Font Name": "字体名称"
   },
   "rules": [
     [
