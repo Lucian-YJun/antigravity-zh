@@ -18,15 +18,23 @@ function check(name, fn) {
 
 const NOTES = path.join(__dirname, '..', 'docs', 'guide', 'RELEASE_NOTES.md');
 
-// 体积单位：KB / MB / GB 及其中文/二进制写法。带小数点的也一并拦（如 3.1 MB）。
-// 只拦「紧跟在数字后面」的形态，避免误伤「3 MB 降到 3 MB」这类历史叙述——
-// 历史叙述同样该改写为定性描述，所以一并拦下是有意为之。
-// 带单位的体积写法。单位必须覆盖「完整拼写」而不只是缩写：
-// 3174269 bytes / 3,174,269 bytes / 3,174,269 Byte 同样是硬编码体积，
-// 只认 KB/MB/字节 会让它们静默通过。
-const SIZE_RE = /\d[\d.,]*\s*(?:bytes?|kilobytes?|megabytes?|gigabytes?|terabytes?|KiB|MiB|GiB|TiB|KB|MB|GB|TB|千字节|兆字节|吉字节|字节)/i;
-// 裸 B 单位：要求 4 位以上、或千分位分组，避免把「1 B」这类正文/代码片段当体积
-// （`bytes` 形态已由 SIZE_RE 覆盖）
+// 体积单位：缩写 + 完整拼写，十进制（SI）与二进制（IEC）两组都要覆盖。
+// 带小数点的也一并拦（如 3.1 MB）。
+//
+// 为什么两组分开列：二进制全名不含对应缩写——
+//   'mebibytes'.toLowerCase().includes('mib') === false
+// 所以只写 MiB 会漏掉 mebibytes；反过来 kibibytes/gibibytes 曾被 KiB/GiB 的
+// `i` 标志「碰巧」命中前缀，属于意外而非有意覆盖（tebibytes / pebibytes 就漏了）。
+// 这里把两种写法都显式列出，不依赖前缀巧合。
+const DEC_UNITS = 'bytes?|kilobytes?|megabytes?|gigabytes?|terabytes?|petabytes?|kB|KB|MB|GB|TB|PB';
+const BIN_UNITS = 'kibibytes?|mebibytes?|gibibytes?|tebibytes?|pebibytes?|KiB|MiB|GiB|TiB|PiB';
+const ZH_UNITS = '千字节|兆字节|吉字节|太字节';
+// (?![a-zA-Z]) 收尾：单位不能是更长单词的前缀（避免把「megabytesPerSecond」这类
+// 标识符里的片段当成体积），对中文单位无副作用。
+const SIZE_RE = new RegExp(
+  '\\d[\\d.,]*\\s*(?:(?:' + DEC_UNITS + '|' + BIN_UNITS + ')(?![a-zA-Z])|' + ZH_UNITS + ')',
+  'i'
+);
 const BYTES_RE = /\d{1,3}(?:[,，]\d{3})+\s*B\b|\b\d{4,}\s*B\b/;
 
 function violates(text) {
@@ -67,6 +75,15 @@ const shouldFail = [
   '大小 1.5 gigabytes。',
   '大小 3,174,269 Byte。',
   '体积 3099.9 kilobytes。',
+  // 二进制（IEC）完整拼写：MiB 不是 mebibytes 的子串，只认缩写会整组漏判
+  '大小 3.1 mebibytes。',
+  '大小 2.5 kibibytes。',
+  '大小 1.5 gibibytes。',
+  '大小 4 tebibytes。',
+  '大小 5 pebibytes。',
+  '产物 3.1 MiB。',
+  '产物 2.5 KiB。',
+  '产物 1.5 GiB。',
 ];
 for (const text of shouldFail) {
   check('守卫能拦下: ' + text, () => {
