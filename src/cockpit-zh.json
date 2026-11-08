@@ -2008,7 +2008,8 @@
     "Asked": "已提问",
     "Asking": "正在提问",
     "Running": "运行中",
-    "Conversation as Markdown": "对话 Markdown"
+    "Conversation as Markdown": "对话 Markdown",
+    "This chat is archived.": "此对话已归档。"
   },
   "rules": [
     [
