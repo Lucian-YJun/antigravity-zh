@@ -591,15 +591,9 @@ for (const [en, want] of uiTextAddedTerms) {
 check('界面文案补录词条清单完整（本轮 3 条，防止删条目空转）', uiTextAddedTerms.length >= 3,
   `当前 ${uiTextAddedTerms.length} 条`);
 
-// ---- 7. 规模兜底 ----
-// 这里只做「异常膨胀」的兜底，不是覆盖率目标：官方每次更新都可能新增界面文案，
-// 词典本就该随之增长。真正的防膨胀靠 test-dict.js 的变体冗余检查（同一归一化键
-// 且同译文只允许一条），那才是可判定的指标。用绝对字数当门禁只会逼着人调阈值。
-// 2.35.1 新增 Hub 文案 + Swarm Sidecar 词条后合理上限同步放宽至 5000，
-// 真正的防膨胀仍由 test-dict.js 的变体冗余检查严格把关。
-check('词典规模在合理范围内（异常膨胀兜底）', dictKeys.length < 5000, `当前 ${dictKeys.length} 条`);
-check('MENU_LABELS 规模在合理范围内（异常膨胀兜底）',
-  Object.keys(zh.MENU_LABELS).length < 400, `当前 ${Object.keys(zh.MENU_LABELS).length} 条`);
+// ---- 7. 防膨胀说明（遵照 AGENTS.md） ----
+// 词典规模不是目标：官方每次更新都会新增界面文案，词条数随之增长是正常的。
+// 依 AGENTS.md 规范，不设绝对词条数门禁；防膨胀由 test-dict.js 的变体冗余检查严格把关。
 w.close();
 console.log(`\n词典压缩回归: ${pass} 通过, ${fail} 失败`);
 fs.rmSync(SIM, { recursive: true, force: true });
