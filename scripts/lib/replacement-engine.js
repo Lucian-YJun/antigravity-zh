@@ -17,6 +17,22 @@ const DEFAULT_TARGETS = {
   'qrEncoder': 'dist/qrEncoder.js',
   'provisionSplash': 'dist/provisionSplash.js',
   'wsl': 'dist/wsl.js',
+  // 2.35.1 新增：弹窗安全信息、设备选择器、Remote/SSH 界面及辅助提示
+  'webviewPopupSecurity': 'dist/webviewPopupSecurity.js',
+  'deviceChooser': 'dist/deviceChooser.js',
+  'remoteDisconnected': 'dist/remote/disconnectedPage.js',
+  'sshPrompts': 'dist/remote/sshPrompts.js',
+  'remoteManager': 'dist/remote/remoteManager.js',
+  'signInCallback': 'dist/remote/signInCallback.js',
+  'sshConnection': 'dist/remote/sshConnection.js',
+  'sshArgs': 'dist/remote/sshArgs.js',
+  'sshErrorText': 'dist/remote/sshErrorText.js',
+  'sshConfigHosts': 'dist/remote/sshConfigHosts.js',
+  'sshDestination': 'dist/remote/sshDestination.js',
+  'sshBridge': 'dist/remote/sshBridge.js',
+  'computerOverlay': 'dist/computer/overlay.js',
+  'desktopPairing': 'dist/desktopHost/pairing.js',
+  'capturePage': 'dist/browserStream/capturePage.js',
 };
 
 /**

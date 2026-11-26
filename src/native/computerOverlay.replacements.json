@@ -1,0 +1,10 @@
+[
+  [
+    "    if (!s) {\n        return 'unnamed';\n    }",
+    "    if (!s) {\n        return '未命名';\n    }"
+  ],
+  [
+    "return `Agent: ${label}`;",
+    "return `智能体：${label}`;"
+  ]
+]

@@ -389,27 +389,138 @@ try {
   fs.writeFileSync(simDictPath, dictBefore, 'utf8');
 }
 
-// 2-4. attachWebTranslator：捕获注入脚本并验证质量
+// 2-4. attachWebTranslator：捕获注入脚本并验证质量（含 plugin:// 子框架注入）
 const calls = [];
+const subframeCalls = [];
+const externalFrameCalls = [];
+const srcdocCalls = [];
+const mainFrameObj = { url: 'https://127.0.0.1:41234/', isDestroyed: () => false };
+const pluginFrameObj = {
+  url: 'plugin://swarm-board-auth/index.html',
+  processId: 10,
+  routingId: 20,
+  isDestroyed: () => false,
+  executeJavaScript: (js) => { subframeCalls.push(String(js)); return Promise.resolve(); },
+};
+const srcdocFrameObj = {
+  url: 'about:srcdoc',
+  parent: pluginFrameObj,
+  processId: 10,
+  routingId: 21,
+  isDestroyed: () => false,
+  executeJavaScript: (js) => { srcdocCalls.push(String(js)); return Promise.resolve(); },
+};
+const chatSrcdocFrameObj = {
+  url: 'about:srcdoc',
+  parent: mainFrameObj,
+  processId: 10,
+  routingId: 22,
+  isDestroyed: () => false,
+  executeJavaScript: (js) => { externalFrameCalls.push(String(js)); return Promise.resolve(); },
+};
+const externalFrameObj = {
+  url: 'https://github.com/Lucian-YJun/antigravity-zh',
+  processId: 10,
+  routingId: 23,
+  isDestroyed: () => false,
+  executeJavaScript: (js) => { externalFrameCalls.push(String(js)); return Promise.resolve(); },
+};
+const localhostPreviewFrameObj = {
+  url: 'http://localhost:3000/dashboard',
+  processId: 10,
+  routingId: 24,
+  isDestroyed: () => false,
+  executeJavaScript: (js) => { externalFrameCalls.push(String(js)); return Promise.resolve(); },
+};
+mainFrameObj.framesInSubtree = [mainFrameObj, pluginFrameObj, srcdocFrameObj, chatSrcdocFrameObj, externalFrameObj, localhostPreviewFrameObj];
+
 const win = {
   _h: {},
   isDestroyed: () => false,
   webContents: {
+    mainFrame: mainFrameObj,
     on: (ev, fn) => { win._h[ev] = fn; },
     executeJavaScript: (js) => { calls.push(String(js)); return Promise.resolve(); },
   },
 };
 zh.attachWebTranslator(win);
 win._h['did-finish-load']();
+// 模拟子框架加载：主框架跳过、plugin:// 注入、Swarm narrator srcdoc 注入、对话内 srcdoc 与外网及本地预览 iframe 跳过
+win._h['did-frame-finish-load']({ senderFrame: mainFrameObj }, true, 10, 1);
+win._h['did-frame-finish-load']({ senderFrame: pluginFrameObj }, false, 10, 20);
+win._h['did-frame-finish-load']({ senderFrame: srcdocFrameObj }, false, 10, 21);
+win._h['did-frame-finish-load']({ senderFrame: chatSrcdocFrameObj }, false, 10, 22);
+win._h['did-frame-finish-load']({ senderFrame: externalFrameObj }, false, 10, 23);
+win._h['did-frame-finish-load']({ senderFrame: localhostPreviewFrameObj }, false, 10, 24);
 
 check('页面加载时注入翻译脚本', calls.length === 1);
+check('plugin:// sidecar 子框架加载时注入翻译脚本', subframeCalls.length === 1 && subframeCalls[0].includes('智能体蜂群'));
+check('plugin:// 下的 narrator srcdoc 子框架注入翻译脚本', srcdocCalls.length === 1);
+check('外网、主对话 srcdoc 及用户 localhost:3000 预览 iframe 绝不注入翻译脚本', externalFrameCalls.length === 0);
+
+// URL 判定边界：排除外部网页与本地开发服务（含普通弹窗与内置浏览器），仅放行 plugin:// 与已知 sidecar 端口
+zh._registerKnownSidecarPort('7920');
+check('isSidecarFrameUrl: plugin:// 与已知本地回环端口放行，外网及未知本地端口拒绝',
+  zh.isSidecarFrameUrl('plugin://abc/index.html') === true &&
+  zh.isSidecarFrameUrl('http://127.0.0.1:7920/') === true &&
+  zh.isSidecarFrameUrl('http://localhost:3000/') === false &&
+  zh.isSidecarFrameUrl('https://github.com/') === false &&
+  zh.isSidecarFrameUrl('data:text/html,<h1>Hi</h1>') === false);
+check('isSidecarFrameUrl: options.knownSidecarPorts 显式覆盖生效',
+  zh.isSidecarFrameUrl('http://localhost:3000/', { knownSidecarPorts: new Set(['7920']) }) === false &&
+  zh.isSidecarFrameUrl('http://127.0.0.1:7920/', { knownSidecarPorts: new Set(['7920']) }) === true);
+
+// _attachSidecarContents：独立 sidecar WebContents 正常注入，内置浏览器 webview 与普通弹窗访问用户 localhost:3000 绝不误注入
+const sidecarCalls = [];
+const sidecarWc = {
+  _h: {},
+  isDestroyed: () => false,
+  getType: () => 'window',
+  getURL: () => 'http://127.0.0.1:7920/',
+  session: { getStoragePath: () => 'C:\\Users\\test\\AppData\\Roaming\\Antigravity' },
+  on: (ev, fn) => { sidecarWc._h[ev] = fn; },
+  once: () => {},
+  executeJavaScript: (js) => { sidecarCalls.push(String(js)); return Promise.resolve(); },
+};
+const guestBrowserCalls = [];
+const guestBrowserWc = {
+  _h: {},
+  isDestroyed: () => false,
+  getType: () => 'webview',
+  getURL: () => 'http://localhost:3000/',
+  session: { getStoragePath: () => 'C:\\Users\\test\\Partitions\\hub-browser-anonymous' },
+  on: (ev, fn) => { guestBrowserWc._h[ev] = fn; },
+  once: () => {},
+  executeJavaScript: (js) => { guestBrowserCalls.push(String(js)); return Promise.resolve(); },
+};
+const popupCalls = [];
+const popupWc = {
+  _h: {},
+  isDestroyed: () => false,
+  getType: () => 'window',
+  getURL: () => 'http://localhost:3000/',
+  session: { getStoragePath: () => 'C:\\Users\\test\\AppData\\Roaming\\Antigravity' },
+  on: (ev, fn) => { popupWc._h[ev] = fn; },
+  once: () => {},
+  executeJavaScript: (js) => { popupCalls.push(String(js)); return Promise.resolve(); },
+};
+zh._attachSidecarContents(sidecarWc);
+zh._attachSidecarContents(guestBrowserWc);
+zh._attachSidecarContents(popupWc);
+sidecarWc._h['did-finish-load']();
+guestBrowserWc._h['did-finish-load']();
+popupWc._h['did-finish-load']();
+check('独立 sidecar WebContents (127.0.0.1:7920) 正常注入', sidecarCalls.length === 1);
+check('内置浏览器 webview 访问 localhost:3000 绝不误注入', guestBrowserCalls.length === 0);
+check('普通弹窗 WebContents (localhost:3000) 绝不误注入', popupCalls.length === 0);
+
 const script = calls[0] || '';
 check('注入脚本嵌入了词典（含已知词条）', script.includes('Command Palette') && script.includes('命令面板'));
 check('注入脚本含 setData 热更新接口', script.includes('setData'));
 try { new Function(script); check('注入脚本语法可编译', true); }
 catch (e) { check('注入脚本语法可编译: ' + e.message, false); }
 
-// 5. 词典文件变更 → 自动推送（fs.watch 热载）
+// 5. 词典文件变更 → 自动推送（fs.watch 热载同步到主窗口 + sidecar 子框架 + 独立 sidecar）
 const dictPath = path.join(SIM, 'cockpit-zh.json');
 const raw = JSON.parse(fs.readFileSync(dictPath, 'utf-8'));
 raw.dict['ZZ TEST ENTRY'] = '测试词条';
@@ -417,7 +528,13 @@ fs.writeFileSync(dictPath, JSON.stringify(raw, null, 2), 'utf-8');
 
 setTimeout(() => {
   const hot = calls.slice(1).some(c => c.includes('setData') && c.includes('ZZ TEST ENTRY'));
+  const hotSubframe = subframeCalls.slice(1).some(c => c.includes('setData') && c.includes('ZZ TEST ENTRY'));
+  const hotSidecar = sidecarCalls.slice(1).some(c => c.includes('setData') && c.includes('ZZ TEST ENTRY'));
   check('词典文件变更后自动推送新词典（含新词条）', hot);
+  check('词典热载同步推送到 plugin:// sidecar 子框架', hotSubframe);
+  check('词典热载同步推送到独立 sidecar WebContents', hotSidecar);
+  check('词典热载不推送到外网及用户 localhost:3000 预览 iframe', externalFrameCalls.length === 0);
+  check('词典热载不推送到普通弹窗 (localhost:3000)', popupCalls.length === 0);
   console.log(`\n主程序模块: ${pass} 通过, ${fail} 失败`);
   fs.rmSync(SIM, { recursive: true, force: true });
   process.exit(fail ? 1 : 0);

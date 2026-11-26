@@ -1,0 +1,50 @@
+[
+  [
+    "    insecure: 'Not secure',\n    dangerous: '⚠ Not secure',",
+    "    insecure: '不安全',\n    dangerous: '⚠ 不安全',"
+  ],
+  [
+    "    'Your connection to this site is not secure',\n    'You should not enter any sensitive information on this site (for ' +\n        'example, passwords or credit cards), because it could be stolen by ' +\n        'attackers.',",
+    "    '你与该网站之间的连接不安全',\n    '不应在该网站上输入任何敏感信息（例如密码或信用卡信息），否则这些信息可能会被攻击者窃取。',"
+  ],
+  [
+    "    secure: [\n        'Connection is secure',\n        'Your information (for example, passwords or credit card numbers) is ' +\n            'private when it is sent to this site.',\n    ],",
+    "    secure: [\n        '连接是安全的',\n        '你的信息（例如密码或信用卡号）在发送到此网站时会受到隐私保护。',\n    ],"
+  ],
+  [
+    "    neutral: ['Connection security information is not available for this page'],",
+    "    neutral: ['此页面没有可用的连接安全信息'],"
+  ],
+  [
+    "return ms > 0 ? new Date(ms).toLocaleString() : 'unknown';",
+    "return ms > 0 ? new Date(ms).toLocaleString() : '未知';"
+  ],
+  [
+    "lines.push('', state.level === 'secure' ? 'Certificate is valid' : 'Certificate details');",
+    "lines.push('', state.level === 'secure' ? '证书有效' : '证书详细信息');"
+  ],
+  [
+    "lines.push(`Error: ${state.certificateError}`);",
+    "lines.push(`错误：${state.certificateError}`);"
+  ],
+  [
+    "lines.push(`Issued to: ${certificate.subjectName}`, `Issued by: ${certificate.issuer}`, `Valid from: ${formatDate(certificate.validFromMs)}`, `Valid until: ${formatDate(certificate.validToMs)}`);",
+    "lines.push(`颁发给：${certificate.subjectName}`, `颁发者：${certificate.issuer}`, `有效期自：${formatDate(certificate.validFromMs)}`, `有效期至：${formatDate(certificate.validToMs)}`);"
+  ],
+  [
+    "lines.push(`Protocol: ${certificate.protocol}`);",
+    "lines.push(`协议：${certificate.protocol}`);"
+  ],
+  [
+    "message: extractOrigin(state.url) ?? (state.url || 'This page'),",
+    "message: extractOrigin(state.url) ?? (state.url || '此页面'),"
+  ],
+  [
+    "label: 'Connection info…',",
+    "label: '连接信息…',"
+  ],
+  [
+    "                        title: 'Connection info',\n                        message,\n                        detail,\n                        buttons: ['OK'],",
+    "                        title: '连接信息',\n                        message,\n                        detail,\n                        buttons: ['确定'],"
+  ]
+]

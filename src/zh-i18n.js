@@ -7,6 +7,109 @@ exports.attachWebTranslator = attachWebTranslator;
 exports.MENU_LABELS = void 0;
 const fs = require('fs');
 const path = require('path');
+let cachedElectron;
+function getElectron() {
+    if (cachedElectron !== undefined) {
+        return cachedElectron;
+    }
+    try {
+        cachedElectron = require('electron');
+    }
+    catch (e) {
+        cachedElectron = null;
+    }
+    return cachedElectron;
+}
+function isLoopbackHost(hostname) {
+    const h = String(hostname || '').toLowerCase().replace(/^\[|\]$/g, '');
+    return h === '127.0.0.1' || h === 'localhost' || h === '::1';
+}
+const extraSidecarPorts = new Set();
+function registerKnownSidecarPort(port) {
+    if (port) {
+        extraSidecarPorts.add(String(port));
+    }
+}
+function clearKnownSidecarPorts() {
+    extraSidecarPorts.clear();
+}
+function getKnownSidecarPorts() {
+    const ports = new Set(extraSidecarPorts);
+    try {
+        const cs = require(path.join(__dirname, '..', 'app', 'dist', 'customScheme'));
+        if (cs && cs.extensionAuthorities && typeof cs.extensionAuthorities.values === 'function') {
+            for (const target of cs.extensionAuthorities.values()) {
+                try {
+                    const u = new URL(target);
+                    if ((u.protocol === 'http:' || u.protocol === 'https:') && isLoopbackHost(u.hostname) && u.port) {
+                        ports.add(u.port);
+                    }
+                }
+                catch (e) { }
+            }
+        }
+    }
+    catch (e) { }
+    return ports;
+}
+function isSidecarFrameUrl(urlStr, options) {
+    if (typeof urlStr !== 'string' || !urlStr) {
+        return false;
+    }
+    let u;
+    try {
+        u = new URL(urlStr);
+    }
+    catch (e) {
+        return false;
+    }
+    if (u.protocol === 'plugin:') {
+        return true;
+    }
+    if (u.protocol === 'http:' || u.protocol === 'https:') {
+        if (!isLoopbackHost(u.hostname)) {
+            return false;
+        }
+        // 关键安全防线：本地回环（http/https）恒要求已知 sidecar 端口（来自 customScheme.extensionAuthorities）。
+        // 绝不放行任意未注册端口，无论是内置浏览器 webview、子框架还是普通弹窗（popup），
+        // 坚决杜绝误伤和篡改用户本地开发服务（如 localhost:3000、8080 等）的 UI 文本。
+        if (options && options.requireKnownSidecarPort === false) {
+            return true;
+        }
+        const ports = (options && options.knownSidecarPorts) || getKnownSidecarPorts();
+        return Boolean(u.port && ports.has(u.port));
+    }
+    return false;
+}
+function shouldInjectFrame(frame, options) {
+    if (!frame) {
+        return false;
+    }
+    if (typeof frame.isDestroyed === 'function' && frame.isDestroyed()) {
+        return false;
+    }
+    const url = frame.url || '';
+    if (isSidecarFrameUrl(url, options)) {
+        return true;
+    }
+    // Swarm 概览页的 Narrator 视图跑在 sandboxed srcdoc iframe 里，
+    // 仅当其直接父框架是 plugin://（或独立 sidecar 窗口）时注入，绝不误触主对话内的生成式 UI。
+    if (url === 'about:srcdoc' && frame.parent) {
+        const parentUrl = frame.parent.url || '';
+        if (parentUrl.startsWith('plugin:')) {
+            return true;
+        }
+        if (options && options.allowLoopbackSrcdocParent && isSidecarFrameUrl(parentUrl, options)) {
+            return true;
+        }
+    }
+    return false;
+}
+exports.isSidecarFrameUrl = isSidecarFrameUrl;
+exports.shouldInjectFrame = shouldInjectFrame;
+exports._attachSidecarContents = attachSidecarContents;
+exports._registerKnownSidecarPort = registerKnownSidecarPort;
+exports._clearKnownSidecarPorts = clearKnownSidecarPorts;
 // 归一化实现：主进程菜单与页面注入脚本共用同一份源码（注入时序列化进字符串），
 // 避免两套规则各写一遍后慢慢漂移。
 function normEngine() {
@@ -445,7 +548,9 @@ const TRANSLATOR_BODY = [
     '  if(c==="\\\\"){var n=p.charAt(i+1);',
     '    if(n==="d")return ["0","1","2","3","4","5","6","7","8","9"];',
     '    return n&&"*.+?^${}()|[]\\\\/".indexOf(n)>=0?[n]:null;}',
-    '  if(c==="("){if(p.charAt(i+1)==="\\\\"&&p.charAt(i+2)==="d")return ["0","1","2","3","4","5","6","7","8","9"];return null;}',
+    '  if(c==="("){if(p.charAt(i+1)==="\\\\"&&p.charAt(i+2)==="d")return ["0","1","2","3","4","5","6","7","8","9"];',
+    '    if(p.charAt(i+1)==="["){var jc=p.indexOf("]",i+2);if(jc>0&&((p.charAt(jc+1)===")"&&p.charAt(jc+2)!=="?"&&p.charAt(jc+2)!=="*")||(p.charAt(jc+1)==="+"&&p.charAt(jc+2)===")"&&p.charAt(jc+3)!=="?"&&p.charAt(jc+3)!=="*"))){i=i+1;c="[";}else return null;}',
+    '    else return null;}',
     '  if(c==="["){var j=p.indexOf("]",i+1);if(j<0)return null;var cls=p.slice(i+1,j);if(cls.charAt(0)==="^")return null;var cs=[];',
     '    for(var k=0;k<cls.length;k++){var cc=cls.charAt(k);',
     '      if(cc==="\\\\"){k++;if(k>=cls.length)return null;var nn=cls.charAt(k);',
@@ -737,12 +842,101 @@ function buildScript(dic) {
 }
 // 已注册窗口与词典监视状态（模块级，多窗口共享）
 const registeredWindows = new Set();
+const registeredMainContents = new WeakSet();
+const registeredSidecars = new Set();
+const sidecarDestroyedHooked = new WeakSet();
 let watchStarted = false;
+let webContentsWatchStarted = false;
 // 词典版本号：热载推送时递增，页面侧据此丢弃迟到的旧 payload。
 // 必须与 sync-dict.js 的 CDP 推送处于同一量级（都用毫秒时间戳），
 // 否则较小的一方会被页面永久判为陈旧而丢弃。
 let dictRev = 0;
-// 词典热载：文件变更后把新词典推送到所有已注册窗口
+function isIsolatedNonUiSession(ses) {
+    if (!ses) {
+        return false;
+    }
+    try {
+        const sp = typeof ses.getStoragePath === 'function' ? ses.getStoragePath() : ses.storagePath;
+        if (typeof sp === 'string') {
+            const norm = sp.replace(/\\/g, '/').toLowerCase();
+            if (norm.includes('agy-browser-stream') || norm.includes('script-jail') || norm.includes('ssh-prompt')) {
+                return true;
+            }
+        }
+    }
+    catch (e) { }
+    return false;
+}
+function isBrowserGuestContents(contents) {
+    if (!contents) {
+        return false;
+    }
+    try {
+        if (typeof contents.getType === 'function' && contents.getType() === 'webview') {
+            return true;
+        }
+        const ses = contents.session;
+        const sp = ses && (typeof ses.getStoragePath === 'function' ? ses.getStoragePath() : ses.storagePath);
+        if (typeof sp === 'string' && sp.replace(/\\/g, '/').toLowerCase().includes('hub-browser-')) {
+            return true;
+        }
+        const win = typeof contents.getOwnerBrowserWindow === 'function' ? contents.getOwnerBrowserWindow() : null;
+        if (win && (win.__isWebviewPopupWindow || (typeof win.isDestroyed === 'function' && win.isDestroyed()))) {
+            return true;
+        }
+    }
+    catch (e) { }
+    return false;
+}
+function resolveSubframe(webContents, event, frameProcessId, frameRoutingId) {
+    let frame = null;
+    const el = getElectron();
+    if (el && el.webFrameMain && typeof el.webFrameMain.fromId === 'function' &&
+        typeof frameProcessId === 'number' && typeof frameRoutingId === 'number') {
+        try {
+            frame = el.webFrameMain.fromId(frameProcessId, frameRoutingId);
+        }
+        catch (e) {
+            frame = null;
+        }
+    }
+    if (!frame && event && event.senderFrame) {
+        frame = event.senderFrame;
+    }
+    if (!frame && webContents && webContents.mainFrame && Array.isArray(webContents.mainFrame.framesInSubtree)) {
+        frame = webContents.mainFrame.framesInSubtree.find((f) => f && f.processId === frameProcessId && f.routingId === frameRoutingId) || null;
+    }
+    return frame;
+}
+function injectIntoTarget(target, dic, label) {
+    if (!target || typeof target.executeJavaScript !== 'function') {
+        return;
+    }
+    if (typeof target.isDestroyed === 'function' && target.isDestroyed()) {
+        return;
+    }
+    target.executeJavaScript(buildScript(dic), true).catch((e) => {
+        console.error(`[zh-i18n] ${label}翻译器注入失败:`, e && e.message ? e.message : e);
+    });
+}
+function pushToSubframes(webContents, js, options) {
+    const mainFrame = webContents && webContents.mainFrame;
+    const tree = mainFrame && mainFrame.framesInSubtree;
+    if (!Array.isArray(tree)) {
+        return;
+    }
+    for (const f of tree) {
+        if (!f || f === mainFrame) {
+            continue;
+        }
+        if (shouldInjectFrame(f, options)) {
+            f.executeJavaScript(js, true).catch((e) => {
+                console.error('[zh-i18n] 子框架词典热载推送失败:', e && e.message ? e.message : e);
+            });
+        }
+    }
+}
+// 词典热载：文件变更后把新词典推送到所有已注册窗口与 sidecar 框架
 function pushDictionaryToWindows() {
     let dic;
     try {
@@ -760,9 +954,27 @@ function pushDictionaryToWindows() {
             registeredWindows.delete(w);
             continue;
         }
-        w.webContents.executeJavaScript(js, true).catch((e) => {
+        const wc = w.webContents;
+        if (!wc || (typeof wc.isDestroyed === 'function' && wc.isDestroyed())) {
+            continue;
+        }
+        wc.executeJavaScript(js, true).catch((e) => {
             console.error('[zh-i18n] 词典热载推送失败:', e && e.message ? e.message : e);
         });
+        pushToSubframes(wc, js, { requireKnownSidecarPort: true, allowLoopbackSrcdocParent: true });
+    }
+    for (const sc of registeredSidecars) {
+        if (!sc || (typeof sc.isDestroyed === 'function' && sc.isDestroyed())) {
+            registeredSidecars.delete(sc);
+            continue;
+        }
+        const url = typeof sc.getURL === 'function' ? sc.getURL() : '';
+        if (isSidecarFrameUrl(url)) {
+            sc.executeJavaScript(js, true).catch((e) => {
+                console.error('[zh-i18n] Sidecar 词典热载推送失败:', e && e.message ? e.message : e);
+            });
+        }
+        pushToSubframes(sc, js, { allowLoopbackSrcdocParent: true });
     }
 }
 // fs.watch 不可用时的兜底：轮询词典 mtime
@@ -816,17 +1028,92 @@ function startDictionaryWatch() {
         startMtimePoll(dicPath, onChange);
     }
 }
+function attachSidecarContents(contents) {
+    if (!contents || (typeof contents.isDestroyed === 'function' && contents.isDestroyed())) {
+        return;
+    }
+    if (registeredMainContents.has(contents) || isIsolatedNonUiSession(contents.session)) {
+        return;
+    }
+    if (typeof contents.on !== 'function') {
+        return;
+    }
+    const trackSidecar = () => {
+        registeredSidecars.add(contents);
+        if (!sidecarDestroyedHooked.has(contents) && typeof contents.once === 'function') {
+            sidecarDestroyedHooked.add(contents);
+            contents.once('destroyed', () => { registeredSidecars.delete(contents); });
+        }
+    };
+    contents.on('did-finish-load', () => {
+        if ((typeof contents.isDestroyed === 'function' && contents.isDestroyed()) || registeredMainContents.has(contents)) {
+            return;
+        }
+        if (isBrowserGuestContents(contents)) {
+            return;
+        }
+        const url = typeof contents.getURL === 'function' ? contents.getURL() : '';
+        if (!isSidecarFrameUrl(url)) {
+            return;
+        }
+        let dic;
+        try {
+            dic = loadDictionary();
+        }
+        catch (e) {
+            console.error('[zh-i18n] 读取词典失败:', e.message);
+            return;
+        }
+        trackSidecar();
+        injectIntoTarget(contents, dic, 'Sidecar ');
+    });
+    contents.on('did-frame-finish-load', (event, isMainFrame, frameProcessId, frameRoutingId) => {
+        if (isMainFrame || (typeof contents.isDestroyed === 'function' && contents.isDestroyed()) || registeredMainContents.has(contents)) {
+            return;
+        }
+        if (isBrowserGuestContents(contents)) {
+            return;
+        }
+        const frame = resolveSubframe(contents, event, frameProcessId, frameRoutingId);
+        if (!shouldInjectFrame(frame, { allowLoopbackSrcdocParent: true })) {
+            return;
+        }
+        let dic;
+        try {
+            dic = loadDictionary();
+        }
+        catch (e) {
+            console.error('[zh-i18n] 读取词典失败:', e.message);
+            return;
+        }
+        trackSidecar();
+        injectIntoTarget(frame, dic, 'Sidecar 子框架');
+    });
+}
+function startWebContentsWatch() {
+    const el = getElectron();
+    if (!el || !el.app || typeof el.app.on !== 'function') {
+        return;
+    }
+    el.app.on('web-contents-created', (_event, contents) => {
+        attachSidecarContents(contents);
+    });
+}
 /**
- * 为窗口附加网页 UI 翻译：每次 did-finish-load 后注入词典翻译脚本。
+ * 为窗口附加网页 UI 翻译：每次 did-finish-load 后注入词典翻译脚本，
+ * 同时监听 did-frame-finish-load 与 web-contents-created，使本地 Swarm 等 sidecar 面板同享翻译与热载。
  * 词典热更新：修改 cockpit-zh.json 后自动推送到已打开窗口（无需手动刷新）。
  */
 function attachWebTranslator(win) {
     registeredWindows.add(win);
+    if (win.webContents) {
+        registeredMainContents.add(win.webContents);
+    }
     if (typeof win.once === 'function') {
         win.once('closed', () => { registeredWindows.delete(win); });
     }
     win.webContents.on('did-finish-load', () => {
-        if (win.isDestroyed()) {
+        if (win.isDestroyed() || !win.webContents || (typeof win.webContents.isDestroyed === 'function' && win.webContents.isDestroyed())) {
             return;
         }
         let dic;
@@ -843,8 +1130,30 @@ function attachWebTranslator(win) {
             console.error('[zh-i18n] 网页翻译器注入失败:', e && e.message ? e.message : e);
         });
     });
+    win.webContents.on('did-frame-finish-load', (event, isMainFrame, frameProcessId, frameRoutingId) => {
+        if (isMainFrame || win.isDestroyed() || !win.webContents || (typeof win.webContents.isDestroyed === 'function' && win.webContents.isDestroyed())) {
+            return;
+        }
+        const frame = resolveSubframe(win.webContents, event, frameProcessId, frameRoutingId);
+        if (!shouldInjectFrame(frame, { requireKnownSidecarPort: true, allowLoopbackSrcdocParent: true })) {
+            return;
+        }
+        let dic;
+        try {
+            dic = loadDictionary();
+        }
+        catch (e) {
+            console.error('[zh-i18n] 读取词典失败:', e.message);
+            return;
+        }
+        injectIntoTarget(frame, dic, 'Sidecar 子框架');
+    });
     if (!watchStarted) {
         watchStarted = true;
         startDictionaryWatch();
+    }
+    if (!webContentsWatchStarted) {
+        webContentsWatchStarted = true;
+        startWebContentsWatch();
     }
 }

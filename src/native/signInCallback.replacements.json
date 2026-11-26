@@ -1,0 +1,26 @@
+[
+  [
+    "const host = escapeHtml(opts.hostLabel ?? 'the SSH host');",
+    "const host = escapeHtml(opts.hostLabel ?? 'SSH 主机');"
+  ],
+  [
+    "<html lang=\"en\">",
+    "<html lang=\"zh-CN\">"
+  ],
+  [
+    "const SIGNED_IN = page('You have successfully authenticated.', 'You can close this tab and return to Antigravity.');",
+    "const SIGNED_IN = page('身份验证成功。', '你可以关闭此标签页并返回 Antigravity。');"
+  ],
+  [
+    "function unreachablePage(host) {\n    return page(\"Sign-in didn't finish\", `Antigravity couldn't reach ${host} to finish signing in. ` +\n        'Sign in again from Antigravity.');\n}",
+    "function unreachablePage(host) {\n    return page('未能完成登录', `Antigravity 无法连接 ${host} 以完成登录。` +\n        '请从 Antigravity 重新登录。');\n}"
+  ],
+  [
+    "function otherIssuerPage(host) {\n    return page(\"Sign-in didn't finish\", 'This sign-in came back from another server than the sign-in page you ' +\n        `agreed to, so Antigravity didn't pass it on to ${host}.`);\n}",
+    "function otherIssuerPage(host) {\n    return page('未能完成登录', '此登录响应来自与你同意的登录页面不同的服务器，' +\n        `因此 Antigravity 未将其传递给 ${host}。`);\n}"
+  ],
+  [
+    "function failedPage(host, status) {\n    return page(\"Sign-in didn't finish\", `Antigravity on ${host} couldn't finish signing in (HTTP ${status}). ` +\n        'Sign in again from Antigravity.');\n}",
+    "function failedPage(host, status) {\n    return page('未能完成登录', `${host} 上的 Antigravity 无法完成登录（HTTP ${status}）。` +\n        '请从 Antigravity 重新登录。');\n}"
+  ]
+]

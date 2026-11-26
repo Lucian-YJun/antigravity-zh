@@ -1,0 +1,46 @@
+[
+  [
+    "function checkUser(user, shown = user) {\n    if (user === '') {\n        invalid('The user name before \"@\" is missing.');\n    }\n    if (user.startsWith('-')) {\n        invalid('The user name must not start with \"-\".');\n    }\n    if (!USER_RE.test(user)) {\n        invalid(`\"${shown}\" isn't a valid user name.`);",
+    "function checkUser(user, shown = user) {\n    if (user === '') {\n        invalid('缺少 \"@\" 前的用户名。');\n    }\n    if (user.startsWith('-')) {\n        invalid('用户名不能以 \"-\" 开头。');\n    }\n    if (!USER_RE.test(user)) {\n        invalid(`\"${shown}\" 不是有效的用户名。`);"
+  ],
+  [
+    "        if (parts[0] === '') {\n            invalid('The user name before \"@\" is missing.');\n        }",
+    "        if (parts[0] === '') {\n            invalid('缺少 \"@\" 前的用户名。');\n        }"
+  ],
+  [
+    "        invalid('The host name is missing.');\n    }\n    if (host.startsWith('-')) {\n        invalid('The host name must not start with \"-\".');\n    }\n    if (!HOST_RE.test(host) || host.includes('..')) {\n        invalid(`\"${host}\" isn't a valid host name.`);",
+    "        invalid('缺少主机名。');\n    }\n    if (host.startsWith('-')) {\n        invalid('主机名不能以 \"-\" 开头。');\n    }\n    if (!HOST_RE.test(host) || host.includes('..')) {\n        invalid(`\"${host}\" 不是有效的主机名。`);"
+  ],
+  [
+    "invalid(`Invalid port \"${port}\": use a number from 1 to 65535.`);",
+    "invalid(`无效端口 \"${port}\"：请使用 1 到 65535 之间的数字。`);"
+  ],
+  [
+    "invalid(`\"${addr}\" isn't a valid IPv6 address. Write an IPv6 address with a port in brackets, for example [::1]:2222.`);",
+    "invalid(`\"${addr}\" 不是有效的 IPv6 地址。带端口的 IPv6 地址请放在方括号中，例如 [::1]:2222。`);"
+  ],
+  [
+    "invalid(`Missing \"]\" after the IPv6 address in \"${hostPort}\".`);",
+    "invalid(`\"${hostPort}\" 中的 IPv6 地址后缺少 \"]\"。`);"
+  ],
+  [
+    "invalid(`Unexpected \"${rest}\" after \"]\".`);",
+    "invalid(`\"]\" 后出现意外内容 \"${rest}\"。`);"
+  ],
+  [
+    "invalid(`Invalid percent-encoding in the user name \"${s}\".`);",
+    "invalid(`用户名 \"${s}\" 中存在无效的百分号编码。`);"
+  ],
+  [
+    "invalid('Write \"@\" inside the user name of an ssh:// URI as %40.');",
+    "invalid('ssh:// URI 用户名中的 \"@\" 请写作 %40。');"
+  ],
+  [
+    "invalid('Write an IPv6 address in an ssh:// URI in brackets, for example ssh://[::1]:2222.');",
+    "invalid('ssh:// URI 中的 IPv6 地址请放在方括号中，例如 ssh://[::1]:2222。');"
+  ],
+  [
+    "        invalid('Enter an SSH host, for example \"devbox\" or \"user@host:2222\".');\n    }\n    if (s.length > MAX_DESTINATION_LENGTH) {\n        invalid(`The SSH host is too long (at most ${MAX_DESTINATION_LENGTH} characters).`);\n    }\n    if (s.startsWith('-')) {\n        invalid('The SSH host must not start with \"-\".');\n    }\n    if (/[\\s\\p{Cc}]/u.test(s)) {\n        invalid('The SSH host must not contain spaces or control characters.');\n    }\n    // The scheme is case-sensitive for ssh too: \"SSH://h\" is not a URI to it.\n    const isUri = s.startsWith(SSH_URI_PREFIX);\n    const body = isUri ? s.slice(SSH_URI_PREFIX.length) : s;\n    const bad = DISALLOWED_CHAR.exec(body);\n    if (bad) {\n        invalid(`The SSH host must not contain ${describeChar(bad[0])}.`);",
+    "        invalid('请输入 SSH 主机，例如 \"devbox\" 或 \"user@host:2222\"。');\n    }\n    if (s.length > MAX_DESTINATION_LENGTH) {\n        invalid(`SSH 主机名过长（最多 ${MAX_DESTINATION_LENGTH} 个字符）。`);\n    }\n    if (s.startsWith('-')) {\n        invalid('SSH 主机名不能以 \"-\" 开头。');\n    }\n    if (/[\\s\\p{Cc}]/u.test(s)) {\n        invalid('SSH 主机名不能包含空格或控制字符。');\n    }\n    // The scheme is case-sensitive for ssh too: \"SSH://h\" is not a URI to it.\n    const isUri = s.startsWith(SSH_URI_PREFIX);\n    const body = isUri ? s.slice(SSH_URI_PREFIX.length) : s;\n    const bad = DISALLOWED_CHAR.exec(body);\n    if (bad) {\n        invalid(`SSH 主机名不能包含 ${describeChar(bad[0])}。`);"
+  ]
+]

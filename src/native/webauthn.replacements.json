@@ -18,5 +18,9 @@
   [
     "`Account ${index + 1}`",
     "`账号 ${index + 1}`"
+  ],
+  [
+    "buttons: [...accountLabels, 'Cancel'],",
+    "buttons: [...accountLabels, '取消'],"
   ]
 ]

@@ -177,6 +177,55 @@ impl BatchReplacer {
         targets.insert("qrEncoder".to_string(), "dist/qrEncoder.js".to_string());
         targets.insert("provisionSplash".to_string(), "dist/provisionSplash.js".to_string());
         targets.insert("wsl".to_string(), "dist/wsl.js".to_string());
+        // 2.35.1 新增：弹窗安全信息、设备选择器、Remote/SSH 界面及辅助提示
+        targets.insert(
+            "webviewPopupSecurity".to_string(),
+            "dist/webviewPopupSecurity.js".to_string(),
+        );
+        targets.insert("deviceChooser".to_string(), "dist/deviceChooser.js".to_string());
+        targets.insert(
+            "remoteDisconnected".to_string(),
+            "dist/remote/disconnectedPage.js".to_string(),
+        );
+        targets.insert("sshPrompts".to_string(), "dist/remote/sshPrompts.js".to_string());
+        targets.insert(
+            "remoteManager".to_string(),
+            "dist/remote/remoteManager.js".to_string(),
+        );
+        targets.insert(
+            "signInCallback".to_string(),
+            "dist/remote/signInCallback.js".to_string(),
+        );
+        targets.insert(
+            "sshConnection".to_string(),
+            "dist/remote/sshConnection.js".to_string(),
+        );
+        targets.insert("sshArgs".to_string(), "dist/remote/sshArgs.js".to_string());
+        targets.insert(
+            "sshErrorText".to_string(),
+            "dist/remote/sshErrorText.js".to_string(),
+        );
+        targets.insert(
+            "sshConfigHosts".to_string(),
+            "dist/remote/sshConfigHosts.js".to_string(),
+        );
+        targets.insert(
+            "sshDestination".to_string(),
+            "dist/remote/sshDestination.js".to_string(),
+        );
+        targets.insert("sshBridge".to_string(), "dist/remote/sshBridge.js".to_string());
+        targets.insert(
+            "computerOverlay".to_string(),
+            "dist/computer/overlay.js".to_string(),
+        );
+        targets.insert(
+            "desktopPairing".to_string(),
+            "dist/desktopHost/pairing.js".to_string(),
+        );
+        targets.insert(
+            "capturePage".to_string(),
+            "dist/browserStream/capturePage.js".to_string(),
+        );
         targets
     }
 

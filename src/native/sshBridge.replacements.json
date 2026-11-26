@@ -1,0 +1,10 @@
+[
+  [
+    "const BAD_CONFIG_FILE = 'The SSH config file must be a path of at most 4 KiB.';",
+    "const BAD_CONFIG_FILE = 'SSH 配置文件路径不能超过 4 KiB。';"
+  ],
+  [
+    "message: 'Enter an SSH host, for example \"devbox\" or \"user@host\".',",
+    "message: '请输入 SSH 主机，例如 \"devbox\" 或 \"user@host\"。',"
+  ]
+]

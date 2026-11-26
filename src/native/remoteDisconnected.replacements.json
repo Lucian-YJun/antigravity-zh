@@ -1,0 +1,22 @@
+[
+  [
+    "const BUTTON_LABELS = {\n    reconnect: 'Reconnect',\n    stop: 'Stop Server',\n    close: 'Close',\n};",
+    "const BUTTON_LABELS = {\n    reconnect: '重新连接',\n    stop: '停止服务器',\n    close: '关闭',\n};"
+  ],
+  [
+    "    const title = restarting\n        ? 'Restarting…'\n        : connecting\n            ? 'Reconnecting…'\n            : 'Disconnected';",
+    "    const title = restarting\n        ? '正在重启…'\n        : connecting\n            ? '正在重新连接…'\n            : '已断开连接';"
+  ],
+  [
+    "    const heading = restarting\n        ? `Restarting the Antigravity server on ${host}…`\n        : connecting\n            ? `Reconnecting to ${host}…`\n            : `Disconnected from ${host}`;",
+    "    const heading = restarting\n        ? `正在重启 ${host} 上的 Antigravity 服务器…`\n        : connecting\n            ? `正在重新连接到 ${host}…`\n            : `已与 ${host} 断开连接`;"
+  ],
+  [
+    "    const body = restarting\n        ? 'This window opens it again once it has started.'\n        : connecting\n            ? page.serverStopped\n                ? `Its server on ${host} stopped, and its agents with it.`\n                : `Agents keep running on ${host}.`\n            : page.serverStopped\n                ? `Its agents on ${host} stopped with it.`\n                : `Agents keep running on ${host} unless its server stopped.`;",
+    "    const body = restarting\n        ? '服务器启动后，此窗口将重新打开它。'\n        : connecting\n            ? page.serverStopped\n                ? `${host} 上的服务器已停止，其中的智能体也已停止。`\n                : `智能体仍在 ${host} 上继续运行。`\n            : page.serverStopped\n                ? `${host} 上的智能体也已随之停止。`\n                : `除非服务器已停止，否则智能体仍会在 ${host} 上继续运行。`;"
+  ],
+  [
+    "<html lang=\"en\">",
+    "<html lang=\"zh-CN\">"
+  ]
+]

@@ -2,7 +2,7 @@
 
 > 由 `node scripts/auto-review.js --write-docs` 生成；`--out <path>` 可导出任意结构化 JSON，同源数据见 `docs/dev/i18n-backlog.json`。
 > 数据源：`frontend-bundle.json` 的 `uncovered[]` 减去活体 L 集合（`crosscheck-sets.json` 的 `exact.F_minus_L`）。
-> 生成时间：2026-11-08T09:19:13.423Z；共 651 条，分 16 类。
+> 生成时间：2026-11-25T06:03:49.081Z；共 651 条，分 16 类。
 
 ## 三态含义 / 怎么勾
 
@@ -19,12 +19,12 @@
 | 指标 | 数量 |
 |---|---:|
 | 总条数（旧流程需逐条人工判断） | 651 |
-| `ACCEPT`（自动放行，人工过一眼） | 647 |
+| `ACCEPT`（自动放行，人工过一眼） | 648 |
 | `REJECT`（自动排除） | 1 |
-| `REVIEW`（需人工裁决，重点） | 3 |
-| 自动消化量 | 648 |
+| `REVIEW`（需人工裁决，重点） | 2 |
+| 自动消化量 | 649 |
 
-> 人工**深度裁决**从 651 条降到 3 条；`ACCEPT` 不是零成本，仍需抽检译文，但不再需要判断「该不该翻」。
+> 人工**深度裁决**从 651 条降到 2 条；`ACCEPT` 不是零成本，仍需抽检译文，但不再需要判断「该不该翻」。
 
 ## 勾完怎么走 add-terms
 
@@ -546,7 +546,7 @@
 |   | `ACCEPT` | Enable fine-grained GitHub permissions and define the org, repository, and resource-level access the agent is allowed to use. | 启用细粒度 GitHub 权限，并定义允许智能体使用的组织、仓库和资源级访问权限。 | key:subtitle · norm-covered · main.js:10405747 | 当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态 |
 |   | `ACCEPT` | Manage fine-grained permissions for GitHub. | 管理 GitHub 的细粒度权限。 | key:description · norm-covered · main.js:10406917 | 当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态 |
 
-### 登录/账号/权限验证（38 条：ACCEPT 37 / REJECT 0 / REVIEW 1）
+### 登录/账号/权限验证（38 条：ACCEPT 38 / REJECT 0 / REVIEW 0）
 
 | ✔ | 状态 | 原文 | 建议译文 | 依据 | 理由 |
 |---|---|---|---|---|---|
@@ -577,7 +577,7 @@
 |   | `ACCEPT` | Authentication expired | 身份验证已过期 | key:title · norm-covered · main.js:7737243 | 当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态 |
 |   | `ACCEPT` | There was an unexpected issue setting up your account. | 设置账号时出现意外问题。 | norm-covered · main.js:7989884 | 当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态 |
 |   | `ACCEPT` | Sorry, this account is ineligible to use | 抱歉，此账号不符合使用条件 | norm-covered · main.js:7990541 | 当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态 |
-|   | `REVIEW` | Please verify your account, then sign in again to continue. Learn more by visiting our | 请验证你的账号，然后重新登录以继续。详情请访问我们的 | main.js:7990707 | 缺少 UI 键名上下文：bundle 只给出裸字符串，无法证明是固定界面文案还是拼接片段/示例数据；疑似句子片段（以介词/逗号/省略号结尾或含插值），可能不适合逐字入库；长句且无键名上下文：可能是说明文字，也可能是截断/拼接的模板，需要人确认边界 |
+|   | `ACCEPT` | Please verify your account, then sign in again to continue. Learn more by visiting our | 请验证你的账号，然后重新登录以继续。详情请访问我们的 | norm-covered · main.js:7990707 | 当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态 |
 |   | `ACCEPT` | Connect an account so the agent can use this app. | 连接账号，以便智能体使用此应用。 | key:message · norm-covered · main.js:8097822 | 当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态 |
 |   | `ACCEPT` | There was an error with your authentication. To log in, click | 身份验证出错。要登录，请点击 | key:message · norm-covered · main.js:8257011 | 当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态 |
 |   | `ACCEPT` | To use the agent, please login | 请先登录以使用智能体 | key:message · norm-covered · main.js:8257222 | 当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态 |

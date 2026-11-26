@@ -1,0 +1,66 @@
+[
+  [
+    "exports.LINUX_HOST_NEEDED = 'Antigravity needs a Linux host on x64 or arm64 with glibc 2.26 or newer.';",
+    "exports.LINUX_HOST_NEEDED = 'Antigravity 需要 glibc 2.26 或更高版本的 x64 / arm64 Linux 主机。';"
+  ],
+  [
+    "return `Couldn't connect to the SSH host (${String(code)}).`;",
+    "return `无法连接到 SSH 主机（${String(code)}）。`;"
+  ],
+  [
+    "const AUTH_FAILED_TEXT = {\n    yes: 'SSH authentication failed. Check your password, code or keys, then try again.',\n    onReconnect: 'SSH authentication failed. Click Reconnect to sign in again.',\n    no: \"SSH authentication failed. Antigravity can't answer password or code prompts on Windows yet: set up key-based login with ssh-agent, then try again.\",\n};",
+    "const AUTH_FAILED_TEXT = {\n    yes: 'SSH 身份验证失败。请检查你的密码、验证码或密钥后重试。',\n    onReconnect: 'SSH 身份验证失败。请点击“重新连接”再次登录。',\n    no: 'SSH 身份验证失败。Antigravity 在 Windows 上暂不支持响应密码或验证码提示：请先通过 ssh-agent 配置基于密钥的登录，然后再试。',\n};"
+  ],
+  [
+    "        case 'INVALID_DESTINATION':\n            return \"That SSH host isn't valid. Enter an alias from your SSH config or a host like user@host or user@host:2222.\";",
+    "        case 'INVALID_DESTINATION':\n            return '该 SSH 主机无效。请输入 SSH 配置中的别名，或类似 user@host、user@host:2222 的地址。';"
+  ],
+  [
+    "        case 'HOSTKEY_REJECTED':\n            return prompts === 'no'\n                ? \"The host's SSH key is unknown or has changed. Save it with ssh in a terminal. If it changed, ask the host's owner first: the connection may be intercepted.\"\n                : \"The host's SSH key has changed or isn't trusted. If it changed, ask the host's owner first: the connection may be intercepted.\";",
+    "        case 'HOSTKEY_REJECTED':\n            return prompts === 'no'\n                ? '该主机的 SSH 密钥未知或已更改。请先在终端中使用 ssh 保存该密钥；若密钥发生变化，请先向主机管理员确认，以防连接遭到拦截。'\n                : '该主机的 SSH 密钥已更改或未受信任。若密钥发生变化，请先向主机管理员确认，以防连接遭到拦截。';"
+  ],
+  [
+    "        case 'CONNECTION_FAILED':\n            return `Couldn't connect to the SSH host. Check its name, your network and ssh config (e.g. a ProxyCommand), and that ssh to it works in a terminal${prompts === 'no' ? ' without a prompt' : ''}.`;",
+    "        case 'CONNECTION_FAILED':\n            return `无法连接到 SSH 主机。请检查主机名称、网络连接与 ssh 配置（例如 ProxyCommand），并确认在终端中能够${prompts === 'no' ? '无需交互提示直接' : ''}通过 ssh 连接到该主机。`;"
+  ],
+  [
+    "        case 'SSH_CONFIG_INVALID':\n            return \"SSH can't use your SSH config file. Fix the problem ssh reports, or choose another config file.\";",
+    "        case 'SSH_CONFIG_INVALID':\n            return 'SSH 无法使用你的 SSH 配置文件。请修复 ssh 报告的问题，或选择另一个配置文件。';"
+  ],
+  [
+    "        case 'FORWARDING_PROHIBITED':\n            return 'SSH port forwarding failed. Make sure the server allows TCP forwarding (AllowTcpForwarding) for your account, then try again.';",
+    "        case 'FORWARDING_PROHIBITED':\n            return 'SSH 端口转发失败。请确保服务器为你的账号启用了 TCP 转发（AllowTcpForwarding），然后再试。';"
+  ],
+  [
+    "        case 'UNSUPPORTED_HOST':\n            return `The SSH host isn't supported. ${exports.LINUX_HOST_NEEDED} Windows and macOS hosts aren't supported yet.`;",
+    "        case 'UNSUPPORTED_HOST':\n            return `不支持此 SSH 主机。${exports.LINUX_HOST_NEEDED} 暂不支持 Windows 和 macOS 主机。`;"
+  ],
+  [
+    "        case 'SHARED_HOME_UNSUPPORTED':\n            return 'Another host that shares your home directory runs the Antigravity server. Connect to that host, or connect again and choose Take Over.';",
+    "        case 'SHARED_HOME_UNSUPPORTED':\n            return '另一台共享你主目录的主机正在运行 Antigravity 服务器。请连接到该主机，或重新连接并选择“接管”。';"
+  ],
+  [
+    "        case 'INSTALL_FAILED':\n            return \"Couldn't install the Antigravity server on the SSH host. Make sure it has free disk space, and that it or this computer can download from the internet.\";",
+    "        case 'INSTALL_FAILED':\n            return '无法在 SSH 主机上安装 Antigravity 服务器。请确保该主机有足够的可用磁盘空间，且该主机或当前电脑可以访问互联网进行下载。';"
+  ],
+  [
+    "        case 'LS_START_FAILED':\n            return `The Antigravity server failed to start on the SSH host. See its log in ~/${types_1.REMOTE_INSTALL_ROOT}/data on that host.`;",
+    "        case 'LS_START_FAILED':\n            return `Antigravity 服务器未能在 SSH 主机上启动。请查看该主机上 ~/${types_1.REMOTE_INSTALL_ROOT}/data 中的日志。`;"
+  ],
+  [
+    "        case 'LS_STOPPED':\n            return 'The Antigravity server on the SSH host stopped. Reconnect to start it again.';",
+    "        case 'LS_STOPPED':\n            return 'SSH 主机上的 Antigravity 服务器已停止。请重新连接以再次启动。';"
+  ],
+  [
+    "        case 'CONNECTION_CLOSED':\n            return 'The SSH connection closed. Check your network connection, then reconnect.';",
+    "        case 'CONNECTION_CLOSED':\n            return 'SSH 连接已关闭。请检查网络连接后重新连接。';"
+  ],
+  [
+    "        case 'CANCELLED':\n            return 'The connection was cancelled.';",
+    "        case 'CANCELLED':\n            return '连接已取消。';"
+  ],
+  [
+    "        case 'UNKNOWN':\n            return \"Couldn't connect to the SSH host. Try ssh to it in a terminal, and see the Antigravity log for details.\";",
+    "        case 'UNKNOWN':\n            return '无法连接到 SSH 主机。请尝试在终端中使用 ssh 连接该主机，并查看 Antigravity 日志了解详情。';"
+  ]
+]

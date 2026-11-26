@@ -1,0 +1,90 @@
+[
+  [
+    "exports.PROMPT_CANCELLED = 'Sign-in cancelled.';",
+    "exports.PROMPT_CANCELLED = '登录已取消。';"
+  ],
+  [
+    "reject(new types_1.RemoteError('CONNECTION_FAILED', `Timed out connecting to ${this.label}.`));",
+    "reject(new types_1.RemoteError('CONNECTION_FAILED', `连接到 ${this.label} 超时。`));"
+  ],
+  [
+    "throw new types_1.RemoteError('UNKNOWN', `The Antigravity server on ${this.label} has no HTTP port to stop it through.`);",
+    "throw new types_1.RemoteError('UNKNOWN', `${this.label} 上的 Antigravity 服务器没有可用于停止它的 HTTP 端口。`);"
+  ],
+  [
+    "throw new types_1.RemoteError('UNKNOWN', `The Antigravity server on ${this.label} refused to stop (HTTP ${status}).`);",
+    "throw new types_1.RemoteError('UNKNOWN', `${this.label} 上的 Antigravity 服务器拒绝停止（HTTP ${status}）。`);"
+  ],
+  [
+    "throw new types_1.RemoteError('UNKNOWN', `Could not confirm that the Antigravity server on ${this.label} stopped` +\n                (rpcError ? ` (${this.redact((0, types_1.sanitizeRemoteText)(rpcError))}).` : '.'));",
+    "throw new types_1.RemoteError('UNKNOWN', `无法确认 ${this.label} 上的 Antigravity 服务器是否已停止` +\n                (rpcError ? `（${this.redact((0, types_1.sanitizeRemoteText)(rpcError))}）。` : '。'));"
+  ],
+  [
+    "throw new types_1.RemoteError('UNKNOWN', `The Antigravity server on ${this.label} didn't give this window a sign-in token (${why}).`, { explainsItself: true });",
+    "throw new types_1.RemoteError('UNKNOWN', `${this.label} 上的 Antigravity 服务器未向此窗口提供登录令牌（${why}）。`, { explainsItself: true });"
+  ],
+  [
+    "fail(new types_1.RemoteError('CONNECTION_FAILED', `${this.label} did not start the setup within ${Math.round(firstLineMs / 1000)} s. ` +\n                    'ssh (e.g. a ProxyCommand or ProxyJump login) or a command in ' +\n                    'your shell startup files (e.g. ~/.bashrc) may be waiting for input.',",
+    "fail(new types_1.RemoteError('CONNECTION_FAILED', `${this.label} 未在 ${Math.round(firstLineMs / 1000)} 秒内启动安装。` +\n                    '可能是 ssh（例如 ProxyCommand 或 ProxyJump 登录）或 shell 启动文件（例如 ~/.bashrc）中的命令正在等待输入。',"
+  ],
+  [
+    ": new types_1.RemoteError('UNKNOWN', \"Couldn't answer ssh's prompt.\")));",
+    ": new types_1.RemoteError('UNKNOWN', '无法响应 ssh 的提示。')));"
+  ],
+  [
+    "? new types_1.RemoteError('UNKNOWN', `Could not run \"${sshBin}\". Install OpenSSH or set ANTIGRAVITY_SSH_BIN.`)\n                    : new types_1.RemoteError('UNKNOWN', `Could not run ssh: ${err.message}`));",
+    "? new types_1.RemoteError('UNKNOWN', `无法运行 \"${sshBin}\"。请安装 OpenSSH 或设置 ANTIGRAVITY_SSH_BIN。`)\n                    : new types_1.RemoteError('UNKNOWN', `无法运行 ssh：${err.message}`));"
+  ],
+  [
+    "fail(new types_1.RemoteError('UNKNOWN', `ssh could not listen on its SOCKS port ${this.socksPort}.`));",
+    "fail(new types_1.RemoteError('UNKNOWN', `ssh 无法监听其 SOCKS 端口 ${this.socksPort}。`));"
+  ],
+  [
+    "fail(new types_1.RemoteError('UNKNOWN', `${this.label} asked for an upload it can't need.`));",
+    "fail(new types_1.RemoteError('UNKNOWN', `${this.label} 请求了不必要的上传。`));"
+  ],
+  [
+    "}, () => fail(new types_1.RemoteError('UNKNOWN', `${this.label} sent a line longer than ${MAX_LINE_CHARS} characters.`)));",
+    "}, () => fail(new types_1.RemoteError('UNKNOWN', `${this.label} 发送了一行超过 ${MAX_LINE_CHARS} 个字符的数据。`)));"
+  ],
+  [
+    "throw new types_1.RemoteError('INSTALL_FAILED', `Neither ${this.label} nor this computer could download the Antigravity server: ${errorMessage(err)}`);",
+    "throw new types_1.RemoteError('INSTALL_FAILED', `${this.label} 与此电脑均无法下载 Antigravity 服务器：${errorMessage(err)}`);"
+  ],
+  [
+    "return new types_1.RemoteError('LS_STOPPED', `The Antigravity server on ${this.label} stopped.`, { retryable: true });",
+    "return new types_1.RemoteError('LS_STOPPED', `${this.label} 上的 Antigravity 服务器已停止。`, { retryable: true });"
+  ],
+  [
+    ": new types_1.RemoteError('CONNECTION_CLOSED', `The connection to ${this.label} was lost: ${describeExit(code, signal, this.stderrTail)}`, { retryable: true });",
+    ": new types_1.RemoteError('CONNECTION_CLOSED', `与 ${this.label} 的连接已断开：${describeExit(code, signal, this.stderrTail)}`, { retryable: true });"
+  ],
+  [
+    "throw new types_1.RemoteError('FORWARDING_PROHIBITED', 'The SSH server does not allow port forwarding (AllowTcpForwarding).');",
+    "throw new types_1.RemoteError('FORWARDING_PROHIBITED', 'SSH 服务器不允许端口转发（AllowTcpForwarding）。');"
+  ],
+  [
+    "throw new types_1.RemoteError('LS_START_FAILED', `The Antigravity server on ${this.label} did not respond through the SSH tunnel (${(0, types_1.sanitizeRemoteText)(lastErr, 200)}).`);",
+    "throw new types_1.RemoteError('LS_START_FAILED', `${this.label} 上的 Antigravity 服务器未能通过 SSH 隧道响应（${(0, types_1.sanitizeRemoteText)(lastErr, 200)}）。`);"
+  ],
+  [
+    "this.emit('signInError', new types_1.RemoteError('UNKNOWN', `${this.label} asked to open a sign-in at ${origin} that can't finish on that host, so it was not opened.`));",
+    "this.emit('signInError', new types_1.RemoteError('UNKNOWN', `${this.label} 请求在 ${origin} 打开无法在该主机上完成的登录流程，因此未予打开。`));"
+  ],
+  [
+    "this.emit('signInError', new types_1.RemoteError('UNKNOWN', `The sign-in request of the Antigravity server on ${this.label} doesn't match what this app expects, so it was not opened. ` +\n                    'Update Antigravity, or restart the server on that host.'));",
+    "this.emit('signInError', new types_1.RemoteError('UNKNOWN', `${this.label} 上的 Antigravity 服务器的登录请求与当前应用不匹配，因此未予打开。` +\n                    '请更新 Antigravity，或重启该主机上的服务器。'));"
+  ],
+  [
+    "const remoteErr = new types_1.RemoteError('UNKNOWN', `Local port ${port} is in use, so the sign-in callback can't ` +\n                `reach ${this.label}. Close the program using it and sign in again. ` +\n                `(${errorMessage(err)})`);",
+    "const remoteErr = new types_1.RemoteError('UNKNOWN', `本地端口 ${port} 已被占用，因此登录回调无法连接到 ${this.label}。` +\n                '请关闭占用该端口的程序后重新登录。' +\n                `（${errorMessage(err)}）`);"
+  ],
+  [
+    "const cancelled = () => new types_1.RemoteError('CANCELLED', 'The connection was closed.');",
+    "const cancelled = () => new types_1.RemoteError('CANCELLED', '连接已关闭。');"
+  ],
+  [
+    "        case 'checking':\n            return `Checking ${label}…`;\n        case 'waiting':\n            return `Waiting for another window to finish installing on ${label}…`;\n        case 'invalid binary removed':\n            return `Replacing an invalid server binary on ${label}…`;\n        case 'downloading':\n            return `Downloading the Antigravity server on ${label}…`;\n        case 'installed':\n            return `Installed the Antigravity server on ${label}.`;\n        case 'starting':\n            return `Starting the Antigravity server on ${label}…`;\n        case 'attached':\n            return `Connecting to the running server on ${label}…`;\n        case 'replacing':\n            return `Restarting the Antigravity server on ${label}…`;\n        case 'checking other host':\n            return `Checking whether another host still runs your Antigravity server…`;\n        case 'taking over':\n            return `Moving the Antigravity server to ${label}…`;",
+    "        case 'checking':\n            return `正在检查 ${label}…`;\n        case 'waiting':\n            return `正在等待另一个窗口完成 ${label} 上的安装…`;\n        case 'invalid binary removed':\n            return `正在替换 ${label} 上无效的服务器可执行文件…`;\n        case 'downloading':\n            return `正在 ${label} 上下载 Antigravity 服务器…`;\n        case 'installed':\n            return `已在 ${label} 上安装 Antigravity 服务器。`;\n        case 'starting':\n            return `正在启动 ${label} 上的 Antigravity 服务器…`;\n        case 'attached':\n            return `正在连接到 ${label} 上运行中的服务器…`;\n        case 'replacing':\n            return `正在重启 ${label} 上的 Antigravity 服务器…`;\n        case 'checking other host':\n            return `正在检查是否有其他主机仍在运行你的 Antigravity 服务器…`;\n        case 'taking over':\n            return `正在将 Antigravity 服务器迁移到 ${label}…`;"
+  ]
+]

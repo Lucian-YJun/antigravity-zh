@@ -14,5 +14,17 @@
   [
     "<p id=\"status\" class=\"mechanism-desc\">Scan this QR code with the camera on the device that has your passkey for ${safeRpId}</p>",
     "<p id=\"status\" class=\"mechanism-desc\">请用存有 ${safeRpId} 通行密钥的设备上的相机扫描此二维码</p>"
+  ],
+  [
+    "<button type=\"button\" class=\"cancel-btn\" onclick=\"window.close()\">Cancel</button>",
+    "<button type=\"button\" class=\"cancel-btn\" onclick=\"window.close()\">取消</button>"
+  ],
+  [
+    "modal?.updateStatus('Connecting to your device…');",
+    "modal?.updateStatus('正在连接到你的设备…');"
+  ],
+  [
+    "modal?.updateStatus('Verify on your device to continue…');",
+    "modal?.updateStatus('请在你的设备上验证以继续…');"
   ]
 ]
