@@ -24,8 +24,17 @@ function isLoopbackHost(hostname) {
     const h = String(hostname || '').toLowerCase().replace(/^\[|\]$/g, '');
     return h === '127.0.0.1' || h === 'localhost' || h === '::1';
 }
+const extraSidecarPorts = new Set();
+function registerKnownSidecarPort(port) {
+    if (port) {
+        extraSidecarPorts.add(String(port));
+    }
+}
+function clearKnownSidecarPorts() {
+    extraSidecarPorts.clear();
+}
 function getKnownSidecarPorts() {
-    const ports = new Set();
+    const ports = new Set(extraSidecarPorts);
     try {
         const cs = require(path.join(__dirname, '..', 'app', 'dist', 'customScheme'));
         if (cs && cs.extensionAuthorities && typeof cs.extensionAuthorities.values === 'function') {
@@ -61,11 +70,14 @@ function isSidecarFrameUrl(urlStr, options) {
         if (!isLoopbackHost(u.hostname)) {
             return false;
         }
-        if (options && options.requireKnownSidecarPort) {
-            const ports = options.knownSidecarPorts || getKnownSidecarPorts();
-            return Boolean(u.port && ports.has(u.port));
+        // 关键安全防线：本地回环（http/https）恒要求已知 sidecar 端口（来自 customScheme.extensionAuthorities）。
+        // 绝不放行任意未注册端口，无论是内置浏览器 webview、子框架还是普通弹窗（popup），
+        // 坚决杜绝误伤和篡改用户本地开发服务（如 localhost:3000、8080 等）的 UI 文本。
+        if (options && options.requireKnownSidecarPort === false) {
+            return true;
         }
-        return true;
+        const ports = (options && options.knownSidecarPorts) || getKnownSidecarPorts();
+        return Boolean(u.port && ports.has(u.port));
     }
     return false;
 }
@@ -96,6 +108,8 @@ function shouldInjectFrame(frame, options) {
 exports.isSidecarFrameUrl = isSidecarFrameUrl;
 exports.shouldInjectFrame = shouldInjectFrame;
 exports._attachSidecarContents = attachSidecarContents;
+exports._registerKnownSidecarPort = registerKnownSidecarPort;
+exports._clearKnownSidecarPorts = clearKnownSidecarPorts;
 // 归一化实现：主进程菜单与页面注入脚本共用同一份源码（注入时序列化进字符串），
 // 避免两套规则各写一遍后慢慢漂移。
 function normEngine() {
@@ -866,6 +880,10 @@ function isBrowserGuestContents(contents) {
         if (typeof sp === 'string' && sp.replace(/\\/g, '/').toLowerCase().includes('hub-browser-')) {
             return true;
         }
+        const win = typeof contents.getOwnerBrowserWindow === 'function' ? contents.getOwnerBrowserWindow() : null;
+        if (win && (win.__isWebviewPopupWindow || (typeof win.isDestroyed === 'function' && win.isDestroyed()))) {
+            return true;
+        }
     }
     catch (e) { }
     return false;
@@ -950,14 +968,13 @@ function pushDictionaryToWindows() {
             registeredSidecars.delete(sc);
             continue;
         }
-        const guest = isBrowserGuestContents(sc);
         const url = typeof sc.getURL === 'function' ? sc.getURL() : '';
-        if (isSidecarFrameUrl(url, { requireKnownSidecarPort: guest })) {
+        if (isSidecarFrameUrl(url)) {
             sc.executeJavaScript(js, true).catch((e) => {
                 console.error('[zh-i18n] Sidecar 词典热载推送失败:', e && e.message ? e.message : e);
             });
         }
-        pushToSubframes(sc, js, { requireKnownSidecarPort: guest, allowLoopbackSrcdocParent: true });
+        pushToSubframes(sc, js, { allowLoopbackSrcdocParent: true });
     }
 }
 // fs.watch 不可用时的兜底：轮询词典 mtime
@@ -1032,9 +1049,11 @@ function attachSidecarContents(contents) {
         if ((typeof contents.isDestroyed === 'function' && contents.isDestroyed()) || registeredMainContents.has(contents)) {
             return;
         }
+        if (isBrowserGuestContents(contents)) {
+            return;
+        }
         const url = typeof contents.getURL === 'function' ? contents.getURL() : '';
-        const guest = isBrowserGuestContents(contents);
-        if (!isSidecarFrameUrl(url, { requireKnownSidecarPort: guest })) {
+        if (!isSidecarFrameUrl(url)) {
             return;
         }
         let dic;
@@ -1052,9 +1071,11 @@ function attachSidecarContents(contents) {
         if (isMainFrame || (typeof contents.isDestroyed === 'function' && contents.isDestroyed()) || registeredMainContents.has(contents)) {
             return;
         }
+        if (isBrowserGuestContents(contents)) {
+            return;
+        }
         const frame = resolveSubframe(contents, event, frameProcessId, frameRoutingId);
-        const guest = isBrowserGuestContents(contents);
-        if (!shouldInjectFrame(frame, { requireKnownSidecarPort: guest, allowLoopbackSrcdocParent: true })) {
+        if (!shouldInjectFrame(frame, { allowLoopbackSrcdocParent: true })) {
             return;
         }
         let dic;
