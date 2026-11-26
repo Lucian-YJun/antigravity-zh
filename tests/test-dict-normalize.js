@@ -425,6 +425,44 @@ const ruleFallbackCases = [
   ['Open Subagent: foo', '打开子智能体：foo'],
   ['2 agents running', '2 个智能体运行中'],
   ['No agents running', '没有正在运行的智能体'],
+
+  // ---- 2.35.1 Hub 与 Swarm Sidecar 新增动态规则与词典断言 ----
+  ['Inbox', '收件箱'],
+  ['For Me', '仅自己使用'],
+  ['For My Team', '团队共享'],
+  ['Dictation languages', '听写语言'],
+  ['#1 Primary', '#1 首选'],
+  ['Orchestrator', '编排器'],
+  ['Plugin permissions', '插件权限'],
+  ['Side Questions', '侧边提问'],
+  ['Auto', '自动'],
+  ['3 subagents/tasks running', '3 个子智能体/任务正在运行'],
+  ['1 subagent', '1 个子智能体'],
+  ['2 background tasks', '2 个后台任务'],
+  ['Allow plugin to write files?', '允许 plugin write files 吗？'],
+  ['Yes, allow downloads from example.com for this run', '允许，本次运行允许从 example.com 下载'],
+  ["Yes, save rule for 'git status' in this conversation", '允许，在此对话中保存「git status」的规则'],
+  ['2 items in Global exceeded the customization budget and were excluded from context.', 'Global 中的 2 个项目超出了自定义预算，已从上下文中排除。'],
+  ['1 rule exceeded the rules budget and was demoted from full inline content to a file-path pointer.', '1 条规则超出了规则预算，已从完整内联内容降级为文件路径指针。'],
+  ['Swarm', '智能体蜂群 (Swarm)'],
+  ['overview · from the narrator’s notes', '概览 · 来自记录员笔记'],
+  ["overview · from the narrator's notes", '概览 · 来自记录员笔记'],
+  ['3 of 10 tasks done', '已完成 3 / 10 个任务'],
+  ['@worker-1 ran out of quota', '@worker-1 配额已用尽'],
+  ['Exporting swarm.gif…', '正在导出 swarm.gif…'],
+  ['Download swarm-graph.gif', '下载 swarm-graph.gif'],
+  ['Download failed', null],
+  ['1 tool enabled', '已启用 1 个工具'],
+  ['Fola, voice 1 of 4', 'Fola，第 1 / 4 个语音'],
+  ['Message queued. 2 messages in queue. foo Actions available: Send Now, Edit, Delete.', '消息已排队。队列中有 2 条消息。可用操作：立即发送、编辑、删除。'],
+  ['WSL: ', 'WSL： '],
+  ['1 thread', '1 个线程'],
+  ['1 of 3 done', '已完成 1 / 3'],
+  ['read #5', '已读 #5'],
+  ['main · reconnecting', 'main · 正在重新连接'],
+  ['alice → bob: 2 direct, 1 via @all', 'alice → bob：2 次直接提及，1 次通过 @all'],
+  ['#design (archived)', '#design（已归档）'],
+  ['@mention, width = count', '@提及，线条宽度 = 次数'],
 ];
 for (const [input, want] of ruleFallbackCases) {
   const got = tr(input);
@@ -557,7 +595,9 @@ check('界面文案补录词条清单完整（本轮 3 条，防止删条目空�
 // 这里只做「异常膨胀」的兜底，不是覆盖率目标：官方每次更新都可能新增界面文案，
 // 词典本就该随之增长。真正的防膨胀靠 test-dict.js 的变体冗余检查（同一归一化键
 // 且同译文只允许一条），那才是可判定的指标。用绝对字数当门禁只会逼着人调阈值。
-check('词典规模在合理范围内（异常膨胀兜底）', dictKeys.length < 2500, `当前 ${dictKeys.length} 条`);
+// 2.35.1 新增 Hub 文案 + Swarm Sidecar 词条后合理上限同步放宽至 5000，
+// 真正的防膨胀仍由 test-dict.js 的变体冗余检查严格把关。
+check('词典规模在合理范围内（异常膨胀兜底）', dictKeys.length < 5000, `当前 ${dictKeys.length} 条`);
 check('MENU_LABELS 规模在合理范围内（异常膨胀兜底）',
   Object.keys(zh.MENU_LABELS).length < 400, `当前 ${Object.keys(zh.MENU_LABELS).length} 条`);
 w.close();

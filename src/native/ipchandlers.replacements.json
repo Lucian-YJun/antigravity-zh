@@ -14,5 +14,9 @@
  [
   "            const menu = electron_1.Menu.buildFromTemplate(template);",
   "            const menu = electron_1.Menu.buildFromTemplate(\n            // 网页传来的右键菜单 label 是英文：主进程弹原生菜单前必须先查汉化词典，\n            // 否则网页侧翻译器管不到（原生菜单不在 DOM 里）。\n            require('../../zh-patch/zh-i18n').translateMenuTemplate(template));"
+ ],
+ [
+  "            title: 'Select Download Folder',",
+  "            title: '选择下载文件夹',"
  ]
 ]

@@ -2043,7 +2043,892 @@
     "Create Group": "创建分组",
     "Worktree Name": "工作树名称",
     "A group with this name already exists.": "已存在同名分组。",
-    "Browse the Marketplace": "浏览扩展市场"
+    "Browse the Marketplace": "浏览扩展市场",
+    "Inbox": "收件箱",
+    "Resolved": "已解决",
+    "All caught up": "全部处理完毕",
+    "Inbox Mode": "收件箱模式",
+    "Working Section": "进行中分区",
+    "Keep running conversations in a separate Working section instead of in the Inbox.": "将正在运行的对话放在独立的“进行中”分区，而不是保留在收件箱中。",
+    "Auto-Resolve": "自动解决",
+    "Move idle Inbox conversations to Resolved automatically after the selected time.": "在选定时间后自动将空闲的收件箱对话移至“已解决”。",
+    "Locked while grouped by Status": "按状态分组时已锁定",
+    "Never": "从不",
+    "3 days": "3 天",
+    "7 days": "7 天",
+    "14 days": "14 天",
+    "21 days": "21 天",
+    "Any time": "不限时间",
+    "Show Automations": "显示自动化",
+    "Show Plugins": "显示插件",
+    "Subtitle": "副标题",
+    "Return to Inbox": "移回收件箱",
+    "Resolve": "解决",
+    "Resolve conversation": "解决对话",
+    "Conversation resolved": "对话已解决",
+    "Moved to Resolved.": "已移至“已解决”。",
+    "Returned conversation to Inbox": "已将对话移回收件箱",
+    "Move Conversation": "移动对话",
+    "Move": "移动",
+    "Stalled": "已停滞",
+    "New Agent": "新建智能体",
+    "New Coordinator": "新建协调器",
+    "For Me": "仅自己使用",
+    "Personal agent running as you": "以你的身份运行的个人智能体",
+    "For My Team": "团队共享",
+    "Shared agent for your team": "供你的团队共享的智能体",
+    "Coordinators Options": "协调器选项",
+    "No agents": "暂无智能体",
+    "Agent name": "智能体名称",
+    "Coordinator name": "协调器名称",
+    "e.g. Release helper": "例如：发布助手",
+    "Agent goal": "智能体目标",
+    "Coordinator goal": "协调器目标",
+    "What should this agent accomplish?": "这个智能体应该完成什么目标？",
+    "What should this coordinator accomplish?": "这个协调器应该完成什么目标？",
+    "Create Agent": "创建智能体",
+    "Create Coordinator": "创建协调器",
+    "Couldn't create the agent. Try again.": "无法创建智能体，请重试。",
+    "Couldn't create the coordinator. Try again.": "无法创建协调器，请重试。",
+    "Coordinator settings": "协调器设置",
+    "Automatically pin conversations when you send a message. Unpin as needed to keep your Pinned list focused.": "发送消息时自动置顶对话。可按需取消置顶以保持列表精简。",
+    "Dictation languages": "听写语言",
+    "Constrain voice dictation to selected languages in priority order. Leave empty to auto-detect.": "按优先级顺序将语音听写限定为所选语言。留空则自动检测。",
+    "Reset to auto": "重置为自动",
+    "Auto-detect (browser defaults)": "自动检测（浏览器默认）",
+    "Selected dictation languages": "已选听写语言",
+    "Available dictation languages": "可选听写语言",
+    "Dictation language options": "听写语言选项",
+    "Toggle language list": "切换语言列表",
+    "Search languages to add (e.g. English, Spanish, 中文, yue)...": "搜索要添加的语言（例如 English、Spanish、中文、yue）...",
+    "Click items to multi-select · Drag or ‹/› pills to reorder": "点击项目可多选 · 拖动或点击 ‹/› 标签调整顺序",
+    "Spanish": "西班牙语",
+    "Chinese (Mandarin)": "中文（普通话）",
+    "Cantonese": "粤语",
+    "French": "法语",
+    "German": "德语",
+    "Japanese": "日语",
+    "Korean": "韩语",
+    "Portuguese": "葡萄牙语",
+    "Italian": "意大利语",
+    "Hindi": "印地语",
+    "Arabic": "阿拉伯语",
+    "Dutch": "荷兰语",
+    "Polish": "波兰语",
+    "Russian": "俄语",
+    "Vietnamese": "越南语",
+    "Thai": "泰语",
+    "Indonesian": "印度尼西亚语",
+    "Turkish": "土耳其语",
+    "Ukrainian": "乌克兰语",
+    "Swedish": "瑞典语",
+    "Hebrew": "希伯来语",
+    "Czech": "捷克语",
+    "Greek": "希腊语",
+    "Romanian": "罗马尼亚语",
+    "Danish": "丹麦语",
+    "Finnish": "芬兰语",
+    "Norwegian": "挪威语",
+    "Model selection": "模型选择",
+    "Default uses server-managed routing and Orchestrator quota. Custom pins specific models for orchestration and execution.": "“默认”使用服务器托管路由与编排器配额；“自定义”可为编排与执行固定指定模型。",
+    "Orchestrator model selection": "编排器模型选择",
+    "Default (Gemini Pro)": "默认 (Gemini Pro)",
+    "Orchestrator": "编排器",
+    "The Orchestrator's own planner": "编排器自身的规划模型",
+    "Orchestrator Settings": "编排器设置",
+    "Choose the models Orchestrator uses. A larger, smarter orchestrator model with a faster, cheaper executor gives high quality for fewer tokens.": "选择编排器使用的模型。更强更大的编排器搭配更快更省的执行器，可用更少 Token 获得高质量结果。",
+    "Orchestrator Model": "编排器模型",
+    "Executor Model": "执行器模型",
+    "Offloads routine steps to a faster executor. Same quality, fewer tokens used.": "将常规步骤分流给更快的执行器。质量不变，消耗更少 Token。",
+    "Project required": "需要项目",
+    "License required": "需要许可证",
+    "View plans": "查看方案",
+    "Your quota for this model is running low.": "你此模型的配额即将耗尽。",
+    "Get More AI Credits": "获取更多 AI 额度",
+    "See Activity": "查看活动",
+    "To continue using this model now, enable AI Credit overages.": "要立即继续使用此模型，请启用 AI 额度超额使用。",
+    "Your AI credits balance is too low to continue.": "你的 AI 额度余额过低，无法继续。",
+    "AI Credits are used when you've exceeded your model quota. Keep track of your current AI Credits in the": "超出模型配额后将使用 AI 额度。你可以在此处查看当前 AI 额度：",
+    "Plugin permissions": "插件权限",
+    "Changes plugins can make without asking.": "插件无需询问即可执行的更改。",
+    "Allowed by you": "由你允许",
+    "Nothing is always allowed. You'll be asked before this plugin makes changes.": "当前没有始终允许的操作。此插件进行更改前都会询问你。",
+    "Included with plugin": "随插件附带",
+    "These come with the plugin and can't be revoked.": "这些权限随插件自带，无法撤销。",
+    "Any resource": "任意资源",
+    "Name unavailable": "名称不可用",
+    "Always allowed": "始终允许",
+    "Revoke all": "全部撤销",
+    "can now": "现已可以",
+    "Yes, allow in this conversation": "允许，在此对话中允许",
+    "Yes, always allow in this project": "允许，并在此项目中始终允许",
+    "Yes, always allow": "允许，并始终允许",
+    "Yes, allow for this task": "允许，在此任务中允许",
+    "Yes, allow": "允许",
+    "Yes, save rule globally": "允许，全局保存规则",
+    "Yes, save rule in this conversation": "允许，在此对话中保存规则",
+    "Allowed in this conversation": "已在此对话中允许",
+    "Always allowed in this project": "已在此项目中始终允许",
+    "Permission": "权限",
+    "Permission decision": "权限决定",
+    "this plugin": "此插件",
+    "background work": "后台工作",
+    "Sends after background work finishes.": "将在后台工作完成后发送。",
+    "Sends after agent finishes working.": "在智能体完成工作后发送。",
+    "Agent finished. Queued messages send after background work finishes.": "智能体已完成。排队消息将在后台工作完成后发送。",
+    "Message queued.": "消息已加入队列。",
+    "Queued message loaded into editor": "已将排队消息加载到编辑器",
+    "Queued message deleted": "已删除排队消息",
+    "Queued message sent": "已发送排队消息",
+    "Model cannot be changed while the agent is running": "智能体运行时无法更改模型",
+    "Permissions cannot be changed while the agent is running": "智能体运行时无法更改权限",
+    "Side Questions": "侧边提问",
+    "New Side Question": "新建侧边提问",
+    "Side Question:": "侧边提问：",
+    "Enter a side question after /btw": "在 /btw 后输入侧边提问",
+    "Send a message in the main conversation first to start a side question": "请先在主对话中发送一条消息再发起侧边提问",
+    "Reply to /help... (Esc to minimize)": "回复 /help...（按 Esc 最小化）",
+    "Insert into main conversation": "插入到主对话",
+    "Continue as a New Conversation": "作为新对话继续",
+    "Continue in Current Workspace": "在当前工作区中继续",
+    "Continue in Shared Workspace": "在共享工作区中继续",
+    "Continue in New Workspace": "在新建工作区中继续",
+    "Fork in Current Workspace": "在当前工作区中派生",
+    "Delete Side Question": "删除侧边提问",
+    "Cloud Conversation": "云端对话",
+    "New Remote Project": "新建远程项目",
+    "Clone from Remote": "从远程克隆",
+    "Clone locally": "克隆到本地",
+    "Clone from This Computer": "从此电脑克隆",
+    "Open in Remote": "在远程打开",
+    "Search Repositories…": "搜索仓库…",
+    "Runs on this machine": "在此电脑上运行",
+    "Browsing data": "浏览数据",
+    "Clear Browsing Data?": "清除浏览数据？",
+    "Choose what to clear from the built-in browser. It can't be undone.": "选择要从内置浏览器清除的数据。此操作无法撤销。",
+    "Cookies and other site data": "Cookie 和其他网站数据",
+    "Cookies by Site": "按网站查看 Cookie",
+    "Search sites...": "搜索网站...",
+    "No sites have cookies in the built-in browser.": "内置浏览器中尚无任何网站存有 Cookie。",
+    "An agent is using the built-in browser. Clearing its data signs the agent out of sites and may interrupt its task.": "有智能体正在使用内置浏览器。清除其数据会退出网站登录状态，并可能中断其任务。",
+    "Manage hooks": "管理钩子",
+    "Google One referral": "Google One 推荐",
+    "VS Code keyboard shortcuts": "VS Code 键盘快捷键",
+    "Text viewer": "文本查看器",
+    "Image viewer": "图片查看器",
+    "Video player": "视频播放器",
+    "Audio player": "音频播放器",
+    "HTML viewer": "HTML 查看器",
+    "Notebook viewer": "Notebook 查看器",
+    "PDF viewer": "PDF 查看器",
+    "Sidecar disabled": "Sidecar 已禁用",
+    "Plugin disabled": "插件已禁用",
+    "Open with": "打开方式",
+    "System default app": "系统默认应用",
+    "Not running": "未运行",
+    "Chosen": "已选择",
+    "No longer active": "已不再活跃",
+    "Type your own answer": "输入你自己的回答",
+    "Searching older messages": "正在搜索更早的消息",
+    "Loading messages": "正在加载消息",
+    "Loading newer messages": "正在加载更新的消息",
+    "Loading messages…": "正在加载消息…",
+    "Loading newer messages…": "正在加载更新的消息…",
+    "Switch to default text direction": "切换到默认文字方向",
+    "Switch to RTL text direction": "切换到从右到左文字方向",
+    "Applied": "已应用",
+    "Application Menu": "应用菜单",
+    "Search by name or username": "按姓名或用户名搜索",
+    "Search identities": "搜索身份",
+    "No matching identities": "没有匹配的身份",
+    "self · target": "自身 · 目标",
+    "Matches this automation's active identity.": "匹配此自动化的当前活动身份。",
+    "Self": "自身",
+    "Self-watch target presets": "自监控目标预设",
+    "Incompatible event type": "事件类型不兼容",
+    "Missing required field": "缺少必填字段",
+    "Combined event_type clauses share no compatible event type": "组合的 event_type 子句没有兼容的事件类型",
+    "Combined filter clauses share no compatible event type": "组合的过滤子句没有兼容的事件类型",
+    "Selected event types conflict with event_type in CEL filter": "所选事件类型与 CEL 过滤器中的 event_type 冲突",
+    "Add target": "添加目标",
+    "(required)": "（必填）",
+    "available run location": "可用的运行位置",
+    "account connection": "账号连接",
+    "unique name": "唯一名称",
+    "hourly, daily, or weekly schedule": "每小时、每天或每周计划",
+    "valid schedule": "有效的定时计划",
+    "valid filter expression": "有效的过滤表达式",
+    "trigger settings": "触发器设置",
+    "Auto": "自动",
+    "Jetski Web": "Jetski 网页版",
+    "Answered in chat": "已在聊天中回答",
+    "Cannot continue a subagent's side question as a new conversation": "无法将子智能体的侧边提问作为新对话继续",
+    "Cannot continue as a new conversation during Battle Mode — end the battle first": "对战模式期间无法作为新对话继续——请先结束对战",
+    "Cannot continue as a new conversation while side question is running": "侧边提问运行期间无法作为新对话继续",
+    "Error starting sign-in: this host can't start it": "启动登录出错：此主机无法启动登录",
+    "Failed to list custom agents": "获取自定义智能体列表失败",
+    "From a plugin": "来自插件",
+    "Git-on-Borg repository used when creating a new Cog workspace from your initial prompt (e.g., chromium/chromium/src or android/platform/superproject).": "从初始提示词创建新 Cog 工作区时使用的 Git-on-Borg 仓库（例如 chromium/chromium/src 或 android/platform/superproject）。",
+    "No MCP servers available.": "没有可用的 MCP 服务器。",
+    "Waiting for approval to grant administrator access": "正在等待批准授予管理员权限",
+    "No pinned conversations": "没有置顶对话",
+    "Close Sidebar": "关闭侧边栏",
+    "Customize Sidebar": "自定义侧边栏",
+    "Sort By": "排序方式",
+    "Sort Workspaces": "工作区排序",
+    "Filters": "筛选",
+    "Last Activity": "最近活动",
+    "Manual Order": "手动排序",
+    "Decorations": "装饰标识",
+    "Only Automations": "仅显示自动化",
+    "Show or Hide Plugins": "显示或隐藏插件",
+    "Plugins Options": "插件选项",
+    "Show Less": "收起",
+    "Active": "活动中",
+    "Idle": "空闲",
+    "Waiting": "等待中",
+    "Canceling": "正在取消",
+    "Cancelled": "已取消",
+    "Killed": "已终止",
+    "Unread": "未读",
+    "Needs input": "需要输入",
+    "Unsent draft": "未发送草稿",
+    "Forked conversation": "已派生的对话",
+    "Forked from": "派生自",
+    "Edits the conversation title": "编辑对话标题",
+    "Delete Group": "删除分组",
+    "Move Up": "上移",
+    "Move Down": "下移",
+    "Drop to add to group": "拖放以添加到分组",
+    "No matching conversations": "没有匹配的对话",
+    "No archived conversations": "没有已归档对话",
+    "No conversations found": "未找到对话",
+    "Hey there, what should we build today?": "你好，今天想做点什么？",
+    "Welcome back. Where should we pick up?": "欢迎回来。我们从哪里继续？",
+    "Good to see you. What's next?": "很高兴见到你。接下来做什么？",
+    "Dismiss Tip": "忽略提示",
+    "Dismiss suggestion": "忽略建议",
+    "Previous card": "上一张卡片",
+    "Next card": "下一张卡片",
+    "Select a model in the model selector": "在模型选择器中选择模型",
+    "New Agent Script": "新建智能体脚本",
+    "Main Agent": "主智能体",
+    "Agent options": "智能体选项",
+    "Set up my environment": "配置我的环境",
+    "Terms and Privacy:": "条款与隐私：",
+    "AI coding agents are known to have certain security risks...": "已知 AI 编程智能体存在一定的安全风险...",
+    "Get Anything Done with": "用它高效完成一切：",
+    "Build new features": "开发新功能",
+    "Let's tailor the experience for you. What best describes your work?": "让我们为你量身定制体验。哪项最符合你的工作内容？",
+    "Select Theme": "选择主题",
+    "Light preview": "浅色预览",
+    "Dark preview": "深色预览",
+    "Not now": "暂不",
+    "Continue with SSO": "使用 SSO 继续",
+    "Last Used": "上次使用",
+    "Other sign-in options": "其他登录选项",
+    "Use Business Account": "使用企业账号",
+    "Business Account Sign In": "企业账号登录",
+    "Use Advanced SSO Config": "使用高级 SSO 配置",
+    "Use this if your admin gave you a WIF config. Paste it below to sign in.": "如果管理员向你提供了 WIF 配置，请粘贴在下方以登录。",
+    "WIF Config": "WIF 配置",
+    "E.g. locations/global/workforcePools...": "例如 locations/global/workforcePools...",
+    "Sign In with SSO": "使用 SSO 登录",
+    "Having trouble signing in?": "登录遇到问题？",
+    "Trouble signing in? Enter authorization code": "登录遇到问题？输入授权码",
+    "Sign in in your browser, then paste the authorization code shown on the callback page.": "请在浏览器中完成登录，然后粘贴回调页面显示的授权码。",
+    "Authorization code": "授权码",
+    "Paste authorization code": "粘贴授权码",
+    "Submit code": "提交授权码",
+    "Authorization code was rejected. Paste a fresh code and try again.": "授权码被拒绝。请粘贴新的授权码并重试。",
+    "Copy sign-in link": "复制登录链接",
+    "Copied sign-in link to clipboard": "已将登录链接复制到剪贴板",
+    "Switched to authorization code sign-in": "已切换为授权码登录",
+    "Please sign in using the Antigravity sidebar panel to view this page.": "请使用 Antigravity 侧边栏面板登录以查看此页面。",
+    "We apologize for the inconvenience. Please try again later.": "很抱歉给您带来不便。请稍后重试。",
+    "Please verify your account, then sign in again to continue. Learn more by visiting our": "请验证你的账号，然后重新登录以继续。了解更多请访问我们的",
+    "Verify": "验证",
+    "Google Cloud Project ID": "Google Cloud 项目 ID",
+    "This Google Cloud project is not supported. Input a different project, or sign in with another account.": "不支持此 Google Cloud 项目。请输入其他项目，或使用其他账号登录。",
+    "Sign in with a different account": "使用其他账号登录",
+    "Subscription": "订阅",
+    "Use Antigravity through your Gemini subscription.": "通过你的 Gemini 订阅使用 Antigravity。",
+    "Pay only for the tokens you use, billed through Gemini platform.": "仅按实际使用的 Token 付费，通过 Gemini 平台计费。",
+    "Choose a Subscription": "选择订阅",
+    "Confirm Selection": "确认选择",
+    "Provide Google Cloud Project": "提供 Google Cloud 项目",
+    "United States": "美国",
+    "Europe": "欧洲",
+    "Chat Layout": "聊天布局",
+    "App": "应用",
+    "Permissions": "权限",
+    "Environments": "环境",
+    "Sound": "声音",
+    "Choose which key sends a message in the chat composer.": "选择在聊天输入框中用哪个按键发送消息。",
+    "Press Cmd+Enter to send, Enter for a new line.": "按 Cmd+Enter 发送，Enter 换行。",
+    "Press Ctrl+Enter to send, Enter for a new line.": "按 Ctrl+Enter 发送，Enter 换行。",
+    "Press Enter to send, Shift+Enter for a new line.": "按 Enter 发送，Shift+Enter 换行。",
+    "Validating setup script…": "正在验证设置脚本…",
+    "Setup script failed.": "设置脚本执行失败。",
+    "Validation timed out.": "验证超时。",
+    "Controls whether terminal commands require your approval before running...": "控制终端命令在运行前是否需要你的批准...",
+    "New conversation button": "新建对话按钮",
+    "Last Workspace": "上一个工作区",
+    "Default Cog repository": "默认 Cog 仓库",
+    "e.g., chromium/chromium/src": "例如：chromium/chromium/src",
+    "e.g., main or refs/heads/main": "例如：main 或 refs/heads/main",
+    "CitC workspace type": "CitC 工作区类型",
+    "Interface Layout": "界面布局",
+    "System UI": "系统界面",
+    "Legacy Light": "经典浅色",
+    "Legacy Dark": "经典深色",
+    "Keybinding Scheme": "快捷键方案",
+    "VS Code Default": "VS Code 默认",
+    "Antigravity (AGY) Style": "Antigravity (AGY) 风格",
+    "Customize Shortcuts": "自定义快捷键",
+    "Managed by application menu": "由应用菜单管理",
+    "reserved for sidebar switching": "保留用于切换侧边栏",
+    "Enable browser agent": "启用浏览器智能体",
+    "Cookies the built-in browser stores for each site...": "内置浏览器为各个网站存储的 Cookie...",
+    "Download files": "下载文件",
+    "Organization Allowed Domains (Read-Only)": "组织允许的域名（只读）",
+    "Nickname": "昵称",
+    "Show Remote Control QR code": "显示远程控制二维码",
+    "Windows Subsystem for Linux": "适用于 Linux 的 Windows 子系统（WSL）",
+    "Run the app against a Linux environment. Connecting relaunches the app into the selected WSL distro.": "在 Linux 环境下运行应用。连接后应用将在所选 WSL 发行版中重新启动。",
+    "Local Windows environment": "本地 Windows 环境",
+    "Invite a Friend": "邀请好友",
+    "Recordings": "录音",
+    "No recordings": "暂无录音",
+    "Delete all": "全部删除",
+    "Volume": "音量",
+    "Voice volume": "语音音量",
+    "Chime volume": "提示音音量",
+    "Machine": "整机",
+    "Cloud Permissions": "云端权限",
+    "Remote Permissions": "远程权限",
+    "Turn on a flag you don't have": "开启尚未持有的实验标志",
+    "forced on": "强制开启",
+    "forced off": "强制关闭",
+    "Reset overrides": "重置覆盖项",
+    "Default (Mendel)": "默认 (Mendel)",
+    "ELMO Composite": "ELMO 复合模式",
+    "Custom…": "自定义…",
+    "Workspace URI Switcher": "工作区 URI 切换器",
+    "Running (Dev only)": "正在运行（仅开发）",
+    "Model": "模型",
+    "Best of N Models": "N 中选优模型",
+    "Thinking effort": "思考深度",
+    "Extra": "极高",
+    "Max": "最大",
+    "No models available": "没有可用模型",
+    "No Model Selected": "未选择模型",
+    "% left": "% 剩余",
+    "Remote agents are busy": "远程智能体正忙",
+    "Plan upgrade required": "需要升级方案",
+    "Error Loading Models": "加载模型出错",
+    "Log back in": "重新登录",
+    "Create a Project": "创建项目",
+    "Open Project Picker": "打开项目选择器",
+    "CitC Clone": "CitC 克隆",
+    "CitC Workspace": "CitC 工作区",
+    "Cog Workspace": "Cog 工作区",
+    "ABFS Workspace (Alpha)": "ABFS 工作区 (Alpha)",
+    "New Fig Workspace": "新建 Fig 工作区",
+    "Fig share": "Fig 分享",
+    "JJ worktree": "JJ 工作树",
+    "Search Remote…": "搜索远程…",
+    "Search Recent Workspaces": "搜索最近工作区",
+    "Search past workspaces...": "搜索过往工作区...",
+    "Search past worktrees...": "搜索过往工作树...",
+    "Select Folder(s)": "选择文件夹",
+    "Select Resource(s)": "选择资源",
+    "No project selected": "未选择项目",
+    "Runs in a cloud environment": "在云端环境中运行",
+    "Google3 projects are being deprecated. Select a CitC workspace instead.": "Google3 项目即将弃用，请改选 CitC 工作区。",
+    "Open SSH Host": "打开 SSH 主机",
+    "Connect to SSH Host": "连接到 SSH 主机",
+    "Connect to SSH Host…": "连接到 SSH 主机…",
+    "SSH Host": "SSH 主机",
+    "SSH Host…": "SSH 主机…",
+    "Search Hosts…": "搜索主机…",
+    "Loading Hosts…": "正在加载主机…",
+    "SSH Config": "SSH 配置",
+    "~/.ssh/config (default)": "~/.ssh/config（默认）",
+    "Enter [user@]host[:port], or pick a host from your SSH config.": "输入 [user@]host[:port]，或从 SSH 配置中选择主机。",
+    "Remove from Recent": "从最近列表中移除",
+    "Hide from this list": "从此列表中隐藏",
+    "Show in the list again": "重新在列表中显示",
+    "1 hidden host": "1 个隐藏主机",
+    "Hidden hosts": "已隐藏的主机",
+    "No hosts in ~/.ssh/config yet": "~/.ssh/config 中尚无主机",
+    "Couldn't load your SSH hosts": "无法加载你的 SSH 主机",
+    "Choose File…": "选择文件…",
+    "Use Default": "使用默认",
+    "Remote Control Instances": "远程控制实例",
+    "Online": "在线",
+    "Offline": "离线",
+    "Get started with Remote Control": "开始使用远程控制",
+    "Loading instances...": "正在加载实例...",
+    "Open on phone": "在手机上打开",
+    "Open on another device": "在其他设备上打开",
+    "Pick up this remote conversation on your phone or in any browser. Scan the QR code or open the link below.": "在手机或任意浏览器中继续此远程对话。请扫描二维码或打开下方链接。",
+    "Commit": "提交",
+    "Describe your changes, or leave empty to auto-generate": "描述你的更改，或留空以自动生成",
+    "Staged": "已暂存",
+    "Review Changes": "审查更改",
+    "Merge Conflict": "合并冲突",
+    "Conflict": "冲突",
+    "Added (Staged)": "已添加（已暂存）",
+    "Untracked (Unstaged)": "未跟踪（未暂存）",
+    "Created a new branch on GitHub.": "已在 GitHub 上创建新分支。",
+    "Ask anything, @ to mention": "随便问点什么，@ 可提及",
+    "Message subagent, @ to mention": "向子智能体发消息，@ 可提及",
+    ", / for actions": "，/ 可执行操作",
+    "Drop to attach": "拖放以附加",
+    "Message this chat": "向此聊天发送消息",
+    "Search Google Drive": "搜索 Google 云端硬盘",
+    "Docs, Sheets, Slides, and folders": "文档、表格、幻灯片和文件夹",
+    "Browse MCP resources": "浏览 MCP 资源",
+    "Browse rules": "浏览规则",
+    "Attach terminal output": "附加终端输出",
+    "Directories": "目录",
+    "Search workspace files": "搜索工作区文件",
+    "Search workspace folders": "搜索工作区文件夹",
+    "Recently opened": "最近打开",
+    "Help me self-troubleshoot an issue, configure Jetski, or file a bug or feature request from this conversation.": "帮我自助排查问题、配置 Jetski，或从当前对话提交错误报告或功能建议。",
+    "Start Live Chat": "开始实时聊天",
+    "End Live chat": "结束实时聊天",
+    "Start Voice mode": "开启语音模式",
+    "End Voice mode": "退出语音模式",
+    "Live chat": "实时聊天",
+    "Live chat in progress": "正在进行实时聊天",
+    "Voice mode in progress": "正在进行语音模式",
+    "Transcribing audio…": "正在转录音频…",
+    "Mute mic": "静音麦克风",
+    "Unmute mic": "取消静音麦克风",
+    "Voice Speed": "语速",
+    "Listening. Ask anything.": "正在聆听，请随时提问。",
+    "Live transcript": "实时字幕",
+    "Voice transcript": "语音转录",
+    "Back to chat": "返回聊天",
+    "No mic audio detected": "未检测到麦克风音频",
+    "Using system default microphone": "使用系统默认麦克风",
+    "Allow microphone access to start Voice": "允许麦克风访问以开启语音模式",
+    "Microphone blocked": "麦克风已被阻止",
+    "Thought Process": "思考过程",
+    "Worked": "已完成工作",
+    "Sources": "来源",
+    "No background tasks": "没有后台任务",
+    "Documents": "文档",
+    "No documents": "没有文档",
+    "No uploads": "没有上传内容",
+    "No active terminals": "没有活动终端",
+    "No file changes": "没有文件更改",
+    "Needs your approval": "需要你的批准",
+    "Reject": "拒绝",
+    "Decline": "拒绝",
+    "Approve": "批准",
+    "Accept all": "全部接受",
+    "Reject all": "全部拒绝",
+    "Other (write your answer)": "其他（输入你的回答）",
+    "Expired · Action not taken": "已过期 · 未执行操作",
+    "Cancel Questionnaire and Stop the Agent": "取消问卷并停止智能体",
+    "Best of N mode is not available": "N 中选优模式不可用",
+    "Best-of-N Started": "已开始 N 中选优",
+    "Best-of-N Ended": "已结束 N 中选优",
+    "Why did you choose this response?": "你为什么选择这个回复？",
+    "Pick at most 2 reasons": "最多选择 2 个原因",
+    "Prompt too simple": "提示词过于简单",
+    "Not suitable for Best-of-N": "不适合 N 中选优",
+    "In a rush": "时间紧迫",
+    "You've reached the maximum number of turns for this battle. End battle mode to continue.": "已达到本次对战的最大轮数。请结束对战模式以继续。",
+    "Goals": "目标",
+    "Links": "链接",
+    "Modified Files": "已修改的文件",
+    "Open Tabs": "已打开标签页",
+    "Close Other Tabs": "关闭其他标签页",
+    "Pin Tab": "固定标签页",
+    "Unpin Tab": "取消固定标签页",
+    "Keep Open": "保持打开",
+    "Search tabs, files and more": "搜索标签页、文件及更多内容",
+    "Search or enter a URL": "搜索或输入 URL",
+    "Side Panel Preview": "侧边面板预览",
+    "New Preview": "新建预览",
+    "New Browser": "新建浏览器",
+    "Directory Viewer": "目录查看器",
+    "Virtual File Viewer": "虚拟文件查看器",
+    "Browser Subagent Viewer": "浏览器子智能体查看器",
+    "MCP App": "MCP 应用",
+    "Workspace File Explorer": "工作区文件资源管理器",
+    "Save Comment": "保存评论",
+    "Export as PDF": "导出为 PDF",
+    "Show Whitespace Changes": "显示空白字符变化",
+    "Scrollable table": "可滚动表格",
+    "Maximize Width": "最大化宽度",
+    "Minimize Width": "最小化宽度",
+    "Hide Thumbnail Sidebar": "隐藏缩略图侧边栏",
+    "Show Thumbnail Sidebar": "显示缩略图侧边栏",
+    "Current Page": "当前页",
+    "Zoom Level": "缩放级别",
+    "Fit to Width": "适合宽度",
+    "Fit to Page": "适合页面",
+    "Disable Text Selection": "禁用文本选择",
+    "Enable Text Selection": "启用文本选择",
+    "Write a comment...": "撰写评论...",
+    "Download PDF": "下载 PDF",
+    "Enter Fullscreen": "进入全屏",
+    "Exit Fullscreen": "退出全屏",
+    "Light Mode": "浅色模式",
+    "Dark Mode": "深色模式",
+    "Match Case (Aa)": "区分大小写 (Aa)",
+    "Match Whole Word (ab)": "全字匹配 (ab)",
+    "No Results": "无结果",
+    "Address bar": "地址栏",
+    "Your connection to this site is not secure": "你与该网站之间的连接不安全",
+    "Your connection is not private": "你的连接不是私密连接",
+    "Cookies and site data": "Cookie 和网站数据",
+    "Clear cookies and site data": "清除 Cookie 和网站数据",
+    "Downloads": "下载",
+    "Downloads, in progress": "下载中",
+    "No recent downloads": "暂无最近下载",
+    "Inspect element to comment": "检查元素以添加评论",
+    "Exit inspect element mode (Esc)": "退出检查元素模式 (Esc)",
+    "Resume comment draft": "恢复评论草稿",
+    "Discard comment draft": "丢弃评论草稿",
+    "This page is blocked in the built-in browser by your organization's Context-Aware Access policy.": "根据你所在组织的上下文感知访问策略，此页面在内置浏览器中已被阻止。",
+    "Some sites block embedding (via X-Frame-Options or CSP) and will show a fallback message.": "部分网站会阻止嵌入（通过 X-Frame-Options 或 CSP），此时将显示备用提示信息。",
+    "Standalone Terminals": "独立终端",
+    "Connecting to terminal...": "正在连接到终端...",
+    "Starting terminal…": "正在启动终端…",
+    "Entering your corp password in the web terminal triggers a Chrome Password Alert (Watchword) forced password reset, so this prompt was automatically cancelled.": "在网页终端中输入企业密码会触发 Chrome 密码警报（Watchword）强制重置密码，因此已自动取消此提示。",
+    "Allow Next Non-Corp Prompt": "允许下一次非企业密码提示",
+    "Computer": "电脑",
+    "Live preview unavailable": "实时预览不可用",
+    "Starting preview…": "正在启动预览…",
+    "Waiting for video…": "正在等待视频…",
+    "Stream ended": "视频流已结束",
+    "Minimized": "已最小化",
+    "Hidden by policy": "已按策略隐藏",
+    "A password or secure field is on screen.": "屏幕上存在密码或安全输入框。",
+    "This app is not allowed in previews.": "此应用不允许出现在预览中。",
+    "This page is not allowed in previews.": "此页面不允许出现在预览中。",
+    "The window title matches a privacy rule.": "窗口标题命中了隐私规则。",
+    "Hidden by the preview policy.": "已被预览策略隐藏。",
+    "· waiting for the pointer": "· 正在等待指针",
+    "Screen locked: agents can't use this Mac until you unlock it": "屏幕已锁定：解锁后智能体才能使用此 Mac",
+    "Enable macOS Permissions": "启用 macOS 权限",
+    "macOS Permissions Ready": "macOS 权限已就绪",
+    "1. Accessibility": "1. 辅助功能",
+    "2. Screen Recording": "2. 屏幕录制",
+    "Allowed ✓": "已允许 ✓",
+    "Missing": "缺失",
+    "Waiting…": "等待中…",
+    "Needs relaunch": "需要重启应用",
+    "Open System Settings ↗": "打开系统设置 ↗",
+    "Relaunch ↻": "重新启动 ↻",
+    "Continue Task →": "继续任务 →",
+    "Find skills, agents, and more in the Marketplace.": "在扩展市场中发现技能、智能体及更多内容。",
+    "Review bundle before adding": "添加前请先检查合集内容",
+    "Add bundle": "添加合集",
+    "Remove bundle": "移除合集",
+    "No bundles available.": "没有可用的合集。",
+    "Most popular matches first": "最热门匹配优先",
+    "Most popular first": "按热度排序",
+    "No longer available": "已不再可用",
+    "Installed separately": "单独安装",
+    "Connections": "连接",
+    "Signed-in accounts": "已登录账号",
+    "Make default": "设为默认",
+    "Add label": "添加标签",
+    "No sign-in needed": "无需登录",
+    "Finish signing in in your browser.": "请在浏览器中完成登录。",
+    "Paste a code instead": "改为粘贴授权码",
+    "Get API key": "获取 API 密钥",
+    "Paste key": "粘贴密钥",
+    "No skills or rules yet.": "暂无技能或规则。",
+    "No skills or rules match this filter.": "没有匹配此筛选条件的技能或规则。",
+    "No custom agents yet.": "暂无自定义智能体。",
+    "Demoted": "已降级",
+    "Excluded": "已排除",
+    "Customization token budget exceeded. Large customizations are excluded from context.": "已超出自定义项 Token 预算，大型自定义项已从上下文中排除。",
+    "Rules and customization token budgets exceeded. Large rules are demoted to path pointers and large customizations are excluded from context.": "已超出规则与自定义项 Token 预算，大型规则已降级为路径指针，大型自定义项已从上下文中排除。",
+    "Add MCP Servers": "添加 MCP 服务器",
+    "Configure MCP Server": "配置 MCP 服务器",
+    "Click to enable tool": "点击启用工具",
+    "Click to disable tool": "点击禁用工具",
+    "Organization MCP Allowlist (Read-Only)": "组织 MCP 允许列表（只读）",
+    "MCP Servers Disabled": "MCP 服务器已禁用",
+    "Connectors": "连接器",
+    "New hook name": "新建钩子名称",
+    "Add Handler": "添加处理器",
+    "Add New Handler to": "添加新处理器到",
+    "Add Hook Card": "添加钩子卡片",
+    "Save Configuration": "保存配置",
+    "Pre Tool Use": "工具调用前",
+    "Post Tool Use": "工具调用后",
+    "Pre Invocation": "调用前",
+    "Post Invocation": "调用后",
+    "run_command or view_file": "run_command 或 view_file",
+    "Browser tools (browser_.*)": "浏览器工具 (browser_.*)",
+    "New automation": "新建自动化",
+    "Create automation": "创建自动化",
+    "Scheduled Task": "定时任务",
+    "Automation": "自动化",
+    "Always on": "始终开启",
+    "Paused": "已暂停",
+    "On a schedule": "按定时计划",
+    "When something happens": "当事件发生时",
+    "Every hour": "每小时",
+    "Every day": "每天",
+    "Every weekday": "每个工作日",
+    "Every week": "每周",
+    "Custom schedule": "自定义计划",
+    "How often": "频率",
+    "Time Zone": "时区",
+    "Recent Events": "近期事件",
+    "Start Automation": "启动自动化",
+    "Credentials expiring soon. Refresh credentials to keep this automation running": "凭据即将过期，请刷新凭据以保持此自动化继续运行",
+    "Credentials expired. This automation will not run until credentials are refreshed": "凭据已过期，刷新凭据前此自动化将不会运行",
+    "Target": "目标",
+    "Conditions": "条件",
+    "Fields": "字段",
+    "Helpers": "辅助函数",
+    "Variables": "变量",
+    "Match Condition (CEL)": "匹配条件 (CEL)",
+    "Valid CEL": "CEL 有效",
+    "Invalid CEL": "CEL 无效",
+    "Needs Target": "需要目标",
+    "CEL Expression Reference": "CEL 表达式参考",
+    "Search triggers…": "搜索触发器…",
+    "Select Sidebar Item 1": "选择侧边栏第 1 项",
+    "Select Sidebar Item 2": "选择侧边栏第 2 项",
+    "Select Sidebar Item 3": "选择侧边栏第 3 项",
+    "Select Sidebar Item 4": "选择侧边栏第 4 项",
+    "Select Sidebar Item 5": "选择侧边栏第 5 项",
+    "Select Sidebar Item 6": "选择侧边栏第 6 项",
+    "Select Sidebar Item 7": "选择侧边栏第 7 项",
+    "Select Sidebar Item 8": "选择侧边栏第 8 项",
+    "Select Sidebar Item 9": "选择侧边栏第 9 项",
+    "Submit Prompt (Alternate to Enter)": "提交提示词（Enter 替代键）",
+    "Side Question Selection": "针对选中内容发起侧边提问",
+    "Jump to Previous Prompt": "跳转到上一条提示词",
+    "Jump to Next Prompt": "跳转到下一条提示词",
+    "Terminal: Select All": "终端：全选",
+    "Toggle Word Wrap": "切换自动换行",
+    "Stop SSH Server…": "停止 SSH 服务器…",
+    "Switch to This Computer": "切换到此电脑",
+    "Swarm": "智能体蜂群 (Swarm)",
+    "Untitled swarm": "未命名蜂群",
+    "Updates automatically": "自动更新",
+    "Live": "实时",
+    "Reconnecting": "正在重连",
+    "Lost contact with the swarm sidecar; retrying": "与 Swarm sidecar 失去联系，正在重试",
+    "Looking for this conversation's swarm…": "正在查找此对话的蜂群…",
+    "System alerts": "系统警报",
+    "system:": "系统：",
+    "Swarm views": "蜂群视图",
+    "Board": "看板",
+    "Members": "成员",
+    "Graph": "图谱",
+    "Raw": "原始数据",
+    "No swarm in this conversation": "此对话中暂无蜂群",
+    "Swarms started in this conversation appear here automatically, with their board, members and @mention graph. Start one with /swarm.": "在此对话中启动的蜂群会自动显示在这里，包含任务看板、成员列表与 @提及图谱。使用 /swarm 即可启动。",
+    "Watching for a swarm": "正在等待蜂群",
+    "Open this pane from a conversation to see its swarm. Swarms started there appear here automatically; start one with /swarm.": "请从对话中打开此窗格以查看其蜂群。在对话中启动的蜂群会自动显示在这里；使用 /swarm 即可启动。",
+    "The team": "团队成员",
+    "Coordinator": "协调器",
+    "Blocked": "已阻塞",
+    "Planned next": "下一步计划",
+    "Goal": "目标",
+    "Threads": "线程",
+    "Now": "当前",
+    "Progress": "进度",
+    "Compare with now": "与当前对比",
+    "Hide compare": "隐藏对比",
+    "Open full timeline": "打开完整时间线",
+    "Scrub through progress": "拖动查看进度",
+    "Compare then and now": "对比历史与现在",
+    "Nothing blocked": "没有阻塞项",
+    "Needs you": "需要你处理",
+    "Waiting on @coordinator": "正在等待 @coordinator",
+    "Stuck": "卡住",
+    "Nothing waiting": "没有等待项",
+    "Nothing stuck": "没有卡住项",
+    "Nothing needs you": "暂无需你处理的事项",
+    "Nothing running": "没有运行中的任务",
+    "Nothing planned": "没有已计划的任务",
+    "No tasks completed yet.": "尚无已完成的任务。",
+    "No posts yet": "暂无动态",
+    "Latest action": "最新操作",
+    "In review": "审查中",
+    "Not started": "未开始",
+    "Moving": "推进中",
+    "Team": "团队",
+    "Standing by": "待命",
+    "Resting": "休息中",
+    "Retired": "已退役",
+    "Error": "错误",
+    "seen just now": "刚刚活跃",
+    "No one is on this thread yet.": "此线程尚无成员。",
+    "The coordinator asked. Answer it in its chat.": "协调器提出了问题，请在其对话中回复。",
+    "Search members": "搜索成员",
+    "All workers": "全部工作节点",
+    "Filter by worker": "按工作节点筛选",
+    "all channels": "所有频道",
+    "overview · from the narrator’s notes": "概览 · 来自记录员笔记",
+    "overview · from the narrator's notes": "概览 · 来自记录员笔记",
+    "Narrator’s page": "记录员页面",
+    "Narrator's page": "记录员页面",
+    "Narrator view (AI-generated)": "记录员视图（AI 生成）",
+    "narrator's page · AI-generated": "记录员页面 · AI 生成",
+    "Want this view different? Tell the coordinator.": "想调整此视图的展示方式？请告诉协调器。",
+    "Open coordinator chat": "打开协调器对话",
+    "stale": "已过期",
+    "Give feedback on this item": "对此项提供反馈",
+    "Search posts": "搜索动态",
+    "Filters (active)": "筛选（已启用）",
+    "Channels": "频道",
+    "All": "全部",
+    "Posts in every channel": "所有频道的动态",
+    "main: the whole swarm reads it": "main：整个蜂群都会读取此频道",
+    "Filter by poster": "按发布者筛选",
+    "Show posts by one member": "仅显示某一成员的动态",
+    "From anyone": "来自任何人",
+    "Filter by recipient": "按接收者筛选",
+    "Show posts that call on one member": "仅显示提及某一成员的动态",
+    "To anyone": "发给任何人",
+    "To no one": "未指定接收者",
+    "To @all": "发给 @all",
+    "Filter by channel": "按频道筛选",
+    "Show posts in one channel": "仅显示某一频道的动态",
+    "Follow": "跟随",
+    "Keep the newest post in view": "保持最新动态在视野内",
+    "Show or hide each member": "显示或隐藏各成员",
+    "Show or hide each member's posts": "显示或隐藏各成员的动态",
+    "Hidden from the board; click to show": "已在看板中隐藏；点击显示",
+    "Click to hide from the board": "点击以在看板中隐藏",
+    "Could not load earlier posts": "无法加载更早的动态",
+    "Not on the roster": "不在成员名册中",
+    "Replay": "回放",
+    "Jump to start": "跳到开头",
+    "Previous post (←)": "上一条动态 (←)",
+    "Previous post": "上一条动态",
+    "Play / pause replay (space)": "播放 / 暂停回放（空格）",
+    "Play replay": "播放回放",
+    "Pause replay": "暂停回放",
+    "Next post (→)": "下一条动态 (→)",
+    "Next post": "下一条动态",
+    "Replay position": "回放位置",
+    "Scrub through board posts": "拖动浏览看板动态",
+    "Show everything and follow live": "显示全部并跟随实时动态",
+    "Replay pacing": "回放节奏",
+    "Even pacing": "均匀节奏",
+    "Real-time gaps": "真实时间间隔",
+    "Replay speed": "回放速度",
+    "Export graph replay as an animated GIF": "将图谱回放导出为动态 GIF",
+    "Export GIF": "导出 GIF",
+    "Close preview": "关闭预览",
+    "Right-click image to save, or open in a new tab.": "右键图片保存，或在新标签页中打开。",
+    "Graph view": "图谱视图",
+    "Hive": "蜂巢",
+    "Threads as cells, with each worker where it works": "以线程为蜂巢格，展示各工作节点所在位置",
+    "Who @mentions whom": "谁 @提及了谁",
+    "Hide inactive": "隐藏非活动成员",
+    "Hide killed and inactive members from the graph": "在图谱中隐藏已终止和非活动成员",
+    "Expand @all": "展开 @all",
+    "Draw @all as an edge to every member": "将 @all 绘制为指向每个成员的连线",
+    "via @all": "通过 @all",
+    "posted with no mention": "发布但未提及他人",
+    "@all posts, drawn by Expand @all": "@all 动态（由“展开 @all”绘制）",
+    "Fit the whole swarm": "适应整个蜂群视图",
+    "Where each worker is, by thread": "按线程查看各工作节点的分布",
+    "Copy to clipboard": "复制到剪贴板",
+    "Copied": "已复制",
+    "Copy failed": "复制失败",
+    "Latest": "最新",
+    "Exported swarm graph replay": "已导出的蜂群图谱回放",
+    "Active: mid-turn (thinking, running a tool, or waiting on the model)": "活动中：回合进行中（正在思考、运行工具或等待模型响应）",
+    "Waiting: turn ended, asleep on the board until a post wakes it": "等待中：回合已结束，在看板上休眠直到被新动态唤醒",
+    "Killed: removed from the swarm": "已终止：已从蜂群中移除",
+    "archived": "已归档",
+    "not on roster": "不在名册中",
+    "Searching earlier posts…": "正在搜索更早的动态…",
+    "No loaded posts match": "已加载的动态中无匹配项",
+    "Retry loading earlier posts": "重试加载更早的动态",
+    "No posts match": "没有匹配的动态",
+    "Try a different search or member filter.": "请尝试其他搜索关键词或成员筛选条件。",
+    "Clear filters": "清除筛选",
+    "Posts to the swarm board will appear here as members talk.": "成员发言后，发送到蜂群看板的动态将显示在这里。",
+    "That link isn't allowed here.": "此处不允许打开该链接。",
+    "Opening files needs the app.": "打开文件需要在应用中操作。",
+    "Click to open conversation": "点击打开对话",
+    "Exporting…": "正在导出…",
+    "Nothing to export yet.": "暂无可导出的内容。",
+    "Could not download GIF from embedded pane.": "无法从内嵌窗格下载 GIF。",
+    "Could not export GIF.": "无法导出 GIF。",
+    "(empty)": "（空）",
+    "No narrator in this swarm. Ask the coordinator to add one.": "此蜂群中没有记录员。请让协调器添加一个。",
+    "The narrator's view.json is over 64 KB, so it isn't shown.": "记录员的 view.json 超过 64 KB，因此未显示。",
+    "The narrator's view.json isn't valid JSON yet.": "记录员的 view.json 尚不是有效的 JSON。",
+    "The narrator hasn't published an overview yet.": "记录员尚未发布概览。",
+    "Showing the last good view.json; the current file is over 64 KB.": "正在显示上一份有效的 view.json；当前文件已超过 64 KB。",
+    "not valid JSON.": "不是有效的 JSON。",
+    "updating": "正在更新",
+    "The narrator is updating the overview": "记录员正在更新概览",
+    "watching": "观察中",
+    "The narrator is waiting for new board posts": "记录员正在等待新的看板动态",
+    "stopped": "已停止",
+    "The narrator was killed; the overview no longer updates": "记录员已被终止；概览不再更新",
+    "paused: quota": "已暂停：配额不足",
+    "paused: error": "已暂停：发生错误",
+    "view.html is over 64 KB": "view.html 超过 64 KB",
+    "no view.html yet": "尚无 view.html",
+    "loading the narrator view": "正在加载记录员视图",
+    "Retry narrator's page": "重试加载记录员页面",
+    "Other": "其他",
+    "Tasks": "任务",
+    "Your swarm is starting": "蜂群正在启动",
+    "One goal": "一个目标",
+    "The coordinator splits it into tasks.": "协调器将其拆分为多个任务。",
+    "Many workers": "多个工作节点",
+    "Each takes a task, and they run in parallel.": "各自领取任务并并行执行。",
+    "One board": "一个看板",
+    "Updates land here. You step in only when asked.": "所有进展都会汇总于此，仅在需要时由你介入。",
+    "Waiting for the first update": "正在等待首次更新",
+    "Swarm stalled — no agents working": "蜂群已停滞——没有智能体正在工作",
+    "Coordinator · Working": "协调器 · 工作中",
+    "no tasks": "暂无任务",
+    "Tasks done": "已完成任务",
+    "Message just sent": "刚发送的消息",
+    "Waiting on": "正在等待",
+    "Frames": "帧数",
+    "Unlock the power of agent swarms.": "释放智能体蜂群的协作能力。",
+    "Live view of the native swarm board, roster and @mention graph for the current conversation's swarm.": "实时查看当前对话中原生蜂群的看板、成员名册及 @提及关系图谱。",
+    "Token throughput, cache hit, context window and quotas on Windows, Linux and macOS. English / Chinese switching.": "在 Windows、Linux 和 macOS 上查看 Token 吞吐量、缓存命中率、上下文窗口与配额，支持中英文切换。",
+    "Live host background, card, foreground and accent adaptation with localized composers and durable preferences": "实时适配宿主背景、卡片、前景与强调色，提供本地化界面与持久化偏好设置",
+    "Editable design artifacts that run locally: slide decks, design canvases, design systems, data dashboards, motion films and whiteboards...": "可在本地运行的可编辑设计成果：演示文稿、设计画布、设计系统、数据仪表盘、动态视频与白板...",
+    "WSL:": "WSL：",
+    "Command:": "命令：",
+    "Yes, allow this download": "允许此次下载",
+    "Yes, allow for this conversation": "允许在此对话中使用",
+    "Showing the last good view.json; the current file is not valid JSON.": "正在显示上一份有效的 view.json；当前文件不是有效的 JSON。",
+    "thread": "线程",
+    "Configure built-in browser, link opening, and browser subagent preferences.": "配置内置浏览器、链接打开方式和浏览器子智能体偏好设置。",
+    "Change...": "更改...",
+    "Clear visited URLs and autocomplete suggestions from the built-in browser.": "清除内置浏览器中的已访问网址和自动补全建议。",
+    "Clear visited URLs and autocomplete suggestions from side panel preview.": "清除侧边栏预览中的已访问网址和自动补全建议。",
+    "Configure allowed and denied URLs for the browser subagent. It runs in the built-in browser, so no separate browser install is needed.": "配置浏览器子智能体允许和拒绝的 URL。它在内置浏览器中运行，无需单独安装浏览器。",
+    "Knowledge Work": "知识工作",
+    "Simplified interface for research, writing, and everyday tasks.": "用于研究、写作和日常任务的简化界面。",
+    "Software Engineering": "软件工程",
+    "Full interface for coding, developer tools, and managing agents.": "用于编程、开发者工具和管理智能体的完整界面。",
+    "Set up": "设置",
+    "Log in": "登录",
+    "Your This Computer setting": "你的此电脑设置",
+    "Your Remote setting": "你的远程设置",
+    "How loud Antigravity's voice is.": "Antigravity 的语音音量大小。",
+    "How loud Jetski's voice is.": "Jetski 的语音音量大小。"
   },
   "rules": [
     [
@@ -2059,7 +2944,7 @@
       "展开 $1 项明细"
     ],
     [
-      "^(\\d+) tools enabled$",
+      "^(\\d+) tools? enabled$",
       "已启用 $1 个工具"
     ],
     [
@@ -2221,6 +3106,10 @@
     [
       "^Allow running (.+?)\\?$",
       "允许运行 $1 吗？"
+    ],
+    [
+      "^Allow (.+?) to (.+?)\\?$",
+      "允许 $1 $2 吗？"
     ],
     [
       "^Allow (?![oO][nN][cC][eE]\\?$)(.+?)\\?$",
@@ -3396,6 +4285,558 @@
     [
       "^(\\d+) tasks? running$",
       "$1 个任务运行中"
+    ],
+    [
+      "^#(\\d+) Primary$",
+      "#$1 首选"
+    ],
+    [
+      "^@mention, width = count$",
+      "@提及，线条宽度 = 次数"
+    ],
+    [
+      "^(\\d+)\\s+subagents?/tasks?\\s+running$",
+      "$1 个子智能体/任务正在运行"
+    ],
+    [
+      "^(\\d+)\\s+subagents?$",
+      "$1 个子智能体"
+    ],
+    [
+      "^(\\d+)\\s+background tasks?$",
+      "$1 个后台任务"
+    ],
+    [
+      "^(\\d+)\\s+demoted$",
+      "$1 项已降级"
+    ],
+    [
+      "^(\\d+)\\s+excluded$",
+      "$1 项已排除"
+    ],
+    [
+      "^(\\d+)\\s+items? in (.+?) exceeded the customization budget and (?:was|were) excluded from context\\.$",
+      "$2 中的 $1 个项目超出了自定义预算，已从上下文中排除。"
+    ],
+    [
+      "^(\\d+)\\s+rules? exceeded the rules budget and (?:was|were) demoted from full inline content to a file-path pointer\\.$",
+      "$1 条规则超出了规则预算，已从完整内联内容降级为文件路径指针。"
+    ],
+    [
+      "^Select project, current: (.+)$",
+      "选择项目，当前：$1"
+    ],
+    [
+      "^Conflicts with your configured Ask permission: (.+)$",
+      "与你配置的“询问”权限冲突：$1"
+    ],
+    [
+      "^Agent: (.+)$",
+      "智能体：$1"
+    ],
+    [
+      "^Waiting on @(.+)$",
+      "正在等待 @$1"
+    ],
+    [
+      "^Waiting on (.+)$",
+      "正在等待 $1"
+    ],
+    [
+      "^Cancel Questionnaire and Stop the Agent \\((.+)\\)$",
+      "取消问卷并停止智能体 ($1)"
+    ],
+    [
+      "^Stopped voice chat · (.+)$",
+      "已停止语音聊天 · $1"
+    ],
+    [
+      "^Remove this conversation from its (workspace|project)\\?$",
+      "确定将此对话从其所属工作区/项目中移除吗？"
+    ],
+    [
+      "^Good to see you, (.+?)\\. What's next\\?$",
+      "很高兴见到你，$1。接下来做什么？"
+    ],
+    [
+      "^Your plan: (.+)$",
+      "你的方案：$1"
+    ],
+    [
+      "^WSL: (.+)$",
+      "WSL：$1"
+    ],
+    [
+      "^Command: (.+)$",
+      "命令：$1"
+    ],
+    [
+      "^Yes, allow downloads from (.+?) for this run$",
+      "允许，本次运行允许从 $1 下载"
+    ],
+    [
+      "^Yes, allow downloads from (.+?) in this conversation$",
+      "允许，在此对话中允许从 $1 下载"
+    ],
+    [
+      "^Yes, always allow downloads from (.+)$",
+      "允许，始终允许从 $1 下载"
+    ],
+    [
+      "^Yes, allow (.+?) in this conversation$",
+      "允许，在此对话中允许 $1"
+    ],
+    [
+      "^Yes, always allow (.+)$",
+      "允许，始终允许 $1"
+    ],
+    [
+      "^Yes, save rule for '(.+?)' in this conversation$",
+      "允许，在此对话中保存「$1」的规则"
+    ],
+    [
+      "^Yes, save rule for '(.+?)' in this project$",
+      "允许，在此项目中保存「$1」的规则"
+    ],
+    [
+      "^Yes, save rule for '(.+?)' globally$",
+      "允许，全局保存「$1」的规则"
+    ],
+    [
+      "^No matching languages for \"(.+)\"$",
+      "没有匹配“$1”的语言"
+    ],
+    [
+      "^(\\d+) calls? · ([0-9.]+ \\S+)$",
+      "$1 次通话 · $2"
+    ],
+    [
+      "^Deleted (\\d+) recordings? \\((.+)\\)$",
+      "已删除 $1 条录音 ($2)"
+    ],
+    [
+      "^Error deleting MCP server: (.+)$",
+      "删除 MCP 服务器出错：$1"
+    ],
+    [
+      "^Error disconnecting MCP server: (.+)$",
+      "断开 MCP 服务器出错：$1"
+    ],
+    [
+      "^Error installing MCP server: (.+)$",
+      "安装 MCP 服务器出错：$1"
+    ],
+    [
+      "^Error refreshing MCP servers: (.+)$",
+      "刷新 MCP 服务器出错：$1"
+    ],
+    [
+      "^Error restarting (.+?): (.+)$",
+      "重启 $1 出错：$2"
+    ],
+    [
+      "^Error signing in to MCP server: (.+)$",
+      "登录 MCP 服务器出错：$1"
+    ],
+    [
+      "^Error starting sign-in: (.+)$",
+      "启动登录出错：$1"
+    ],
+    [
+      "^Error submitting auth code: (.+)$",
+      "提交授权码出错：$1"
+    ],
+    [
+      "^Error toggling MCP server: (.+)$",
+      "切换 MCP 服务器出错：$1"
+    ],
+    [
+      "^Error toggling tool: (.+)$",
+      "切换工具出错：$1"
+    ],
+    [
+      "^Failed to create project: (.+)$",
+      "创建项目失败：$1"
+    ],
+    [
+      "^Failed to create (.+?): (.+)$",
+      "创建 $1 失败：$2"
+    ],
+    [
+      "^Failed to save cloud permission settings: (.+)$",
+      "保存云端权限设置失败：$1"
+    ],
+    [
+      "^Failed to save project permissions: (.+)$",
+      "保存项目权限失败：$1"
+    ],
+    [
+      "^Failed to save project settings: (.+)$",
+      "保存项目设置失败：$1"
+    ],
+    [
+      "^Failed to save settings: (.+)$",
+      "保存设置失败：$1"
+    ],
+    [
+      "^Failed to unarchive project: (.+)$",
+      "取消归档项目失败：$1"
+    ],
+    [
+      "^Failed to delete recordings: (.+)$",
+      "删除录音失败：$1"
+    ],
+    [
+      "^Failed to enable plugin (.+)$",
+      "启用插件 $1 失败"
+    ],
+    [
+      "^Failed to load page (\\d+): (.+)$",
+      "加载第 $1 页失败：$2"
+    ],
+    [
+      "^Worker sandbox initialization failed: (.+)$",
+      "工作节点沙盒初始化失败：$1"
+    ],
+    [
+      "^\"([^\"]+)\" does not support standalone self matching; constrain (.+)$",
+      "“$1”不支持独立的 self 匹配；请限定 $2"
+    ],
+    [
+      "^\"([^\"]+)\" cannot be combined(.*) \\(only applies to (.+)\\)$",
+      "“$1”无法与$2组合（仅适用于 $3）"
+    ],
+    [
+      "^\"([^\"]+)\" cannot be combined(.*) because no event type supports both$",
+      "“$1”无法与$2组合，因为没有事件类型同时支持两者"
+    ],
+    [
+      "^\"([^\"]+)\" only applies to (.+)$",
+      "“$1”仅适用于 $2"
+    ],
+    [
+      "^\\+(\\d+) more$",
+      "还有 $1 项"
+    ],
+    [
+      "^Open @(.+)$",
+      "打开 @$1"
+    ],
+    [
+      "^@(.+?) ran out of quota$",
+      "@$1 配额已用尽"
+    ],
+    [
+      "^@(.+?) looks stuck$",
+      "@$1 似乎卡住了"
+    ],
+    [
+      "^@(.+?) hit an error$",
+      "@$1 遇到错误"
+    ],
+    [
+      "^The narrator \\((.+?)\\) was stopped\\. Ask the coordinator to add a new one \\((.+?)\\)\\.$",
+      "记录员（$1）已停止。请让协调器添加一个新的记录员（$2）。"
+    ],
+    [
+      "^(\\d+) of (\\d+) tasks done$",
+      "已完成 $1 / $2 个任务"
+    ],
+    [
+      "^Up next · (\\d+)$",
+      "接下来 · $1"
+    ],
+    [
+      "^(\\d+) needs? you$",
+      "$1 项需要你处理"
+    ],
+    [
+      "^(\\d+) in review$",
+      "$1 项审查中"
+    ],
+    [
+      "^(\\d+) threads? open$",
+      "$1 个线程打开中"
+    ],
+    [
+      "^(\\d+) active$",
+      "$1 个活动中"
+    ],
+    [
+      "^(\\d+) stuck$",
+      "$1 个卡住"
+    ],
+    [
+      "^(\\d+) working$",
+      "$1 个工作中"
+    ],
+    [
+      "^(\\d+) waiting$",
+      "$1 个等待中"
+    ],
+    [
+      "^(\\d+) done$",
+      "$1 个已完成"
+    ],
+    [
+      "^(\\d+) bees?$",
+      "$1 个工作蜂"
+    ],
+    [
+      "^(\\d+) posts? over (.+)$",
+      "$1 条动态 · 历时 $2"
+    ],
+    [
+      "^(\\d+) of (\\d+)$",
+      "$1 / $2"
+    ],
+    [
+      "^Swarm start · (\\d+) members?$",
+      "蜂群启动 · $1 名成员"
+    ],
+    [
+      "^Go to #(\\d+) on the Board$",
+      "跳转到看板 #$1"
+    ],
+    [
+      "^last seen (\\d+)m ago$",
+      "上次活跃：$1 分钟前"
+    ],
+    [
+      "^last seen (\\d+)h ago$",
+      "上次活跃：$1 小时前"
+    ],
+    [
+      "^last seen (\\d+)d ago$",
+      "上次活跃：$1 天前"
+    ],
+    [
+      "^Runs on (.+)$",
+      "运行于 $1"
+    ],
+    [
+      "^Working for @(.+)$",
+      "正在为 @$1 工作"
+    ],
+    [
+      "^Coordinator · (\\d+) of (\\d+) done$",
+      "协调器 · 已完成 $1 / $2"
+    ],
+    [
+      "^Loading earlier posts… \\((\\d+) older\\)$",
+      "正在加载更早的动态…（还有 $1 条）"
+    ],
+    [
+      "^Retry loading (\\d+) earlier posts?$",
+      "重试加载 $1 条更早的动态"
+    ],
+    [
+      "^Show (\\d+) earlier posts? \\((\\d+) older\\)$",
+      "显示 $1 条更早的动态（还有 $2 条）"
+    ],
+    [
+      "^(\\d+) earlier posts? could not be loaded\\.$",
+      "无法加载 $1 条更早的动态。"
+    ],
+    [
+      "^Loading (\\d+) earlier posts?\\.$",
+      "正在加载 $1 条更早的动态。"
+    ],
+    [
+      "^Exporting (\\d+)%$",
+      "正在导出 $1%"
+    ],
+    [
+      "^Exporting (.+)…$",
+      "正在导出 $1…"
+    ],
+    [
+      "^Rendering (.+)…$",
+      "正在渲染 $1…"
+    ],
+    [
+      "^Download ([^\\s/\\\\]+\\.(?:gif|png|webp|svg|json|jsonl|csv|txt|zip|pdf))$",
+      "下载 $1"
+    ],
+    [
+      "^Exported (.+?) \\((.+)\\)$",
+      "已导出 $1 ($2)"
+    ],
+    [
+      "^GIF ready \\((.+)\\) — right-click image to save\\.$",
+      "GIF 已就绪（$1）—— 右键图片即可保存。"
+    ],
+    [
+      "^(\\d+) posts? since the view was updated$",
+      "自视图更新以来已有 $1 条新动态"
+    ],
+    [
+      "^Narrator read up to #(\\d+) of (\\d+)$",
+      "记录员已读至 #$1 / $2"
+    ],
+    [
+      "^read #(\\d+) · updated (.+)$",
+      "已读 #$1 · 更新于 $2"
+    ],
+    [
+      "^system: (.+) for (.+)$",
+      "系统：$1（持续 $2）"
+    ],
+    [
+      "^Last change: “(.+)”$",
+      "上次变更：“$1”"
+    ],
+    [
+      "^the narrator's view failed \\((.+)\\)$",
+      "记录员视图失败（$1）"
+    ],
+    [
+      "^Copied “(.+)”\\. Paste it to the coordinator and say what you want changed\\.$",
+      "已复制“$1”。请粘贴给协调器并说明你想修改的内容。"
+    ],
+    [
+      "^Tell the coordinator: “(.+) …”$",
+      "告诉协调器：“$1 …”"
+    ],
+    [
+      "^Post #(\\d+) was not found$",
+      "未找到动态 #$1"
+    ],
+    [
+      "^Opening (.+?)'s conversation needs the app\\.$",
+      "打开 $1 的对话需要在应用中操作。"
+    ],
+    [
+      "^Posted in #(.+?); click to show only #(.+)$",
+      "发布于 #$1；点击仅显示 #$2"
+    ],
+    [
+      "^created by (.+)$",
+      "由 $1 创建"
+    ],
+    [
+      "^#(.+?) \\(archived\\)$",
+      "#$1（已归档）"
+    ],
+    [
+      "^(\\d+) steps? · (\\d+) posts? · (\\d+) unread · (\\d+) unaddressed · (\\d+) @all$",
+      "$1 步 · $2 条动态 · $3 未读 · $4 未指派 · $5 次 @all"
+    ],
+    [
+      "^(\\d+) steps? · (\\d+) posts? · (\\d+) unread · (\\d+) unaddressed$",
+      "$1 步 · $2 条动态 · $3 未读 · $4 未指派"
+    ],
+    [
+      "^(\\d+) steps? · (\\d+) posts? · (\\d+) unread · (\\d+) @all$",
+      "$1 步 · $2 条动态 · $3 未读 · $4 次 @all"
+    ],
+    [
+      "^(\\d+) steps? · (\\d+) posts? · (\\d+) unread$",
+      "$1 步 · $2 条动态 · $3 未读"
+    ],
+    [
+      "^(\\d+) threads?$",
+      "$1 个线程"
+    ],
+    [
+      "^(\\d+) of (\\d+) done$",
+      "已完成 $1 / $2"
+    ],
+    [
+      "^(\\d+) posts?$",
+      "$1 条动态"
+    ],
+    [
+      "^over (\\d+.*)$",
+      "历时 $1"
+    ],
+    [
+      "^of (\\d+) · #(\\d+) at (.+?) \\(\\+(.+?)\\)$",
+      "/ $1 · #$2 于 $3 (+$4)"
+    ],
+    [
+      "^of (\\d+)$",
+      "/ $1"
+    ],
+    [
+      "^read #(\\d+)$",
+      "已读 #$1"
+    ],
+    [
+      "^The narrator's last step failed: (.+)$",
+      "记录员上一步失败：$1"
+    ],
+    [
+      "^overview · from the narrator[’']s notes · view\\.html is over 64 KB$",
+      "概览 · 来自记录员笔记 · view.html 超过 64 KB"
+    ],
+    [
+      "^overview · from the narrator[’']s notes · no view\\.html yet$",
+      "概览 · 来自记录员笔记 · 尚无 view.html"
+    ],
+    [
+      "^overview · from the narrator[’']s notes · loading the narrator view$",
+      "概览 · 来自记录员笔记 · 正在加载记录员视图"
+    ],
+    [
+      "^overview · from the narrator[’']s notes · the narrator's view failed \\((.+)\\)$",
+      "概览 · 来自记录员笔记 · 记录员视图失败（$1）"
+    ],
+    [
+      "^overview · from the narrator[’']s notes · (.+)$",
+      "概览 · 来自记录员笔记 · $1"
+    ],
+    [
+      "^([A-Za-z0-9_.-]+) · (\\d+) machines?$",
+      "$1 · $2 台机器"
+    ],
+    [
+      "^([A-Za-z0-9_.-]+) · reconnecting$",
+      "$1 · 正在重新连接"
+    ],
+    [
+      "^([A-Za-z0-9_.-]+) · connecting$",
+      "$1 · 正在连接"
+    ],
+    [
+      "^([A-Za-z0-9_.-]+) · unavailable$",
+      "$1 · 不可用"
+    ],
+    [
+      "^([A-Za-z0-9_.-]+) \\(not on the roster\\)$",
+      "$1（不在成员名册中）"
+    ],
+    [
+      "^([A-Za-z0-9_.-]+) → ([A-Za-z0-9_.-]+): (\\d+) direct, (\\d+) via @all$",
+      "$1 → $2：$3 次直接提及，$4 次通过 @all"
+    ],
+    [
+      "^([A-Za-z0-9_.-]+) → ([A-Za-z0-9_.-]+): (\\d+) direct$",
+      "$1 → $2：$3 次直接提及"
+    ],
+    [
+      "^From ([a-z0-9_-]+)$",
+      "来自 $1"
+    ],
+    [
+      "^To (@?[a-z0-9_-]+)$",
+      "发往 $1"
+    ],
+    [
+      "^([A-Za-z0-9_ .-]+), voice (\\d+) of (\\d+)$",
+      "$1，第 $2 / $3 个语音"
+    ],
+    [
+      "^Message queued\\. (\\d+) messages in queue\\. (?:.*?)Actions available: Send Now, Edit, Delete\\.$",
+      "消息已排队。队列中有 $1 条消息。可用操作：立即发送、编辑、删除。"
+    ],
+    [
+      "^Message queued\\. (?:.*?)Actions available: Send Now, Edit, Delete\\.$",
+      "消息已排队。可用操作：立即发送、编辑、删除。"
+    ],
+    [
+      "^Actions available: Send Now, Edit, Delete\\.$",
+      "可用操作：立即发送、编辑、删除。"
     ]
   ]
 }

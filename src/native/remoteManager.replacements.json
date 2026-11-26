@@ -1,0 +1,62 @@
+[
+  [
+    "this.onDisconnected(entry, conn, new types_1.RemoteError('CONNECTION_CLOSED', `${entry.label} didn't answer after this computer woke up.`, { retryable: true }));",
+    "this.onDisconnected(entry, conn, new types_1.RemoteError('CONNECTION_CLOSED', `${entry.label} 在此电脑唤醒后未响应。`, { retryable: true }));"
+  ],
+  [
+    "                title: 'Choose an SSH config file',",
+    "                title: '选择 SSH 配置文件',"
+  ],
+  [
+    "                    refusal = {\n                        message: `${name} can't be the SSH config file`,\n                        detail: err.message,\n                    };",
+    "                    refusal = {\n                        message: `${name} 不能用作 SSH 配置文件`,\n                        detail: err.message,\n                    };"
+  ],
+  [
+    "                title: 'Choose another SSH config file',\n                ...refusal,\n                buttons: ['Choose Another File…', 'Cancel'],",
+    "                title: '选择另一个 SSH 配置文件',\n                ...refusal,\n                buttons: ['选择其他文件…', '取消'],"
+  ],
+  [
+    "                title: 'SSH connection failed',",
+    "                title: 'SSH 连接失败',"
+  ],
+  [
+    "                title: 'Could not restart the SSH server',\n                message: `${entry.label} still runs Antigravity server ${running}.`,",
+    "                title: '无法重启 SSH 服务器',\n                message: `${entry.label} 仍在运行 Antigravity 服务器 ${running}。`,"
+  ],
+  [
+    "                    buttons: ['Stop Server', 'Cancel'],\n                    defaultId: 1,\n                    cancelId: 1,\n                    title: 'Stop SSH server',\n                    message: `Stop the Antigravity server on ${entry.label}?`,\n                    detail: 'Agents running on this host will stop and its window will close. ' +\n                        'The server starts again the next time you connect.',",
+    "                    buttons: ['停止服务器', '取消'],\n                    defaultId: 1,\n                    cancelId: 1,\n                    title: '停止 SSH 服务器',\n                    message: `要停止 ${entry.label} 上的 Antigravity 服务器吗？`,\n                    detail: '此主机上运行的智能体将停止，对应窗口也将关闭。' +\n                        '下次连接时将重新启动该服务器。',"
+  ],
+  [
+    "this.reportError(err, entry.label, 'Could not stop the SSH server', win);",
+    "this.reportError(err, entry.label, '无法停止 SSH 服务器', win);"
+  ],
+  [
+    "            title: 'Stop SSH server',\n            message: `Not connected to ${label}`,\n            detail: 'Reconnect first, then stop its server.',",
+    "            title: '停止 SSH 服务器',\n            message: `未连接到 ${label}`,\n            detail: '请先重新连接，然后再停止其服务器。',"
+  ],
+  [
+    "            buttons: ['Allow', \"Don't Allow\"],\n            // The host decides when this shows: a Return meant for it mustn't allow.\n            defaultId: 1,\n            cancelId: 1,\n            noLink: true,\n            title: 'Microphone access',\n            message: `Allow ${label} to use your microphone?`,\n            detail: `The page in this window comes from ${label}. If you allow it, that ` +\n                \"host can use this computer's microphone for voice whenever one of \" +\n                'its windows is open. Antigravity asks again after you quit it.',",
+    "            buttons: ['允许', '不允许'],\n            // The host decides when this shows: a Return meant for it mustn't allow.\n            defaultId: 1,\n            cancelId: 1,\n            noLink: true,\n            title: '麦克风权限',\n            message: `允许 ${label} 使用你的麦克风吗？`,\n            detail: `此窗口中的页面来自 ${label}。如果允许，只要它的任一窗口处于打开状态，` +\n                '该主机就可以使用这台电脑的麦克风进行语音交互。退出 Antigravity 后会再次询问。',"
+  ],
+  [
+    "            buttons: ['Sign In', 'Cancel'],\n            // The host decides when this shows: a Return meant for it mustn't accept.\n            defaultId: 1,\n            cancelId: 1,\n            title: 'Sign in',\n            message: `Sign in to your organization for ${entry.label}?`,\n            detail: 'Continue only if you just chose to sign in with your organization ' +\n                `in this window. ${entry.label} will get access to your ` +\n                \"organization's Google Cloud account.\\n\" +\n                (names\n                    ? `Workforce pool: ${names[1]}  Provider: ${names[2]}`\n                    : `Identity provider: ${provider}`),",
+    "            buttons: ['登录', '取消'],\n            // The host decides when this shows: a Return meant for it mustn't accept.\n            defaultId: 1,\n            cancelId: 1,\n            title: '登录',\n            message: `要为 ${entry.label} 登录你的组织账号吗？`,\n            detail: '仅当你刚刚在此窗口中主动选择使用组织账号登录时才继续。' +\n                `${entry.label} 将获得你的组织的 Google Cloud 账号访问权限。\\n` +\n                (names\n                    ? `Workforce 池：${names[1]}  提供方：${names[2]}`\n                    : `身份提供方：${provider}`),"
+  ],
+  [
+    "            buttons: ['Continue', 'Cancel'],\n            // The host decides when this shows: a Return meant for it mustn't accept.\n            defaultId: 1,\n            cancelId: 1,\n            title: 'Sign in',\n            message: `Finish this sign-in on ${entry.label}?`,\n            detail: `Continue only if you just chose to sign in from the ${entry.label} ` +\n                'window. Your browser opens the sign-in page; once you sign in, ' +\n                `${entry.label} gets access to that account.\\n` +\n                `Sign-in page: ${(0, types_1.sanitizeRemoteText)(new URL(origin).host, 200)}`,",
+    "            buttons: ['继续', '取消'],\n            // The host decides when this shows: a Return meant for it mustn't accept.\n            defaultId: 1,\n            cancelId: 1,\n            title: '登录',\n            message: `要在 ${entry.label} 上完成此登录吗？`,\n            detail: `仅当你刚刚从 ${entry.label} 窗口中选择登录时才继续。` +\n                '你的浏览器将打开登录页面；登录完成后，' +\n                `${entry.label} 将获得该账号的访问权限。\\n` +\n                `登录页面：${(0, types_1.sanitizeRemoteText)(new URL(origin).host, 200)}`,"
+  ],
+  [
+    "        buttons: ['Take Over', 'Cancel'],\n        defaultId: 1,\n        cancelId: 1,\n        title: 'Shared home directory',\n        message: own\n            ? `This window's Antigravity server runs on ${host}, another machine that shares your home directory.`\n            : live\n                ? `Your Antigravity server runs on ${host}, another machine that shares your home directory.`\n                : `${host}, another machine that shares your home directory, started your Antigravity server.`,\n        detail: own\n            ? `${label} reached ${here} this time. Cancel and reconnect to try again for ${host}, or take over to stop the server on ${host}, and its agents, and run it on ${here} instead.`\n            : live\n                ? `${label} reached ${here}. Take over to stop the server on ${host}, and its agents, and run it on ${here} instead. To keep it running, connect to ${host}.`\n                : `${label} reached ${here}. Take over only if that server no longer runs, for example if ${host} was shut down or replaced: if it still runs, both servers would write the same files. To check, connect to ${host}.`,",
+    "        buttons: ['接管', '取消'],\n        defaultId: 1,\n        cancelId: 1,\n        title: '共享主目录',\n        message: own\n            ? `此窗口的 Antigravity 服务器正在 ${host} 上运行（该机器与当前主机共享你的主目录）。`\n            : live\n                ? `你的 Antigravity 服务器正在 ${host} 上运行（该机器与当前主机共享你的主目录）。`\n                : `${host}（与当前主机共享你的主目录）启动了你的 Antigravity 服务器。`,\n        detail: own\n            ? `${label} 本次连接到了 ${here}。你可以取消并重新连接以再次尝试连接 ${host}，或选择“接管”来停止 ${host} 上的服务器及智能体，并改在 ${here} 上运行。`\n            : live\n                ? `${label} 连接到了 ${here}。选择“接管”将停止 ${host} 上的服务器及智能体，并改在 ${here} 上运行。如需保持其运行，请连接到 ${host}。`\n                : `${label} 连接到了 ${here}。仅当确认原服务器已不再运行（例如 ${host} 已关机或被替换）时才应选择“接管”；若其仍在运行，两台服务器将同时写入同一份文件。如需确认，请连接到 ${host}。`,"
+  ],
+  [
+    "    const what = terminals === 0 ? 'agent or task' : 'agent, task or terminal';\n    return {\n        type: 'question',\n        buttons: ['Restart', 'Later'],\n        // Shows by itself: a Return meant for the page mustn't restart.\n        defaultId: 1,\n        cancelId: 1,\n        title: 'Restart SSH server',\n        message: `${label} is running server ${running}; this app is ${expected}. Restart the server now?`,\n        detail: `Any ${what} still running on it stops. The server starts again with this app's version.`,\n    };",
+    "    const what = terminals === 0 ? '智能体或任务' : '智能体、任务或终端';\n    return {\n        type: 'question',\n        buttons: ['重启', '稍后'],\n        // Shows by itself: a Return meant for the page mustn't restart.\n        defaultId: 1,\n        cancelId: 1,\n        title: '重启 SSH 服务器',\n        message: `${label} 正在运行服务器 ${running}，当前应用版本为 ${expected}。是否立即重启服务器？`,\n        detail: `其上仍在运行的任何${what}都将停止，随后将使用当前应用版本重新启动服务器。`,\n    };"
+  ],
+  [
+    "this.reportError(err, entry.label, 'Sign-in failed', win);",
+    "this.reportError(err, entry.label, '登录失败', win);"
+  ]
+]

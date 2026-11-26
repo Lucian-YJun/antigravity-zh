@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-08T09:19:13.423Z",
+  "generatedAt": "2026-11-25T06:03:49.081Z",
   "source": {
     "bundle": "C:\\Users\\35332\\.gemini\\antigravity\\brain\\008f16c3-08fc-461a-afe6-25eb0b08548e\\scratch\\findings\\frontend-bundle.json",
     "crosscheck": "C:\\Users\\35332\\.gemini\\antigravity\\brain\\008f16c3-08fc-461a-afe6-25eb0b08548e\\scratch\\findings\\crosscheck-sets.json",
@@ -8,13 +8,13 @@
   },
   "counts": {
     "total": 651,
-    "ACCEPT": 647,
+    "ACCEPT": 648,
     "REJECT": 1,
-    "REVIEW": 3,
+    "REVIEW": 2,
     "categories": 16,
     "manualBaseline": 651,
-    "manualAfter": 3,
-    "reduction": 648
+    "manualAfter": 2,
+    "reduction": 649
   },
   "items": [
     {
@@ -17306,16 +17306,14 @@
         "strongUiKey": null,
         "weakUiKey": null,
         "shapePrefix": null,
-        "normCovered": false,
-        "exactDict": false,
+        "normCovered": true,
+        "exactDict": true,
         "brandStandalone": false,
         "exampleData": false
       },
-      "state": "REVIEW",
+      "state": "ACCEPT",
       "reasons": [
-        "缺少 UI 键名上下文：bundle 只给出裸字符串，无法证明是固定界面文案还是拼接片段/示例数据",
-        "疑似句子片段（以介词/逗号/省略号结尾或含插值），可能不适合逐字入库",
-        "长句且无键名上下文：可能是说明文字，也可能是截断/拼接的模板，需要人确认边界"
+        "当前 dict 已按 exact / normKey 覆盖同形文案，属既有界面文案形态"
       ],
       "checked": false
     },

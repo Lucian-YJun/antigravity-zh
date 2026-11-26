@@ -1,0 +1,22 @@
+[
+  [
+    "    return `Error code: ${err.code}\\nLogs: ${logPath()}`;",
+    "    return `错误代码：${err.code}\\n日志：${logPath()}`;"
+  ],
+  [
+    "    return err.reportedByRemote ? `${label} reported: ${text}` : text;",
+    "    return err.reportedByRemote ? `${label} 报告：${text}` : text;"
+  ],
+  [
+    "            : 'The connection was closed before it finished.';",
+    "            : '连接在完成前已被关闭。';"
+  ],
+  [
+    "        return `Windows SSH hosts aren't supported yet. ${sshArgs_1.LINUX_HOST_NEEDED}`;",
+    "        return `暂不支持 Windows SSH 主机。${sshArgs_1.LINUX_HOST_NEEDED}`;"
+  ],
+  [
+    "    return pointsToLog ? `${text}\\nLogs: ${logPath()}` : text;",
+    "    return pointsToLog ? `${text}\\n日志：${logPath()}` : text;"
+  ]
+]

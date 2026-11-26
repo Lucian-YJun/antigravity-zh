@@ -1,0 +1,18 @@
+[
+  [
+    "const KIND_NOUNS = {\n    hid: 'HID device',\n    usb: 'USB device',\n    serial: 'serial port',\n};",
+    "const KIND_NOUNS = {\n    hid: 'HID 设备',\n    usb: 'USB 设备',\n    serial: '串口设备',\n};"
+  ],
+  [
+    "label: `${d.name?.trim() || 'Unknown device'} (${hex4(d.vendorId)}:${hex4(d.productId)})`,",
+    "label: `${d.name?.trim() || '未知设备'} (${hex4(d.vendorId)}:${hex4(d.productId)})`,"
+  ],
+  [
+    "label: `${d.productName ?? 'Unknown device'} (${hex4(d.vendorId)}:${hex4(d.productId)})`,",
+    "label: `${d.productName ?? '未知设备'} (${hex4(d.vendorId)}:${hex4(d.productId)})`,"
+  ],
+  [
+    "                        title: 'Connect a device',\n                        message: `${origin} wants to connect to a ${KIND_NOUNS[kind]}`,\n                        detail: cancelId\n                            ? 'Select a device:'\n                            : 'No compatible devices found.',\n                        buttons: [...snapshot.map(({ label }) => label), 'Cancel'],",
+    "                        title: '连接设备',\n                        message: `${origin} 想要连接到 ${KIND_NOUNS[kind]}`,\n                        detail: cancelId\n                            ? '请选择设备：'\n                            : '未找到兼容的设备。',\n                        buttons: [...snapshot.map(({ label }) => label), '取消'],"
+  ]
+]

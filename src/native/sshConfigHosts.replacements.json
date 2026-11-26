@@ -1,0 +1,58 @@
+[
+  [
+    "const invalid = (problem) => new types_1.RemoteError('INVALID_DESTINATION', `The SSH config file ${problem}`, {",
+    "const invalid = (problem) => new types_1.RemoteError('INVALID_DESTINATION', `SSH 配置文件 ${problem}`, {"
+  ],
+  [
+    "throw invalid(`${shown} isn't a file.`);",
+    "throw invalid(`${shown} 不是有效文件。`);"
+  ],
+  [
+    "throw invalid(`${shown} can be changed by others: it must be yours or root's, and not group- or world-writable.`);",
+    "throw invalid(`${shown} 可被其他用户修改：所有者必须为你本人或 root，且不能对组或其他用户可写。`);"
+  ],
+  [
+    "const NOT_CONFIG = \"isn't an SSH config file\";\nconst CHOOSE_CONFIG = 'Choose a file of ssh settings, such as ~/.ssh/config.';\nconst UNREADABLE = \"is saved in a way ssh can't read\";\nconst SAVE_AS_UTF8 = 'Save it as UTF-8 without a byte-order mark.';",
+    "const NOT_CONFIG = '不是 SSH 配置文件';\nconst CHOOSE_CONFIG = '请选择包含 ssh 设置的文件，例如 ~/.ssh/config。';\nconst UNREADABLE = '的保存格式无法被 ssh 读取';\nconst SAVE_AS_UTF8 = '请将其保存为无 BOM 的 UTF-8 编码。';"
+  ],
+  [
+    "const BINARY = notConfig(\"it's a binary file\");\nconst KEY = notConfig('it holds a key or certificate');\nconst PUBLIC_KEYS = notConfig('it holds SSH public keys, like a .pub or authorized_keys file');\nconst HOST_KEYS = notConfig('it lists SSH host keys, like known_hosts');",
+    "const BINARY = notConfig('它是一个二进制文件');\nconst KEY = notConfig('它包含密钥或证书');\nconst PUBLIC_KEYS = notConfig('它包含 SSH 公钥，类似 .pub 或 authorized_keys 文件');\nconst HOST_KEYS = notConfig('它包含 SSH 主机密钥列表，类似 known_hosts 文件');"
+  ],
+  [
+    "    why: 'it starts with a byte-order mark',",
+    "    why: '它包含字节顺序标记（BOM）',"
+  ],
+  [
+    "    why: \"it's saved as UTF-16\",",
+    "    why: '它以 UTF-16 编码保存',"
+  ],
+  [
+    "function describeSshConfigProblem(file, { what, why, fix }) {\n    return `${file} ${what}: ${why}. ${fix}`;\n}",
+    "function describeSshConfigProblem(file, { what, why, fix }) {\n    return `${file} ${what}：${why}。${fix}`;\n}"
+  ],
+  [
+    "throw invalid('must be a path on one line.');",
+    "throw invalid('必须是单行路径。');"
+  ],
+  [
+    "throw invalid(`must be an absolute path (got ${shown}).`);",
+    "throw invalid(`必须是绝对路径（收到 ${shown}）。`);"
+  ],
+  [
+    "throw invalid(`must be on one of this computer's drives (got ${shown}).`);",
+    "throw invalid(`必须位于本机驱动器上（收到 ${shown}）。`);"
+  ],
+  [
+    "throw invalid(`can't be on a network share (${shown}).`);",
+    "throw invalid(`不能位于网络共享路径上（${shown}）。`);"
+  ],
+  [
+    "? invalid(`${shown} is now a link: choose the file again.`)",
+    "? invalid(`${shown} 现在是一个链接：请重新选择该文件。`)"
+  ],
+  [
+    "throw invalid(`${shown} is over 4 MiB.`);",
+    "throw invalid(`${shown} 超过 4 MiB。`);"
+  ]
+]

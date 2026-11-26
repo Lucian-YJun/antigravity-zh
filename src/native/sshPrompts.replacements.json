@@ -1,0 +1,82 @@
+[
+  [
+    "const TOUCH_TITLE = 'Touch your security key';",
+    "const TOUCH_TITLE = '请轻触你的安全密钥';"
+  ],
+  [
+    "        (who) => (isAccount(who) ? ['Password', who] : undefined),",
+    "        (who) => (isAccount(who) ? ['密码', who] : undefined),"
+  ],
+  [
+    "        (who) => (isAccount(who) ? ['Current password', who] : undefined),",
+    "        (who) => (isAccount(who) ? ['当前密码', who] : undefined),"
+  ],
+  [
+    "        (who) => (isAccount(who) ? ['New password', who] : undefined),",
+    "        (who) => (isAccount(who) ? ['新密码', who] : undefined),"
+  ],
+  [
+    "        (who) => (isAccount(who) ? ['Confirm new password', who] : undefined),",
+    "        (who) => (isAccount(who) ? ['确认新密码', who] : undefined),"
+  ],
+  [
+    "    [\"Enter passphrase for key '\", \"':\", (key) => ['Passphrase', baseName(key)]],",
+    "    [\"Enter passphrase for key '\", \"':\", (key) => ['密钥口令', baseName(key)]],"
+  ],
+  [
+    "            if (what.length > 2 && what.startsWith(\"'\") && what.endsWith(\"'\")) {\n                return ['PIN', what.slice(1, -1)];\n            }\n            // A FIDO key's type and file.\n            const key = what.indexOf(' key ');\n            return key < 0 ? undefined : ['PIN', baseName(what.slice(key + 5))];",
+    "            if (what.length > 2 && what.startsWith(\"'\") && what.endsWith(\"'\")) {\n                return ['PIN 码', what.slice(1, -1)];\n            }\n            // A FIDO key's type and file.\n            const key = what.indexOf(' key ');\n            return key < 0 ? undefined : ['PIN 码', baseName(what.slice(key + 5))];"
+  ],
+  [
+    "        return host && hostPromptsMarked\n            ? `Trust ${hostName(host.split(' (')[0])}?`\n            : undefined;",
+    "        return host && hostPromptsMarked\n            ? `信任 ${hostName(host.split(' (')[0])} 吗？`\n            : undefined;"
+  ],
+  [
+    "        return host && hostPromptsMarked\n            ? `Connect to ${hostName(host)} anyway?`\n            : undefined;",
+    "        return host && hostPromptsMarked\n            ? `仍要连接到 ${hostName(host)} 吗？`\n            : undefined;"
+  ],
+  [
+    "    if (text.startsWith('Accept updated hostkeys?')) {\n        return 'Accept updated host keys?';\n    }",
+    "    if (text.startsWith('Accept updated hostkeys?')) {\n        return '接受更新后的主机密钥吗？';\n    }"
+  ],
+  [
+    "return key ? `Add ${baseName(key.split(' (')[0])} to ssh-agent?` : undefined;",
+    "return key ? `将 ${baseName(key.split(' (')[0])} 添加到 ssh-agent 吗？` : undefined;"
+  ],
+  [
+    "    if (kind === 'confirm') {\n        return `Question from ${who}`;\n    }\n    if (CODE_WORDS.test(text)) {\n        return `Verification code for ${who}`;\n    }\n    if (/password/i.test(text)) {\n        return `Password for ${who}`;\n    }\n    return /\\bpin\\b/i.test(text) ? `PIN for ${who}` : `Sign in to ${who}`;",
+    "    if (kind === 'confirm') {\n        return `来自 ${who} 的提问`;\n    }\n    if (CODE_WORDS.test(text)) {\n        return `${who} 的验证码`;\n    }\n    if (/password/i.test(text)) {\n        return `${who} 的密码`;\n    }\n    return /\\bpin\\b/i.test(text) ? `${who} 的 PIN 码` : `登录到 ${who}`;"
+  ],
+  [
+    "        title = asked\n            ? `${asked[0]} for ${hostPromptsMarked ? asked[1] : label}`\n            : wordedTitle(kind, text, label);",
+    "        title = asked\n            ? `${hostPromptsMarked ? asked[1] : label} 的${asked[0]}`\n            : wordedTitle(kind, text, label);"
+  ],
+  [
+    "<html lang=\"en\"${dark ? ' class=\"dark\"' : ''}>",
+    "<html lang=\"zh-CN\"${dark ? ' class=\"dark\"' : ''}>"
+  ],
+  [
+    "<p class=\"context\">Connecting to <span id=\"label\"></span></p>",
+    "<p class=\"context\">正在连接到 <span id=\"label\"></span></p>"
+  ],
+  [
+    "<div id=\"retry\" class=\"note\" hidden>Asked again: your last answer may not have worked.</div>",
+    "<div id=\"retry\" class=\"note\" hidden>再次询问：你上一次的输入可能未生效。</div>"
+  ],
+  [
+    "<div id=\"long\" class=\"note\" role=\"alert\" hidden>That's too long.</div>",
+    "<div id=\"long\" class=\"note\" role=\"alert\" hidden>输入内容过长。</div>"
+  ],
+  [
+    "<div class=\"buttons\"><button id=\"cancel\" class=\"secondary\">Cancel</button><button id=\"continue\" class=\"primary\">Continue</button></div>",
+    "<div class=\"buttons\"><button id=\"cancel\" class=\"secondary\">取消</button><button id=\"continue\" class=\"primary\">继续</button></div>"
+  ],
+  [
+    "            buttons: confirm ? ['Yes', 'No'] : ['Cancel'],",
+    "            buttons: confirm ? ['是', '否'] : ['取消'],"
+  ],
+  [
+    "reject(new Error(\"The ssh prompt window didn't load.\"));",
+    "reject(new Error('SSH 提示窗口未能加载。'));"
+  ]
+]

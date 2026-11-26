@@ -1,5 +1,17 @@
 [
   [
+    "error: `This folder belongs to the WSL distro \"${unc[1]}\", but this window is connected to \"${distro}\".`,",
+    "error: `此文件夹属于 WSL 发行版 \"${unc[1]}\"，但当前窗口已连接到 \"${distro}\"。`,"
+  ],
+  [
+    "warning: 'This folder is on the Windows filesystem. Accessing it from WSL (via /mnt) can be slow — for best performance keep projects inside the WSL filesystem.',",
+    "warning: '此文件夹位于 Windows 文件系统中。从 WSL（通过 /mnt）访问可能会较慢——为获得最佳性能，请将项目保存在 WSL 文件系统内。',"
+  ],
+  [
+    "return { error: `This location cannot be opened in WSL: ${winPath}` };",
+    "return { error: `无法在 WSL 中打开此位置：${winPath}` };"
+  ],
+  [
     "onStatus?.('Downloading the Antigravity binary\\u2026');",
     "onStatus?.('正在下载 Antigravity 可执行文件\\u2026');"
   ],
